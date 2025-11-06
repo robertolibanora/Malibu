@@ -1,0 +1,42 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Gestione Evento Attivo{% endblock %}
+{% block admin_content %}
+<section class="card">
+    <div class="card__header">
+      <h1 class="card__title">Gestione Evento Attivo</h1>
+      {% if evento_attivo %}
+        <span class="badge">Attuale: {{ evento_attivo.nome_evento }} — {{ evento_attivo.data_evento }}</span>
+      {% else %}
+        <span class="badge badge--warning">Nessun evento attivo</span>
+      {% endif %}
+    </div>
+
+    <div class="card__content">
+      <form class="form" method="post" action="{{ url_for('staff_admin.set_active_post') }}">
+        <div class="form__group">
+          <label class="form__label" for="evento_id">Seleziona evento da attivare</label>
+          <select class="form__input" id="evento_id" name="evento_id" required>
+            <option value="">— Scegli un evento —</option>
+            {% for ev in eventi %}
+              <option value="{{ ev.id_evento }}">
+                {{ ev.data_evento }} — {{ ev.nome_evento }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__actions">
+          <button class="btn btn--primary" type="submit">Imposta evento attivo</button>
+        </div>
+      </form>
+
+      <hr class="divider" />
+
+      <form class="form" method="post" action="{{ url_for('staff_admin.close_active') }}">
+        <div class="form__actions">
+          <button class="btn btn--danger" type="submit">Chiudi evento attivo</button>
+          <a class="btn btn--ghost" href="{{ url_for('staff.dashboard') }}">Torna a dashboard staff</a>
+        </div>
+      </form>
+    </div>
+</section>
+{% endblock %}

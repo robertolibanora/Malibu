@@ -1,0 +1,44 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Analytics Consumi • {{ e.nome_evento }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Analytics — {{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }}</div>
+  <ul class="list">
+    <li class="list__item">Totale incassato: <strong>€ {{ '%.2f'|format(totale) }}</strong></li>
+    <li class="list__item">Scontrino medio per cliente: <strong>€ {{ '%.2f'|format(scontrino_medio) }}</strong></li>
+    <li class="list__item">Per prodotto:
+      <ul class="list">
+        {% for nome, euro in per_prodotto.items() %}
+        <li class="list__item">{{ nome }} — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li class="list__item">Per punto vendita:
+      <ul class="list">
+        {% for pv, euro in per_punto.items() %}
+        <li class="list__item">{{ pv|capitalize }} — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li class="list__item">Per staff:
+      <ul class="list">
+        {% for sid, euro in per_staff.items() %}
+        <li class="list__item">ID Staff {{ sid or '—' }} — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
+        {% endfor %}
+      </ul>
+    </li>
+    <li class="list__item">Top spender (top 10):
+      <ul class="list">
+        {% for cli, euro in top_spender %}
+        <li class="list__item">{{ cli.cognome }} {{ cli.nome }} — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
+        {% endfor %}
+      </ul>
+    </li>
+  </ul>
+  <div class="form__actions">
+    <a class="btn btn--ghost" href="{{ url_for('consumi.admin_list') }}">Torna</a>
+  </div>
+</section>
+{% endblock %}

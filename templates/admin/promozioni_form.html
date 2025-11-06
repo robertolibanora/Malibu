@@ -1,0 +1,100 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if p else 'Nuova' }} Promozione{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if p else 'Nuova' }} Promozione</h1>
+  
+  <form class="form" method="post">
+    <div class="form__group">
+      <label class="form__label" for="nome">Nome *</label>
+      <input class="form__input" type="text" id="nome" name="nome" value="{{ p.nome if p else '' }}" required placeholder="Es. Benvenuto 10%">
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="descrizione">Descrizione</label>
+      <textarea class="form__input" id="descrizione" name="descrizione" rows="3" placeholder="Descrizione dettagliata della promozione...">{{ p.descrizione if p else '' }}</textarea>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label" for="tipo">Tipo *</label>
+        <select class="form__input" id="tipo" name="tipo" required>
+          <option value="sconto_percentuale" {% if p and p.tipo=='sconto_percentuale' %}selected{% endif %}>Sconto Percentuale</option>
+          <option value="sconto_fisso" {% if p and p.tipo=='sconto_fisso' %}selected{% endif %}>Sconto Fisso</option>
+          <option value="omaggio" {% if p and p.tipo=='omaggio' %}selected{% endif %}>Omaggio</option>
+          <option value="ingresso_gratis" {% if p and p.tipo=='ingresso_gratis' %}selected{% endif %}>Ingresso Gratis</option>
+          <option value="consumo_gratis" {% if p and p.tipo=='consumo_gratis' %}selected{% endif %}>Consumo Gratis</option>
+          <option value="altro" {% if p and p.tipo=='altro' %}selected{% endif %}>Altro</option>
+        </select>
+      </div>
+
+      <div class="form__group">
+        <label class="form__label" for="valore">Valore</label>
+        <input class="form__input" type="number" id="valore" name="valore" step="0.01" value="{{ p.valore if p and p.valore else '' }}" placeholder="Es. 10 (per 10% o €10)">
+        <small>Percentuale per sconto percentuale, importo per sconto fisso</small>
+      </div>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="condizioni">Condizioni</label>
+      <textarea class="form__input" id="condizioni" name="condizioni" rows="2" placeholder="Condizioni per ottenere la promozione...">{{ p.condizioni if p else '' }}</textarea>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label" for="data_inizio">Data Inizio</label>
+        <input class="form__input" type="date" id="data_inizio" name="data_inizio" value="{{ p.data_inizio if p and p.data_inizio else '' }}">
+      </div>
+
+      <div class="form__group">
+        <label class="form__label" for="data_fine">Data Fine</label>
+        <input class="form__input" type="date" id="data_fine" name="data_fine" value="{{ p.data_fine if p and p.data_fine else '' }}">
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label" for="livello_richiesto">Livello Richiesto</label>
+        <select class="form__input" id="livello_richiesto" name="livello_richiesto">
+          <option value="">Nessuno</option>
+          <option value="base" {% if p and p.livello_richiesto=='base' %}selected{% endif %}>Base</option>
+          <option value="loyal" {% if p and p.livello_richiesto=='loyal' %}selected{% endif %}>Loyal</option>
+          <option value="premium" {% if p and p.livello_richiesto=='premium' %}selected{% endif %}>Premium</option>
+          <option value="vip" {% if p and p.livello_richiesto=='vip' %}selected{% endif %}>VIP</option>
+        </select>
+      </div>
+
+      <div class="form__group">
+        <label class="form__label" for="punti_richiesti">Punti Richiesti</label>
+        <input class="form__input" type="number" id="punti_richiesti" name="punti_richiesti" min="0" value="{{ p.punti_richiesti if p and p.punti_richiesti else '' }}" placeholder="Punti minimi">
+      </div>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">
+        <input type="checkbox" name="attiva" {% if not p or p.attiva %}checked{% endif %}>
+        Promozione attiva
+      </label>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">
+        <input type="checkbox" name="auto_assegnazione" {% if p and p.auto_assegnazione %}checked{% endif %}>
+        Assegnazione automatica alla registrazione
+      </label>
+      <small>Se attivata, la promozione viene assegnata automaticamente ai nuovi clienti che soddisfano le condizioni</small>
+    </div>
+
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">{{ 'Salva modifiche' if p else 'Crea promozione' }}</button>
+      {% if p %}
+      <a href="{{ url_for('promozioni.admin_promozione_detail', promozione_id=p.id_promozione) }}" class="btn btn--secondary">Annulla</a>
+      {% else %}
+      <a href="{{ url_for('promozioni.admin_list') }}" class="btn btn--secondary">Annulla</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}
+

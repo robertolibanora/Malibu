@@ -1,0 +1,25 @@
+{% extends "shared/base.html" %}
+{% block title %}{{ e.nome_evento }} - Malibù{% endblock %}
+
+{% block content %}
+<article class="card">
+  {% if e.cover_url %}
+    <img src="{{ e.cover_url }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">
+  {% endif %}
+  <h1 class="card__title">{{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+  {% if e.dj_artista %}<p class="text--muted">DJ: {{ e.dj_artista }}</p>{% endif %}
+  {% if e.promozione %}<p class="text--muted">Promo: {{ e.promozione }}</p>{% endif %}
+
+  <div class="form__actions">
+    <a class="btn btn--secondary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
+    <button class="btn btn--ghost" type="button" onclick="copyLink(window.location.href)">Condividi</button>
+  </div>
+</article>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLink(url){ navigator.clipboard.writeText(url).then(()=>alert('Link copiato')); }
+</script>
+{% endblock %}

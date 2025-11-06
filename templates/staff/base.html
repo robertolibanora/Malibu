@@ -1,0 +1,25 @@
+{% extends "shared/base.html" %}
+{% block title %}{% block staff_title %}Staff{% endblock %} - Malibù{% endblock %}
+
+{% block body_class %}staff-section{% endblock %}
+
+{% block extra_head %}
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css') }}">
+{% endblock %}
+
+{% block header_meta %}
+  <nav class="staff-nav">
+    <a href="{{ url_for('staff.dashboard') }}">Dashboard</a>
+    <a href="{{ url_for('eventi.staff_select_event') }}">Eventi</a>
+    <a href="{{ url_for('ingressi.staff_scan') }}">Ingressi</a>
+    <a href="{{ url_for('consumi.staff_new') }}">Consumi</a>
+    <a href="{{ url_for('eventi.staff_select_event') }}">Prenotazioni</a>
+    <a href="{{ url_for('fedelta.staff_quick') }}">Fedeltà</a>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  {% block staff_content %}{% endblock %}
+{% endblock %}
+

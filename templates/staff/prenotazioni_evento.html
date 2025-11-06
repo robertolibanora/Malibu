@@ -1,0 +1,26 @@
+{% extends "shared/base.html" %}
+{% block title %}Prenotazioni — {{ e.nome_evento }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">{{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }}</div>
+</section>
+
+<section class="list">
+  {% for p in prenotazioni %}
+  <article class="card list__item">
+    <div class="card__title">{{ p.cliente.nome }} {{ p.cliente.cognome }}</div>
+    <div class="card__meta">{{ p.tipo|capitalize }} • Stato: {{ p.stato }}</div>
+    {% if p.tipo == 'tavolo' and p.num_persone %}
+      <div class="text--muted">Persone: {{ p.num_persone }}</div>
+    {% endif %}
+    {% if p.note %}
+      <div class="text--muted">Note: {{ p.note }}</div>
+    {% endif %}
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessuna prenotazione.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

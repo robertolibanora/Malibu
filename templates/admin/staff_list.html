@@ -1,0 +1,73 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Staff{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">Gestione Staff</h1>
+  
+  <div class="form__actions" style="margin-bottom: 1rem;">
+    <a href="{{ url_for('staff_admin.admin_new') }}" class="btn btn--primary">Nuovo Staff</a>
+  </div>
+
+  <form class="form" method="get">
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Ruolo</label>
+        <select class="form__input" name="ruolo">
+          <option value="">Tutti</option>
+          <option value="admin" {% if filtro.ruolo=='admin' %}selected{% endif %}>Admin</option>
+          <option value="staff" {% if filtro.ruolo=='staff' %}selected{% endif %}>Staff</option>
+          <option value="barista" {% if filtro.ruolo=='barista' %}selected{% endif %}>Barista</option>
+          <option value="cassa" {% if filtro.ruolo=='cassa' %}selected{% endif %}>Cassa</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Stato</label>
+        <select class="form__input" name="attivo">
+          <option value="">Tutti</option>
+          <option value="true" {% if filtro.attivo=='true' %}selected{% endif %}>Attivi</option>
+          <option value="false" {% if filtro.attivo=='false' %}selected{% endif %}>Disattivi</option>
+        </select>
+      </div>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--secondary">Filtra</button>
+    </div>
+  </form>
+</section>
+
+<section class="list">
+  {% for s in staff_list %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <strong>{{ s.nome }}</strong>
+        <span class="badge badge--{{ 'success' if s.attivo else 'secondary' }}">
+          {{ s.ruolo|capitalize }}
+        </span>
+        {% if not s.attivo %}
+        <span class="badge badge--secondary">Disattivo</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card__meta">Username: {{ s.username }} • ID: {{ s.id_staff }}</div>
+    
+    <div class="form__actions">
+      <a href="{{ url_for('staff_admin.admin_edit', staff_id=s.id_staff) }}" class="btn btn--primary">Modifica</a>
+      {% if s.attivo %}
+        <form method="post" action="{{ url_for('staff_admin.admin_delete', staff_id=s.id_staff) }}" style="display:inline" onsubmit="return confirm('Disattivare questo staff?');">
+          <button class="btn btn--danger">Disattiva</button>
+        </form>
+      {% else %}
+        <form method="post" action="{{ url_for('staff_admin.admin_activate', staff_id=s.id_staff) }}" style="display:inline">
+          <button class="btn btn--primary">Riattiva</button>
+        </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessuno staff trovato.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}
+

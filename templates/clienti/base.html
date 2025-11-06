@@ -1,0 +1,26 @@
+{% extends "shared/base.html" %}
+{% block title %}{% block cliente_title %}Cliente{% endblock %} - Malibù{% endblock %}
+
+{% block body_class %}cliente-section{% endblock %}
+
+{% block extra_head %}
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/clienti.css') }}">
+{% endblock %}
+
+{% block header_meta %}
+  <nav class="cliente-nav">
+    <a href="{{ url_for('clienti.area_personale') }}">Profilo</a>
+    <a href="{{ url_for('eventi.lista_pubblica') }}">Eventi</a>
+    <a href="{{ url_for('prenotazioni.mie') }}">Prenotazioni</a>
+    <a href="{{ url_for('ingressi.mie') }}">Ingressi</a>
+    <a href="{{ url_for('consumi.miei') }}">Consumi</a>
+    <a href="{{ url_for('fedelta.mio_dashboard') }}">Fedeltà</a>
+    <a href="{{ url_for('feedback.miei') }}">Feedback</a>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  {% block cliente_content %}{% endblock %}
+{% endblock %}
+

@@ -1,0 +1,74 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if e else 'Nuovo' }} Evento{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} evento</h1>
+  <form class="form" method="post" enctype="multipart/form-data">
+    <div class="form__group">
+      <label class="form__label">Nome evento</label>
+      <input class="form__input" name="nome_evento" value="{{ e.nome_evento if e else '' }}" required>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Data evento</label>
+      <input class="form__input" type="date" name="data_evento" value="{{ e.data_evento if e else '' }}" required>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Tipo musica</label>
+      <input class="form__input" name="tipo_musica" value="{{ e.tipo_musica if e else '' }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label">DJ / Artista</label>
+      <input class="form__input" name="dj_artista" value="{{ e.dj_artista if e else '' }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label">Promozione</label>
+      <input class="form__input" name="promozione" value="{{ e.promozione if e else '' }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label">Capienza max</label>
+      <input class="form__input" type="number" min="0" name="capienza_max" value="{{ e.capienza_max if e else 2000 }}" required>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Categoria</label>
+      <select class="form__input" name="categoria" required>
+        {% for c in CATEGORIES_PUBLIC %}
+          <option value="{{ c }}" {% if e and e.categoria==c %}selected{% endif %}>{{ c|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Stato</label>
+      <select class="form__input" name="stato" required>
+        <option value="attivo" {% if e and e.stato=='attivo' %}selected{% endif %}>Attivo</option>
+        <option value="chiuso" {% if e and e.stato=='chiuso' %}selected{% endif %}>Chiuso</option>
+      </select>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Immagine Copertina (JPG/PNG)</label>
+      <input class="form__input" type="file" name="cover_image" accept="image/jpeg,image/jpg,image/png">
+      {% if e and e.cover_url %}
+      <div style="margin-top: 1rem;">
+        <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="Cover evento" style="max-width: 300px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+        <div style="margin-top: 0.5rem;">
+          <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+            <input type="checkbox" name="remove_cover" value="1">
+            <span>Rimuovi immagine attuale</span>
+          </label>
+        </div>
+      </div>
+      {% endif %}
+      <small>Formati supportati: JPG, PNG (max 16MB)</small>
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary">{{ 'Salva' if e else 'Crea' }}</button>
+      {% if e %}
+      <a class="btn btn--ghost" href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}">Annulla</a>
+      {% else %}
+      <a class="btn btn--ghost" href="{{ url_for('eventi.admin_list') }}">Annulla</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "shared/base.html" %}
+{% block title %}Fedeltà — Quick Scan{% endblock %}
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Scanner QR</h1>
+  <div id="reader" style="width:100%;max-width:420px;margin:auto;"></div>
+  <form method="post" class="form" style="margin-top:1rem;">
+    <input type="hidden" name="qr" id="qr_hidden">
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Mostra Fedeltà</button>
+    </div>
+  </form>
+</section>
+
+{% if info %}
+<section class="card">
+  <h2 class="card__title">{{ info.cliente.cognome }} {{ info.cliente.nome }}</h2>
+  <div class="text--muted">Telefono: {{ info.cliente.telefono }}</div>
+  <p>Punti: <strong>{{ info.points }}</strong></p>
+  <p>Livello: <strong>{{ info.lvl|upper }}</strong></p>
+  {% if info.nxt %}<p class="text--muted">Mancano {{ info.to_go }} pt per {{ info.nxt|upper }}</p>{% endif %}
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  function handleDecoded(txt){ document.getElementById('qr_hidden').value = txt; }
+  if (window.Html5Qrcode){
+    const html5QrCode = new Html5Qrcode("reader");
+    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, handleDecoded)
+      .catch(()=>{ /* fallback: input hidden resta vuoto */ });
+  }
+});
+</script>
+{% endblock %}

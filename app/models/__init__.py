@@ -1,0 +1,13 @@
+from app.database import Base
+from app.models.clienti import Cliente
+from app.models.eventi import Evento
+from app.models.prenotazioni import Prenotazione
+from app.models.ingressi import Ingresso
+from app.models.consumi import Consumo
+from app.models.fedeltà import Fedelta
+from app.models.soglie_fedelta import SogliaFedelta
+from app.models.staff import Staff
+from app.models.feedback import Feedback
+from app.models.log_attivita import LogAttivita
+from app.models.prodotti import Prodotto
+from app.models.promozioni import Promozione, ClientePromozione

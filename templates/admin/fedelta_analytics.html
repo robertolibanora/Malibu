@@ -1,0 +1,49 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Analytics Fedeltà{% endblock %}
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Analytics Fedeltà</h1>
+  <form class="form" method="get">
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Dal</label>
+        <input class="form__input" type="date" name="dal" value="{{ dal or '' }}">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Al</label>
+        <input class="form__input" type="date" name="al" value="{{ al or '' }}">
+      </div>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary">Applica</button>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Top clienti</h2>
+  <ul class="list">
+    {% for c, pts in top %}
+    <li class="list__item">{{ c.cognome }} {{ c.nome }} — <strong>{{ pts }} pt</strong></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Distribuzione livelli</h2>
+  <ul class="list">
+    {% for lvl, count in dist.items() %}
+    <li class="list__item">{{ lvl|upper }} — <strong>{{ count }}</strong></li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Punti medi per evento</h2>
+  <ul class="list">
+    {% for ev_id, avgp in per_evento.items() %}
+    <li class="list__item">Evento #{{ ev_id }} — <strong>{{ '%.2f'|format(avgp) }}</strong> pt</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

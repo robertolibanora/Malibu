@@ -1,0 +1,45 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if e else 'Nuovo' }} Movimento{% endblock %}
+{% block content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} movimento manuale</h1>
+  <form class="form" method="post">
+    {% if not e %}
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Cliente</label>
+        <select class="form__input" name="cliente_id" required>
+          {% for c in clienti %}
+          <option value="{{ c.id_cliente }}">{{ c.cognome }} {{ c.nome }} — {{ c.telefono }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Evento</label>
+        <select class="form__input" name="evento_id" required>
+          {% for ev in eventi %}
+          <option value="{{ ev.id_evento }}">{{ ev.data_evento }} — {{ ev.nome_evento }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Punti</label>
+        <input class="form__input" type="number" name="punti" value="{{ e.punti if e else '' }}" required>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Motivo</label>
+        <input class="form__input" type="text" name="motivo" value="{{ e.motivo if e else '' }}" required>
+      </div>
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary">{{ 'Salva' if e else 'Crea' }}</button>
+      <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_list') }}">Annulla</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

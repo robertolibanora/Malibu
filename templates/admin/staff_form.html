@@ -1,0 +1,85 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if s else 'Nuovo' }} Staff{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if s else 'Nuovo' }} Staff</h1>
+  
+  <form class="form" method="post">
+    <div class="form__group">
+      <label class="form__label" for="nome">Nome *</label>
+      <input 
+        class="form__input" 
+        type="text" 
+        id="nome" 
+        name="nome" 
+        value="{{ s.nome if s else '' }}" 
+        required
+        placeholder="Es. Mario Rossi"
+      >
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="username">Username *</label>
+      <input 
+        class="form__input" 
+        type="text" 
+        id="username" 
+        name="username" 
+        value="{{ s.username if s else '' }}" 
+        required
+        placeholder="Es. mario.rossi"
+      >
+      <small class="text--muted">Username univoco per l'accesso</small>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="password">Password {{ ' (lascia vuoto per non modificare)' if s else '*' }}</label>
+      <input 
+        class="form__input" 
+        type="password" 
+        id="password" 
+        name="password" 
+        {{ 'placeholder="Lascia vuoto per non modificare"' if s else 'required' }}
+      >
+      {% if not s %}
+      <small class="text--muted">Minimo 6 caratteri</small>
+      {% endif %}
+    </div>
+
+    <div class="form__group">
+      <label class="form__label" for="ruolo">Ruolo *</label>
+      <select class="form__input" id="ruolo" name="ruolo" required>
+        <option value="staff" {% if s and s.ruolo=='staff' %}selected{% endif %}>Staff</option>
+        <option value="admin" {% if s and s.ruolo=='admin' %}selected{% endif %}>Admin</option>
+        <option value="barista" {% if s and s.ruolo=='barista' %}selected{% endif %}>Barista</option>
+        <option value="cassa" {% if s and s.ruolo=='cassa' %}selected{% endif %}>Cassa</option>
+      </select>
+      <small class="text--muted">
+        <strong>Admin:</strong> accesso completo • 
+        <strong>Staff:</strong> gestione ingressi/consumi • 
+        <strong>Barista:</strong> gestione consumi • 
+        <strong>Cassa:</strong> gestione pagamenti
+      </small>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">
+        <input 
+          type="checkbox" 
+          name="attivo" 
+          {% if not s or s.attivo %}checked{% endif %}
+        >
+        Account attivo
+      </label>
+      <small class="text--muted">Gli account disattivati non possono accedere</small>
+    </div>
+
+    <div class="form__actions">
+      <button type="submit" class="btn btn--primary">{{ 'Salva modifiche' if s else 'Crea staff' }}</button>
+      <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--secondary">Annulla</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+

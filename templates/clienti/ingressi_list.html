@@ -1,0 +1,20 @@
+{% extends "shared/base.html" %}
+{% block title %}I miei ingressi{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">I miei ingressi</h1>
+</section>
+
+<section class="list">
+  {% for i in ingressi %}
+  <article class="card list__item">
+    <div class="card__title">{{ i.evento.nome_evento }}</div>
+    <div class="card__meta">{{ i.orario_ingresso }} • {{ i.tipo_ingresso|capitalize }}</div>
+    {% if i.note %}<div class="text--muted">Note: {{ i.note }}</div>{% endif %}
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessun ingresso registrato.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

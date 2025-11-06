@@ -1,0 +1,92 @@
+{% extends "shared/base.html" %}
+{% block title %}Nuovo consumo{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Evento attivo</h1>
+  <div class="card__meta">{{ evento.data_evento }} — {{ evento.nome_evento }}</div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Scanner QR cliente</h2>
+  <div id="reader" style="width:100%; max-width:420px; margin:auto;"></div>
+  <form id="consumoForm" class="form" method="post" style="margin-top:1rem;">
+    <input type="hidden" name="qr" id="qr_hidden">
+
+    {% if prodotti and prodotti|length %}
+    <div class="form__group">
+      <label class="form__label">Prodotto da catalogo</label>
+      <select class="form__input" name="prodotto_id" id="prodotto_id">
+        <option value="">— Seleziona —</option>
+        {% for p in prodotti %}
+        <option value="{{ p.id_prodotto }}" data-prezzo="{{ p.prezzo }}">{{ p.nome }} — € {{ '%.2f'|format(p.prezzo) }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Prodotto (testo libero)</label>
+        <input class="form__input" type="text" name="prodotto" placeholder="Es. Vodka 1L">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Importo (€)</label>
+        <input class="form__input" type="number" step="0.01" name="importo" id="importo">
+      </div>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Sconto (%)</label>
+        <input class="form__input" type="number" step="1" name="sconto_pct" placeholder="0">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Punto vendita</label>
+        <select class="form__input" name="punto_vendita" required>
+          <option value="tavolo">Tavolo</option>
+          <option value="privè">Privè</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">Note (obbligatorie per Tavolo/Privè)</label>
+      <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7 – VIP">
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Registra consumo</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  // QR -> input hidden
+  function handleDecoded(txt){
+    document.getElementById('qr_hidden').value = txt;
+  }
+  if (window.Html5Qrcode) {
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: 250 };
+    html5QrCode.start({ facingMode: "environment" }, config, handleDecoded)
+      .catch(() => {/* fallback manuale: lasciare hidden vuoto */});
+  }
+
+  // Selezione prodotto da catalogo -> precompila importo
+  const select = document.getElementById('prodotto_id');
+  if (select){
+    select.addEventListener('change', function(){
+      const prezzo = this.options[this.selectedIndex].getAttribute('data-prezzo');
+      if (prezzo){
+        document.getElementById('importo').value = prezzo;
+      }
+    });
+  }
+});
+</script>
+{% endblock %}

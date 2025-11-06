@@ -1,0 +1,49 @@
+{% extends "shared/base.html" %}
+{% block title %}Scan ingressi{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Evento attivo</h1>
+  <div class="card__meta">{{ evento.data_evento }} — {{ evento.nome_evento }}</div>
+  <div class="text--muted">
+    Ingressi: <strong>{{ ingressi_totali }}</strong>
+    {% if residua is not none %} • Capienza residua: <strong>{{ residua }}</strong>{% endif %}
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Scanner QR</h2>
+  <div id="reader" style="width:100%; max-width:420px; margin:auto;"></div>
+  <form id="scanForm" class="form" method="post" style="margin-top:1rem;">
+    <div class="form__group">
+      <label class="form__label">Oppure inserisci codice manualmente</label>
+      <input class="form__input" type="text" name="qr" id="qr_manual" placeholder="QR / codice cliente">
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Registra ingresso</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<!-- html5-qrcode da CDN -->
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  if (window.Html5Qrcode) {
+    const qrRegionId = "reader";
+    const html5QrCode = new Html5Qrcode(qrRegionId);
+    const config = { fps: 10, qrbox: 250 };
+    function onScanSuccess(decodedText) {
+      const form = document.getElementById('scanForm');
+      const input = document.getElementById('qr_manual');
+      input.value = decodedText;
+      form.submit();
+    }
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+      .catch(() => { /* fallback: solo input manuale */ });
+  }
+});
+</script>
+{% endblock %}

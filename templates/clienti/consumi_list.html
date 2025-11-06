@@ -1,0 +1,22 @@
+{% extends "shared/base.html" %}
+{% block title %}I miei consumi{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">I miei consumi</h1>
+  <div class="text--muted">Totale complessivo: <strong>€ {{ '%.2f'|format(totale) }}</strong></div>
+</section>
+
+<section class="list">
+  {% for c, ev in rows %}
+  <article class="card list__item">
+    <div class="card__title">{{ ev.data_evento }} — {{ ev.nome_evento }}</div>
+    <div class="card__meta">{{ c.data_consumo }} • {{ c.punto_vendita|capitalize }}</div>
+    <div>{{ c.prodotto }}</div>
+    <div><strong>€ {{ '%.2f'|format(c.importo) }}</strong></div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessun consumo registrato.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

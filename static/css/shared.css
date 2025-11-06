@@ -1,0 +1,525 @@
+/* ============================================
+   SHARED CSS - Mobile & Desktop Responsive
+   ============================================ */
+
+/* Variabili colore palette Malibù */
+:root {
+  --black-deep: #0b0b0b;
+  --black-soft: #1a1a1a;
+  --gold-primary: #d4af37;
+  --gold-light: #f4d77b;
+  --gold-dark: #b2952f;
+  --gray-soft: #444444;
+  --gray-light: #aaaaaa;
+  --text-light: #ffffff;
+  --red-accent: #ff4f4f;
+  --green-accent: #3fc380;
+}
+
+/* ============================================
+   BASE STYLES - Applicati a tutti i dispositivi
+   ============================================ */
+
+body.app {
+  background-color: var(--black-deep);
+  color: var(--text-light);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Container */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header */
+.app__header {
+  background-color: var(--black-soft);
+  border-bottom: 1px solid var(--gold-dark);
+  padding: 1rem 0;
+}
+
+.app__header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.app__header strong {
+  color: var(--gold-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Main */
+.app__main {
+  padding: 2rem 0;
+  min-height: calc(100vh - 200px);
+}
+
+/* Footer */
+.app__footer {
+  background-color: var(--black-soft);
+  border-top: 1px solid var(--gold-dark);
+  padding: 1rem 0;
+  margin-top: auto;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+
+.card {
+  background-color: var(--black-soft);
+  border: 1px solid var(--gray-soft);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.card__title {
+  color: var(--gold-primary);
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.card__meta {
+  color: var(--gray-light);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+/* ============================================
+   FORMS
+   ============================================ */
+
+.form {
+  width: 100%;
+}
+
+.form__group {
+  margin-bottom: 1.25rem;
+}
+
+.form__label {
+  display: block;
+  color: var(--gray-light);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.form__input,
+.form__select,
+.form__textarea {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: var(--black-deep);
+  border: 1px solid var(--gray-soft);
+  border-radius: 6px;
+  color: var(--text-light);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.form__input:focus,
+.form__select:focus,
+.form__textarea:focus {
+  outline: none;
+  border-color: var(--gold-primary);
+}
+
+.form__input::placeholder,
+.form__textarea::placeholder {
+  color: var(--gray-light);
+  opacity: 0.6;
+}
+
+.form__textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form__actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  font-family: inherit;
+  touch-action: manipulation;
+}
+
+.btn--primary {
+  background-color: var(--gold-primary);
+  color: var(--black-deep);
+}
+
+.btn--primary:hover {
+  background-color: var(--gold-light);
+}
+
+.btn--primary:active {
+  transform: scale(0.98);
+}
+
+.btn--secondary {
+  background-color: var(--gray-soft);
+  color: var(--text-light);
+}
+
+.btn--secondary:hover {
+  background-color: var(--gray-light);
+}
+
+.btn--secondary:active {
+  transform: scale(0.98);
+}
+
+.btn--ghost {
+  background-color: transparent;
+  color: var(--gray-light);
+  border: 1px solid var(--gray-soft);
+}
+
+.btn--ghost:hover {
+  border-color: var(--gold-primary);
+  color: var(--gold-primary);
+}
+
+.btn--ghost:active {
+  transform: scale(0.98);
+}
+
+.btn--danger {
+  background-color: var(--red-accent);
+  color: var(--text-light);
+}
+
+.btn--danger:hover {
+  background-color: #ff6f6f;
+}
+
+.btn--danger:active {
+  transform: scale(0.98);
+}
+
+/* ============================================
+   FLASH MESSAGES
+   ============================================ */
+
+.flash {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.flash__item {
+  padding: 0.5rem 0;
+}
+
+.flash__item--success {
+  color: var(--text-light);
+  background-color: var(--green-accent);
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.flash__item--danger,
+.flash__item--error {
+  color: var(--text-light);
+  background-color: var(--red-accent);
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.flash__item--warning {
+  color: var(--text-light);
+  background-color: var(--gold-dark);
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+.flash__item--info {
+  color: var(--text-light);
+  background-color: var(--gray-soft);
+  padding: 1rem;
+  border-radius: 6px;
+}
+
+/* ============================================
+   TEXT UTILITIES
+   ============================================ */
+
+.text--muted {
+  color: var(--gray-light);
+  font-size: 0.9rem;
+}
+
+.text--center {
+  text-align: center;
+}
+
+/* ============================================
+   LOGIN TABS
+   ============================================ */
+
+.login-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--gray-soft);
+  padding-bottom: 0.5rem;
+}
+
+.login-tab {
+  background: none;
+  border: none;
+  color: var(--gray-light);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  margin-bottom: -0.5rem;
+}
+
+.login-tab:hover {
+  color: var(--gold-primary);
+}
+
+.login-tab.active {
+  color: var(--gold-primary);
+  border-bottom-color: var(--gold-primary);
+}
+
+.login-form {
+  display: none;
+}
+
+.login-form.active {
+  display: block;
+}
+
+/* ============================================
+   LISTS
+   ============================================ */
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.list__item {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--gray-soft);
+}
+
+.list__item:last-child {
+  border-bottom: none;
+}
+
+/* ============================================
+   GRID
+   ============================================ */
+
+.grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE FIRST
+   ============================================ */
+
+/* Mobile (default) */
+@media (max-width: 767px) {
+  .container {
+    padding: 0 1rem;
+  }
+
+  .app__main {
+    padding: 1rem 0;
+  }
+
+  .card {
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .card__title {
+    font-size: 1.25rem;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 0.875rem 1.5rem;
+  }
+
+  .form__actions {
+    flex-direction: column;
+  }
+
+  .form__actions .btn {
+    width: 100%;
+  }
+
+  .login-tabs {
+    gap: 0.5rem;
+  }
+
+  .login-tab {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .grid--2,
+  .grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .container {
+    padding: 0 2rem;
+  }
+
+  .app__main {
+    padding: 2rem 0;
+  }
+
+  .card {
+    padding: 1.5rem;
+  }
+
+  .form__actions {
+    flex-direction: row;
+  }
+
+  .form__actions .btn {
+    width: auto;
+  }
+
+  .grid--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid--3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .container {
+    padding: 0 2rem;
+  }
+
+  .app__main {
+    padding: 2rem 0;
+  }
+
+  .card {
+    padding: 2rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .form__input,
+  .form__select,
+  .form__textarea {
+    max-width: 100%;
+  }
+
+  .btn {
+    width: auto;
+    min-width: 120px;
+  }
+
+  .form__actions {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .grid--2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.hide-mobile {
+  display: block;
+}
+
+.hide-desktop {
+  display: block;
+}
+
+@media (max-width: 767px) {
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hide-desktop {
+    display: none !important;
+  }
+}
+

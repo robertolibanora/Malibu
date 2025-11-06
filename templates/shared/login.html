@@ -1,0 +1,25 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Login - Malibù{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Login</h1>
+  <p class="text--muted">Accedi con le tue credenziali</p>
+
+  <form class="form" method="post" action="{{ url_for('auth.auth_login_submit') }}">
+    <div class="form__group">
+      <label class="form__label">Telefono o Username</label>
+      <input class="form__input" type="text" name="identifier" placeholder="Telefono (cliente) o Username (admin)" required autocomplete="username">
+    </div>
+    <div class="form__group">
+      <label class="form__label">Password</label>
+      <input class="form__input" type="password" name="password" placeholder="Inserisci la password" required autocomplete="current-password">
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">Accedi</button>
+      <a class="btn btn--ghost" href="{{ url_for('auth.auth_register_form') }}">Registrati</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

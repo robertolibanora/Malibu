@@ -1,0 +1,374 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ cliente.nome }} {{ cliente.cognome }}{% endblock %}
+
+{% block admin_content %}
+<div class="cliente-detail">
+  <!-- Header con info principali -->
+  <section class="card">
+    <div class="cliente-header">
+      <div class="cliente-header__main">
+        <h1 class="card__title">{{ cliente.nome }} {{ cliente.cognome }}</h1>
+        <div class="cliente-header__meta">
+          <span class="badge badge--{{ 'success' if cliente.stato_account == 'attivo' else 'secondary' }}">
+            {{ cliente.stato_account|capitalize }}
+          </span>
+          <span class="badge badge--warning">{{ cliente.livello|upper }}</span>
+          <span class="badge">ID: {{ cliente.id_cliente }}</span>
+        </div>
+      </div>
+      <div class="cliente-header__actions">
+        <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--secondary">← Torna alla lista</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistiche rapide -->
+  <div class="dashboard__stats">
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_prenotazioni }}</div>
+      <div class="stat-card__label">Prenotazioni</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_ingressi }}</div>
+      <div class="stat-card__label">Ingressi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">€{{ "%.2f"|format(tot_consumi) }}</div>
+      <div class="stat-card__label">Totale Consumi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ cliente.punti_fedelta or 0 }}</div>
+      <div class="stat-card__label">Punti Fedeltà</div>
+      <div class="stat-card__meta">{{ tot_punti }} totali assegnati</div>
+    </div>
+  </div>
+
+  <!-- Informazioni personali -->
+  <div class="grid grid--2">
+    <section class="card">
+      <h2 class="card__title">Informazioni Personali</h2>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Telefono:</span>
+          <span class="info-value">{{ cliente.telefono }}</span>
+        </div>
+        {% if cliente.data_nascita %}
+        <div class="info-item">
+          <span class="info-label">Data di nascita:</span>
+          <span class="info-value">{{ cliente.data_nascita }}</span>
+        </div>
+        {% endif %}
+        {% if cliente.citta %}
+        <div class="info-item">
+          <span class="info-label">Città:</span>
+          <span class="info-value">{{ cliente.citta }}</span>
+        </div>
+        {% endif %}
+        <div class="info-item">
+          <span class="info-label">Data registrazione:</span>
+          <span class="info-value">{{ cliente.data_registrazione.strftime('%d/%m/%Y %H:%M') if cliente.data_registrazione else '—' }}</span>
+        </div>
+        {% if cliente.ultimo_accesso %}
+        <div class="info-item">
+          <span class="info-label">Ultimo accesso:</span>
+          <span class="info-value">{{ cliente.ultimo_accesso.strftime('%d/%m/%Y %H:%M') }}</span>
+        </div>
+        {% endif %}
+        {% if cliente.qr_code %}
+        <div class="info-item">
+          <span class="info-label">QR Code:</span>
+          <span class="info-value info-value--code">{{ cliente.qr_code }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Gestione account -->
+    <section class="card">
+      <h2 class="card__title">Gestione Account</h2>
+      
+      <form class="form" method="post" action="{{ url_for('clienti.admin_set_level', cliente_id=cliente.id_cliente) }}">
+        <div class="form__group">
+          <label class="form__label">Livello Fedeltà</label>
+          <div class="form__inline">
+            <select class="form__input" name="livello">
+              {% for lvl in ['base','loyal','premium','vip'] %}
+                <option value="{{ lvl }}" {% if cliente.livello==lvl %}selected{% endif %}>{{ lvl|upper }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit" class="btn btn--primary">Aggiorna</button>
+          </div>
+        </div>
+      </form>
+
+      <form class="form" method="post" action="{{ url_for('clienti.admin_adjust_points', cliente_id=cliente.id_cliente) }}">
+        <div class="form__group">
+          <label class="form__label">Modifica Punti Fedeltà</label>
+          <div class="form__inline">
+            <input class="form__input" name="delta" type="number" step="1" placeholder="+/- punti" required>
+            <button type="submit" class="btn btn--secondary">Applica</button>
+          </div>
+          <small>Punti attuali: <strong>{{ cliente.punti_fedelta or 0 }}</strong></small>
+        </div>
+      </form>
+
+      <form class="form" method="post" action="{{ url_for('clienti.admin_set_note', cliente_id=cliente.id_cliente) }}">
+        <div class="form__group">
+          <label class="form__label">Nota Staff</label>
+          <textarea class="form__input" name="nota_staff" rows="3" placeholder="Note interne visibili solo allo staff...">{{ cliente.nota_staff or '' }}</textarea>
+          <small>Visibile solo allo staff</small>
+        </div>
+        <div class="form__actions">
+          <button type="submit" class="btn btn--secondary">Salva Nota</button>
+        </div>
+      </form>
+
+      <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
+        {% if cliente.stato_account == 'attivo' %}
+          <form method="post" action="{{ url_for('clienti.admin_deactivate', cliente_id=cliente.id_cliente) }}" style="display:inline" onsubmit="return confirm('Disattivare questo account?');">
+            <button class="btn btn--danger">Disattiva Account</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('clienti.admin_activate', cliente_id=cliente.id_cliente) }}" style="display:inline">
+            <button class="btn btn--primary">Riattiva Account</button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Movimenti Fedeltà -->
+  <section class="card">
+    <h2 class="card__title">Storico Punti Fedeltà</h2>
+    {% if movimenti_fedelta %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Evento</th>
+            <th>Punti</th>
+            <th>Motivo</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mov, ev in movimenti_fedelta %}
+          <tr>
+            <td>{{ mov.data_assegnazione.strftime('%d/%m/%Y %H:%M') if mov.data_assegnazione else '—' }}</td>
+            <td>{{ ev.nome_evento }} ({{ ev.data_evento }})</td>
+            <td><strong class="text--gold">{{ mov.punti }}</strong></td>
+            <td>{{ mov.motivo or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text--muted">Nessun movimento fedeltà registrato.</p>
+    {% endif %}
+  </section>
+
+  <!-- Ultime attività -->
+  <div class="grid grid--2">
+    <!-- Ultime prenotazioni -->
+    <section class="card">
+      <h2 class="card__title">Ultime Prenotazioni</h2>
+      {% if ultime_prenotazioni %}
+      <div class="activity-list">
+        {% for pren, ev in ultime_prenotazioni %}
+        <div class="activity-item">
+          <div class="activity-item__header">
+            <strong>{{ ev.nome_evento }}</strong>
+            <span class="badge badge--{{ 'success' if pren.stato == 'attiva' else 'secondary' }}">{{ pren.stato }}</span>
+          </div>
+          <div class="activity-item__meta">
+            {{ ev.data_evento }} • {{ pren.tipo|capitalize }}
+            {% if pren.num_persone %}({{ pren.num_persone }} persone){% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text--muted">Nessuna prenotazione.</p>
+      {% endif %}
+    </section>
+
+    <!-- Ultimi ingressi -->
+    <section class="card">
+      <h2 class="card__title">Ultimi Ingressi</h2>
+      {% if ultimi_ingressi %}
+      <div class="activity-list">
+        {% for ing, ev in ultimi_ingressi %}
+        <div class="activity-item">
+          <div class="activity-item__header">
+            <strong>{{ ev.nome_evento }}</strong>
+            <span class="badge">{{ ing.tipo_ingresso|capitalize }}</span>
+          </div>
+          <div class="activity-item__meta">
+            {{ ing.orario_ingresso.strftime('%d/%m/%Y %H:%M') if ing.orario_ingresso else '—' }}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text--muted">Nessun ingresso registrato.</p>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Ultimi consumi -->
+  <section class="card">
+    <h2 class="card__title">Ultimi Consumi</h2>
+    {% if ultimi_consumi %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Evento</th>
+            <th>Prodotto</th>
+            <th>Importo</th>
+            <th>Punto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cons, ev in ultimi_consumi %}
+          <tr>
+            <td>{{ cons.data_consumo.strftime('%d/%m/%Y %H:%M') if cons.data_consumo else '—' }}</td>
+            <td>{{ ev.nome_evento }}</td>
+            <td>{{ cons.prodotto }}</td>
+            <td><strong>€{{ "%.2f"|format(cons.importo) }}</strong></td>
+            <td>{{ cons.punto_vendita|capitalize }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text--muted">Nessun consumo registrato.</p>
+    {% endif %}
+  </section>
+
+  <!-- Feedback -->
+  {% if feedback_list %}
+  <section class="card">
+    <h2 class="card__title">Feedback</h2>
+    <div class="feedback-list">
+      {% for fb, ev in feedback_list %}
+      <div class="feedback-item">
+        <div class="feedback-item__header">
+          <strong>{{ ev.nome_evento }}</strong>
+          <span class="card__meta">{{ fb.data_feedback.strftime('%d/%m/%Y') if fb.data_feedback else '—' }}</span>
+        </div>
+        <div class="feedback-item__scores">
+          <span>Musica: <strong>{{ fb.voto_musica }}/10</strong></span>
+          <span>Ingresso: <strong>{{ fb.voto_ingresso }}/10</strong></span>
+          <span>Ambiente: <strong>{{ fb.voto_ambiente }}/10</strong></span>
+        </div>
+        {% if fb.note %}
+        <div class="feedback-item__note">{{ fb.note }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Promozioni -->
+  <section class="card">
+    <h2 class="card__title">Promozioni</h2>
+    
+    {% if promozioni_disponibili %}
+    <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(212, 175, 55, 0.05); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+      <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem; font-size: 1rem;">Assegna Promozione</h3>
+      <form method="post" id="assign-promo-form" style="display: flex; gap: 0.75rem; align-items: flex-end;">
+        <div style="flex: 1;">
+          <select name="promozione_id" id="promozione-select" class="form__input" required>
+            <option value="">Seleziona promozione...</option>
+            {% for prom in promozioni_disponibili %}
+            <option value="{{ prom.id_promozione }}" data-url="{{ url_for('promozioni.admin_assign', cliente_id=cliente.id_cliente, promozione_id=prom.id_promozione) }}">{{ prom.nome }} ({{ prom.tipo|replace('_', ' ')|title }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn--primary">Assegna</button>
+      </form>
+      <script>
+        document.getElementById('assign-promo-form').addEventListener('submit', function(e) {
+          const select = document.getElementById('promozione-select');
+          const selectedOption = select.options[select.selectedIndex];
+          if (selectedOption.value) {
+            this.action = selectedOption.getAttribute('data-url');
+          } else {
+            e.preventDefault();
+            alert('Seleziona una promozione');
+          }
+        });
+      </script>
+    </div>
+    {% endif %}
+
+    {% if promozioni_cliente %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Promozione</th>
+            <th>Tipo</th>
+            <th>Valore</th>
+            <th>Assegnata</th>
+            <th>Scadenza</th>
+            <th>Stato</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cp, prom in promozioni_cliente %}
+          <tr>
+            <td>
+              <strong>{{ prom.nome }}</strong>
+              {% if prom.descrizione %}
+              <br><small class="text--muted">{{ prom.descrizione[:50] }}{% if prom.descrizione|length > 50 %}...{% endif %}</small>
+              {% endif %}
+            </td>
+            <td>{{ prom.tipo|replace('_', ' ')|title }}</td>
+            <td>
+              {% if prom.valore %}
+                {% if prom.tipo == 'sconto_percentuale' %}
+                  {{ prom.valore }}%
+                {% else %}
+                  €{{ "%.2f"|format(prom.valore) }}
+                {% endif %}
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ cp.data_assegnazione.strftime('%d/%m/%Y') if cp.data_assegnazione else '—' }}</td>
+            <td>{{ cp.data_scadenza.strftime('%d/%m/%Y') if cp.data_scadenza else '—' }}</td>
+            <td>
+              {% if cp.usata %}
+                <span class="badge badge--secondary">Usata</span>
+              {% elif cp.data_scadenza and cp.data_scadenza < oggi %}
+                <span class="badge badge--secondary">Scaduta</span>
+              {% else %}
+                <span class="badge badge--success">Attiva</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if not cp.usata %}
+              <form method="post" action="{{ url_for('promozioni.admin_unassign', cliente_id=cliente.id_cliente, promozione_id=prom.id_promozione) }}" style="display:inline" onsubmit="return confirm('Rimuovere questa promozione?');">
+                <button class="btn btn--ghost btn--small">Rimuovi</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text--muted">Nessuna promozione assegnata.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+

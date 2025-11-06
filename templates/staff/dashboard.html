@@ -1,0 +1,24 @@
+{% extends "shared/base.html" %}
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card__header">
+      <h1 class="card__title">Dashboard Staff</h1>
+      {% if evento_attivo %}
+        <span class="badge">Evento attivo: {{ evento_attivo.nome_evento }} — {{ evento_attivo.data_evento }}</span>
+      {% else %}
+        <span class="badge badge--warning">Nessun evento attivo</span>
+      {% endif %}
+    </div>
+    <div class="card__content">
+      <div class="grid grid--2">
+        <a class="btn btn--primary" href="{{ url_for('ingressi.scan_qr') }}">Scanner Ingressi</a>
+        <a class="btn btn--secondary" href="{{ url_for('consumi.nuovo') }}">Nuovo Consumo</a>
+      </div>
+      <p class="text--muted" style="margin-top:1rem;">
+        Suggerimento: imposta l’evento attivo prima di registrare ingressi o consumi.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

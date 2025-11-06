@@ -1,0 +1,64 @@
+{% extends "shared/base.html" %}
+{% block title %}Eventi - Malibù{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Prossimi eventi</h1>
+  <form class="form" method="get">
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Categoria</label>
+        <select class="form__input" name="categoria">
+          <option value="">Tutte</option>
+          {% for c in CATEGORIES_PUBLIC %}
+            <option value="{{ c }}" {% if filtri.categoria==c %}selected{% endif %}>{{ c|capitalize }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Dal</label>
+        <input class="form__input" type="date" name="dal" value="{{ filtri.dal or '' }}">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Al</label>
+        <input class="form__input" type="date" name="al" value="{{ filtri.al or '' }}">
+      </div>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary">Filtra</button>
+      <a class="btn btn--ghost" href="{{ url_for('eventi.lista_pubblica') }}">Reset</a>
+    </div>
+  </form>
+</section>
+
+<section class="list">
+  {% for e in eventi %}
+  <article class="card list__item">
+    {% if e.cover_url %}
+      <img src="{{ e.cover_url }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">
+    {% endif %}
+    <h2 class="card__title">{{ e.nome_evento }}</h2>
+    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+    {% if e.dj_artista %}<div class="text--muted">DJ: {{ e.dj_artista }}</div>{% endif %}
+    {% if e.promozione %}<div class="text--muted">Promo: {{ e.promozione }}</div>{% endif %}
+
+    <div class="form__actions">
+      <a class="btn btn--primary" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Dettagli</a>
+      <a class="btn btn--secondary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
+      <button class="btn btn--ghost" type="button" data-share-url="{{ request.url_root|trim('/') }}{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}" onclick="copyLink(this.dataset.shareUrl)">Condividi</button>
+    </div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessun evento disponibile.</p></div>
+  {% endfor %}
+</section>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyLink(url){
+  navigator.clipboard.writeText(url).then(()=>alert('Link copiato'));
+}
+</script>
+{% endblock %}

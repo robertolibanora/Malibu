@@ -1,0 +1,19 @@
+{% extends "shared/base.html" %}
+{% block title %}Dashboard evento - Staff{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">{{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }} • Capienza: {{ capienza }}</div>
+
+  <ul class="list">
+    <li class="list__item">Ingressi totali: <strong>{{ ingressi_tot }}</strong></li>
+    <li class="list__item">Residui: <strong>{{ residua }}</strong></li>
+    <li class="list__item">Ritmo (ultimi 15’): <strong>{{ ritmo_15m }}/15m</strong></li>
+  </ul>
+
+  <div class="form__actions">
+    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Cambia evento</a>
+  </div>
+</section>
+{% endblock %}

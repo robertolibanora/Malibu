@@ -1,0 +1,71 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Log Attività{% endblock %}
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">Log attività</h1>
+  <div class="card__meta">Totale: {{ total }}</div>
+      <form class="form" method="get">
+        <div class="grid grid--2">
+          <div class="form__group">
+            <label class="form__label">Tabella</label>
+            <input class="form__input" type="text" name="tabella" value="{{ filtro_tabella or '' }}" placeholder="es. clienti">
+          </div>
+          <div class="form__group">
+            <label class="form__label">Staff</label>
+            <select class="form__input" name="staff_id">
+              <option value="">— Tutti —</option>
+              {% for s in staffs %}
+                <option value="{{ s.id_staff }}" {% if filtro_staff_id == s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form__group">
+            <label class="form__label">Azione</label>
+            <select class="form__input" name="azione">
+              <option value="">— Tutte —</option>
+              <option {% if filtro_azione == 'insert' %}selected{% endif %}>insert</option>
+              <option {% if filtro_azione == 'update' %}selected{% endif %}>update</option>
+              <option {% if filtro_azione == 'delete' %}selected{% endif %}>delete</option>
+            </select>
+          </div>
+          <div class="form__group">
+            <label class="form__label">Dal</label>
+            <input class="form__input" type="datetime-local" name="dal" value="{{ filtro_dal or '' }}">
+          </div>
+          <div class="form__group">
+            <label class="form__label">Al</label>
+            <input class="form__input" type="datetime-local" name="al" value="{{ filtro_al or '' }}">
+          </div>
+        </div>
+        <div class="form__actions">
+          <button class="btn btn--secondary" type="submit">Filtra</button>
+        </div>
+      </form>
+
+      <hr class="divider" />
+
+      {% if rows and rows|length %}
+        <div class="list">
+          {% for log, staff in rows %}
+            <div class="list__item">
+              <div><strong>{{ log.tabella }}</strong> — record #{{ log.record_id }}</div>
+              <div>Azione: <span class="badge">{{ log.azione }}</span></div>
+              <div>Staff: {{ staff.nome if staff else '-' }}</div>
+              <div class="text--muted">{{ log.timestamp }}</div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="text--muted">Nessun log trovato.</p>
+      {% endif %}
+
+      <div class="form__actions" style="margin-top:1rem;">
+        {% if page > 1 %}
+          <a class="btn btn--ghost" href="{{ url_for('log.list', page=page-1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, azione=filtro_azione, dal=filtro_dal, al=filtro_al) }}">« Precedente</a>
+        {% endif %}
+        {% if total > page * per_page %}
+          <a class="btn btn--ghost" href="{{ url_for('log.list', page=page+1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, azione=filtro_azione, dal=filtro_dal, al=filtro_al) }}">Successiva »</a>
+        {% endif %}
+      </div>
+</section>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Clienti{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+    <div>
+      <h1 class="card__title" style="margin: 0;">Clienti</h1>
+      {% if stats %}
+      <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+        <small class="text--muted">Totale: <strong style="color: var(--gray-lighter);">{{ stats.total }}</strong></small>
+        <small class="text--muted">Attivi: <strong class="text--gold">{{ stats.attivi }}</strong></small>
+        <small class="text--muted">Disattivati: <strong style="color: var(--gray-lighter);">{{ stats.disattivati }}</strong></small>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Filtri -->
+  <form method="get" class="form">
+    <div class="grid grid--3">
+      <div class="form__group">
+        <label class="form__label">Cerca</label>
+        <input type="text" name="q" placeholder="Nome, cognome, telefono..." class="form__input" value="{{ search }}">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Stato</label>
+        <select class="form__input" name="stato">
+          <option value="">Tutti</option>
+          <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivi</option>
+          <option value="disattivato" {% if stato=='disattivato' %}selected{% endif %}>Disattivati</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Livello</label>
+        <select class="form__input" name="livello">
+          <option value="">Tutti</option>
+          <option value="base" {% if livello=='base' %}selected{% endif %}>Base</option>
+          <option value="loyal" {% if livello=='loyal' %}selected{% endif %}>Loyal</option>
+          <option value="premium" {% if livello=='premium' %}selected{% endif %}>Premium</option>
+          <option value="vip" {% if livello=='vip' %}selected{% endif %}>VIP</option>
+        </select>
+      </div>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--secondary">Filtra</button>
+      {% if search or stato or livello %}
+      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+<!-- Info paginazione -->
+{% if total > 0 %}
+<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} clienti</strong>
+      {% if search or stato or livello %}
+      <br><small class="text--muted">Risultati filtrati</small>
+      {% endif %}
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
+      <select class="form__input" style="width: auto; min-width: 80px;" onchange="window.location.href='{{ url_for('clienti.admin_lista_clienti', q=search, stato=stato, livello=livello) }}&per_page=' + this.value">
+        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+      </select>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section class="list">
+    {% for c in clienti %}
+    <article class="card list__item">
+      <div class="list__item-header">
+        <div>
+          <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" style="text-decoration: none; display: block;">
+            <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+              {{ c.nome }} {{ c.cognome }}
+            </strong>
+          </a>
+        </div>
+        <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="btn btn--primary btn--small">Visualizza</a>
+      </div>
+    </article>
+    {% else %}
+    <div class="card">
+      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun cliente trovato.</p>
+    </div>
+    {% endfor %}
+</section>
+
+<!-- Paginazione -->
+{% if total_pages > 1 %}
+<section class="card" style="padding: 1.5rem; margin-top: 2rem;">
+  <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+    {% if page > 1 %}
+    <a href="{{ url_for('clienti.admin_lista_clienti', page=1, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">« Prima</a>
+    <a href="{{ url_for('clienti.admin_lista_clienti', page=page-1, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
+    {% endif %}
+    
+    <div style="display: flex; gap: 0.25rem; align-items: center; margin: 0 1rem;">
+      {% set start_page = pages_list[0] if pages_list else 1 %}
+      {% set end_page = pages_list[-1] if pages_list else total_pages %}
+      
+      {% if start_page > 1 %}
+      <a href="{{ url_for('clienti.admin_lista_clienti', page=1, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">1</a>
+      {% if start_page > 2 %}
+      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
+      {% endif %}
+      {% endif %}
+      
+      {% for p in pages_list %}
+      {% if p == page %}
+      <span class="btn btn--primary btn--small" style="pointer-events: none;">{{ p }}</span>
+      {% else %}
+      <a href="{{ url_for('clienti.admin_lista_clienti', page=p, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">{{ p }}</a>
+      {% endif %}
+      {% endfor %}
+      
+      {% if end_page < total_pages %}
+      {% if end_page < total_pages - 1 %}
+      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
+      {% endif %}
+      <a href="{{ url_for('clienti.admin_lista_clienti', page=total_pages, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">{{ total_pages }}</a>
+      {% endif %}
+    </div>
+    
+    {% if page < total_pages %}
+    <a href="{{ url_for('clienti.admin_lista_clienti', page=page+1, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">Successiva ›</a>
+    <a href="{{ url_for('clienti.admin_lista_clienti', page=total_pages, per_page=per_page, q=search, stato=stato, livello=livello) }}" class="btn btn--ghost btn--small">Ultima »</a>
+    {% endif %}
+  </div>
+  
+  <div style="text-align: center; margin-top: 1rem;">
+    <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "shared/base.html" %}
+{% block title %}Le mie prenotazioni{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Le mie prenotazioni</h1>
+</section>
+
+<section class="list">
+  {% for p in prenotazioni %}
+  <article class="card list__item">
+    <h2 class="card__title">{{ p.evento.nome_evento }}</h2>
+    <div class="card__meta">{{ p.evento.data_evento }} • {{ p.tipo|capitalize }}</div>
+    {% if p.tipo == 'tavolo' and p.num_persone %}
+      <div class="text--muted">Persone: {{ p.num_persone }}</div>
+    {% endif %}
+    {% if p.note %}
+      <div class="text--muted">Note: {{ p.note }}</div>
+    {% endif %}
+    <div class="text--muted">Stato: {{ p.stato }}</div>
+
+    <div class="form__actions">
+      {% set today18 = p.evento.data_evento|string + ' 18:00' %}
+      {% if p.stato == 'attiva' %}
+        <form method="post" action="{{ url_for('prenotazioni.cancella_mia', pren_id=p.id_prenotazione) }}" onsubmit="return confirm('Cancellare la prenotazione?');" style="display:inline">
+          <button class="btn btn--danger" type="submit">Cancella (entro le 18)</button>
+        </form>
+      {% endif %}
+    </div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessuna prenotazione trovata.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

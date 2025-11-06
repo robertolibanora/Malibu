@@ -1,0 +1,21 @@
+{% extends "shared/base.html" %}
+{% block title %}Ingresso registrato{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Ingresso registrato</h1>
+  <div class="card__meta">{{ evento.data_evento }} — {{ evento.nome_evento }}</div>
+  <ul class="list">
+    <li class="list__item"><strong>Cliente:</strong> {{ cliente.nome }} {{ cliente.cognome }}</li>
+    <li class="list__item"><strong>Telefono:</strong> {{ cliente.telefono }}</li>
+    <li class="list__item"><strong>Nascita:</strong> {{ cliente.data_nascita }}</li>
+    <li class="list__item"><strong>Città:</strong> {{ cliente.citta }}</li>
+    <li class="list__item"><strong>Tipo ingresso:</strong> {{ ingresso.tipo_ingresso|capitalize }}</li>
+    <li class="list__item"><strong>Orario:</strong> {{ ingresso.orario_ingresso }}</li>
+  </ul>
+  <div class="form__actions">
+    <a class="btn btn--primary" href="{{ url_for('ingressi.staff_scan') }}">Scannerizza altro</a>
+    <a class="btn btn--ghost" href="{{ url_for('eventi.staff_select_event') }}">Cambia evento</a>
+  </div>
+</section>
+{% endblock %}

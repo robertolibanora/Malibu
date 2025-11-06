@@ -1,0 +1,34 @@
+{% extends "shared/base.html" %}
+{% block title %}Area personale - Malibù{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Ciao {{ cliente.nome }} {{ cliente.cognome }}</h1>
+  <p class="card__meta">Livello: {{ cliente.livello }} • Punti: {{ cliente.punti_fedelta or 0 }}</p>
+
+  <div class="qr">
+    {% if qr_url %}
+      <img class="qr__img" src="{{ qr_url }}" alt="QR personale">
+      <a class="btn btn--secondary" download="qr_cliente_{{ cliente.id_cliente }}.png" href="{{ qr_url }}">Scarica QR</a>
+    {% else %}
+      <p class="text--muted">QR non disponibile.</p>
+    {% endif %}
+  </div>
+
+  <div class="grid grid--2">
+    <a class="btn btn--primary" href="{{ url_for('clienti.me_edit') }}">Modifica dati</a>
+    <a class="btn btn--ghost" href="{{ url_for('auth.logout') }}">Logout</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">I tuoi dati</h2>
+  <ul class="list">
+    <li class="list__item">Telefono: <strong>{{ cliente.telefono }}</strong></li>
+    <li class="list__item">Email: <strong>{{ cliente.email or '—' }}</strong></li>
+    <li class="list__item">Città: <strong>{{ cliente.citta or '—' }}</strong></li>
+    <li class="list__item">Data di nascita: <strong>{{ cliente.data_nascita or '—' }}</strong></li>
+    <li class="list__item">Stato account: <strong>{{ cliente.stato_account }}</strong></li>
+  </ul>
+</section>
+{% endblock %}

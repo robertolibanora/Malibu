@@ -1,0 +1,333 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ evento.nome_evento }}{% endblock %}
+
+{% block admin_content %}
+<div class="evento-detail">
+  <!-- Header con info principali -->
+  <section class="card">
+    <div class="cliente-header">
+      <div class="cliente-header__main">
+        <h1 class="card__title">{{ evento.nome_evento }}</h1>
+        <div class="cliente-header__meta">
+          <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
+            {{ evento.stato|capitalize }}
+          </span>
+          <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
+          <span class="badge">ID: {{ evento.id_evento }}</span>
+        </div>
+      </div>
+      <div class="cliente-header__actions">
+        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--secondary">← Torna alla lista</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Statistiche rapide -->
+  <div class="dashboard__stats">
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_prenotazioni }}</div>
+      <div class="stat-card__label">Prenotazioni</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_ingressi }}</div>
+      <div class="stat-card__label">Ingressi</div>
+      <div class="stat-card__meta">Capienza: {{ evento.capienza_max }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">€{{ "%.2f"|format(tot_consumi) }}</div>
+      <div class="stat-card__label">Totale Consumi</div>
+      <div class="stat-card__meta">Media: €{{ "%.2f"|format(scontrino_medio) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_punti_fedelta }}</div>
+      <div class="stat-card__label">Punti Assegnati</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card__value">{{ tot_feedback }}</div>
+      <div class="stat-card__label">Feedback</div>
+      {% if tot_feedback > 0 %}
+      <div class="stat-card__meta">M: {{ avg_musica }} • I: {{ avg_ingresso }} • A: {{ avg_ambiente }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Informazioni evento e CRUD -->
+  <div class="grid grid--2">
+    <section class="card">
+      <h2 class="card__title">Informazioni Evento</h2>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Data:</span>
+          <span class="info-value">{{ evento.data_evento }}</span>
+        </div>
+        {% if evento.dj_artista %}
+        <div class="info-item">
+          <span class="info-label">DJ/Artista:</span>
+          <span class="info-value">{{ evento.dj_artista }}</span>
+        </div>
+        {% endif %}
+        {% if evento.tipo_musica %}
+        <div class="info-item">
+          <span class="info-label">Tipo musica:</span>
+          <span class="info-value">{{ evento.tipo_musica }}</span>
+        </div>
+        {% endif %}
+        <div class="info-item">
+          <span class="info-label">Categoria:</span>
+          <span class="info-value">{{ evento.categoria|capitalize }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Capienza max:</span>
+          <span class="info-value">{{ evento.capienza_max }}</span>
+        </div>
+        {% if evento.promozione %}
+        <div class="info-item">
+          <span class="info-label">Promozione:</span>
+          <span class="info-value">{{ evento.promozione }}</span>
+        </div>
+        {% endif %}
+        {% if evento.cover_url %}
+        <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+          <span class="info-label" style="margin-bottom: 0.5rem;">Immagine Copertina:</span>
+          <img src="{{ url_for('static', filename='uploads/eventi/' + evento.cover_url) }}" alt="Cover {{ evento.nome_evento }}" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Gestione Evento -->
+    <section class="card">
+      <h2 class="card__title">Gestione Evento</h2>
+      
+      <div class="form__actions" style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary">Modifica Evento</a>
+        <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary">Analytics Dettagliati</a>
+      </div>
+
+      <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
+        <div class="form__group">
+          <label class="form__label">Duplica Evento</label>
+          <div class="form__inline">
+            <input class="form__input" type="date" name="data_evento" value="{{ evento.data_evento }}" required>
+            <button type="submit" class="btn btn--secondary">Duplica</button>
+          </div>
+          <small>Crea una copia dell'evento con una nuova data</small>
+        </div>
+      </form>
+
+      <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
+        {% if evento.stato != 'chiuso' %}
+          <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Chiudere questo evento?');">
+            <button class="btn btn--secondary">Chiudi Evento</button>
+          </form>
+        {% else %}
+          <form method="post" action="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" style="display:inline">
+            <input type="hidden" name="nome_evento" value="{{ evento.nome_evento }}">
+            <input type="hidden" name="data_evento" value="{{ evento.data_evento }}">
+            <input type="hidden" name="tipo_musica" value="{{ evento.tipo_musica or '' }}">
+            <input type="hidden" name="dj_artista" value="{{ evento.dj_artista or '' }}">
+            <input type="hidden" name="promozione" value="{{ evento.promozione or '' }}">
+            <input type="hidden" name="capienza_max" value="{{ evento.capienza_max }}">
+            <input type="hidden" name="categoria" value="{{ evento.categoria }}">
+            <input type="hidden" name="stato" value="attivo">
+            <input type="hidden" name="cover_url" value="{{ evento.cover_url or '' }}">
+            <button type="submit" class="btn btn--primary">Riattiva Evento</button>
+          </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">
+          <button class="btn btn--danger">Elimina Evento</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <!-- Breakdown Prenotazioni -->
+  <section class="card">
+    <h2 class="card__title">Prenotazioni</h2>
+    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Tipo</h3>
+        <ul class="info-list">
+          {% for tipo, count in pren_by_tipo.items() %}
+          <li class="info-item">
+            <span class="info-label">{{ tipo|capitalize }}:</span>
+            <span class="info-value">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Stato</h3>
+        <ul class="info-list">
+          {% for stato, count in pren_by_stato.items() %}
+          <li class="info-item">
+            <span class="info-label">{{ stato|capitalize }}:</span>
+            <span class="info-value">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% if tavolo_persone > 0 %}
+        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-radius: 6px;">
+          <strong>Totale persone tavoli:</strong> {{ tavolo_persone }}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Ultime Prenotazioni</h3>
+    {% if ultime_prenotazioni %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Stato</th>
+            <th>Persone</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pren, cli in ultime_prenotazioni %}
+          <tr>
+            <td>{{ cli.nome }} {{ cli.cognome }}</td>
+            <td>{{ pren.tipo|capitalize }}</td>
+            <td><span class="badge badge--{{ 'success' if pren.stato == 'attiva' else 'secondary' }}">{{ pren.stato }}</span></td>
+            <td>{{ pren.num_persone or '—' }}</td>
+            <td>
+              <a href="{{ url_for('prenotazioni.admin_edit', pren_id=pren.id_prenotazione) }}" class="btn btn--ghost btn--small">Modifica</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text--muted">Nessuna prenotazione.</p>
+    {% endif %}
+  </section>
+
+  <!-- Breakdown Ingressi -->
+  <section class="card">
+    <h2 class="card__title">Ingressi</h2>
+    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Tipo</h3>
+        <ul class="info-list">
+          {% for tipo, count in ingressi_by_tipo.items() %}
+          <li class="info-item">
+            <span class="info-label">{{ tipo|capitalize }}:</span>
+            <span class="info-value">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% if ingressi_by_staff %}
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Staff (Top 10)</h3>
+        <ul class="info-list">
+          {% for nome, count in ingressi_by_staff %}
+          <li class="info-item">
+            <span class="info-label">{{ nome }}:</span>
+            <span class="info-value">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+    
+    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Ultimi Ingressi</h3>
+    {% if ultimi_ingressi %}
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Tipo</th>
+            <th>Orario</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ing, cli in ultimi_ingressi %}
+          <tr>
+            <td>{{ cli.nome }} {{ cli.cognome }}</td>
+            <td><span class="badge">{{ ing.tipo_ingresso|capitalize }}</span></td>
+            <td>{{ ing.orario_ingresso.strftime('%d/%m/%Y %H:%M') if ing.orario_ingresso else '—' }}</td>
+            <td>
+              <a href="{{ url_for('ingressi.admin_edit', ingresso_id=ing.id_ingresso) }}" class="btn btn--ghost btn--small">Modifica</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text--muted">Nessun ingresso registrato.</p>
+    {% endif %}
+  </section>
+
+  <!-- Breakdown Consumi -->
+  <section class="card">
+    <h2 class="card__title">Consumi</h2>
+    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Punto Vendita</h3>
+        <ul class="info-list">
+          {% for punto, importo in consumi_by_punto.items() %}
+          <li class="info-item">
+            <span class="info-label">{{ punto|capitalize }}:</span>
+            <span class="info-value">€{{ "%.2f"|format(importo) }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-radius: 6px;">
+          <strong>Clienti unici:</strong> {{ clienti_consumi }}<br>
+          <strong>Scontrino medio:</strong> €{{ "%.2f"|format(scontrino_medio) }}
+        </div>
+      </div>
+      {% if consumi_by_prodotto %}
+      <div>
+        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Top Prodotti</h3>
+        <ul class="info-list">
+          {% for prodotto, importo, count in consumi_by_prodotto %}
+          <li class="info-item">
+            <span class="info-label">{{ prodotto }}:</span>
+            <span class="info-value">€{{ "%.2f"|format(importo) }} ({{ count }})</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if top_clienti_consumi %}
+    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Top Clienti per Spesa</h3>
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Spesa Totale</th>
+            <th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cli, spesa in top_clienti_consumi %}
+          <tr>
+            <td>{{ cli.nome }} {{ cli.cognome }}</td>
+            <td><strong class="text--gold">€{{ "%.2f"|format(spesa) }}</strong></td>
+            <td>
+              <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cli.id_cliente) }}" class="btn btn--ghost btn--small">Vedi Cliente</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+

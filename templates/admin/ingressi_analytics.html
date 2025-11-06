@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Analytics Ingressi • {{ e.nome_evento }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Analytics — {{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }}</div>
+  <ul class="list">
+    <li class="list__item">Totali: <strong>{{ tot }}</strong></li>
+    <li class="list__item">Ultimi 15 minuti: <strong>{{ last15 }}</strong></li>
+    <li class="list__item">Per tipo:
+      <strong>lista {{ per_tipo.get('lista',0) }},
+      tavolo {{ per_tipo.get('tavolo',0) }},
+      omaggio {{ per_tipo.get('omaggio',0) }},
+      prevendita {{ per_tipo.get('prevendita',0) }}</strong>
+    </li>
+    <li class="list__item">Per staff:
+      {% if per_staff %}
+        <ul class="list">
+          {% for sid, cnt in per_staff.items() %}
+          <li class="list__item">ID Staff {{ sid or '—' }}: <strong>{{ cnt }}</strong></li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <span class="text--muted">N/D</span>
+      {% endif %}
+    </li>
+  </ul>
+  <div class="form__actions">
+    <a class="btn btn--ghost" href="{{ url_for('ingressi.admin_list') }}">Torna</a>
+  </div>
+</section>
+{% endblock %}

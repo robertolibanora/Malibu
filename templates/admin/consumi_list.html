@@ -1,0 +1,76 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Consumi{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Consumi</h1>
+  <form class="form" method="get">
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Evento</label>
+        <select class="form__input" name="evento_id">
+          <option value="">Tutti</option>
+          {% for ev in eventi %}
+          <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
+            {{ ev.data_evento }} — {{ ev.nome_evento }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Staff</label>
+        <select class="form__input" name="staff_id">
+          <option value="">Tutti</option>
+          {% for s in staff_list %}
+          <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Punto vendita</label>
+        <select class="form__input" name="punto_vendita">
+          <option value="">Tutti</option>
+          <option value="tavolo" {% if filtro.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
+          <option value="privè" {% if filtro.punto_vendita=='privè' %}selected{% endif %}>Privè</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Prodotto contiene</label>
+        <input class="form__input" type="text" name="prodotto" value="{{ filtro.prodotto or '' }}" placeholder="Es. Vodka">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Dal</label>
+        <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Al</label>
+        <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
+      </div>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary">Filtra</button>
+      <a class="btn btn--secondary" href="{{ url_for('consumi.admin_new') }}">Nuovo</a>
+    </div>
+  </form>
+</section>
+
+<section class="list">
+  {% for c, cli, ev in rows %}
+  <article class="card list__item">
+    <div class="card__title">{{ ev.data_evento }} — {{ ev.nome_evento }}</div>
+    <div class="card__meta">{{ cli.cognome }} {{ cli.nome }} • {{ c.punto_vendita|capitalize }} • {{ c.data_consumo }}</div>
+    <div>{{ c.prodotto }}</div>
+    <div><strong>€ {{ '%.2f'|format(c.importo) }}</strong></div>
+    {% if c.note %}<div class="text--muted">Note: {{ c.note }}</div>{% endif %}
+    <div class="form__actions">
+      <a class="btn btn--primary" href="{{ url_for('consumi.admin_edit', consumo_id=c.id_consumo) }}">Modifica</a>
+      <form method="post" action="{{ url_for('consumi.admin_delete', consumo_id=c.id_consumo) }}" style="display:inline" onsubmit="return confirm('Eliminare questo consumo?');">
+        <button class="btn btn--danger">Elimina</button>
+      </form>
+    </div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessun consumo.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

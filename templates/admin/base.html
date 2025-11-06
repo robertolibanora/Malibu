@@ -1,0 +1,30 @@
+{% extends "shared/base.html" %}
+{% block title %}{% block admin_title %}Admin{% endblock %} - Malibù{% endblock %}
+
+{% block body_class %}admin-section{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+{% endblock %}
+
+{% block header_meta_desktop %}
+  <nav class="admin-nav">
+    <a href="{{ url_for('clienti.admin_dashboard') }}" class="admin-nav__logo">Dashboard</a>
+    <a href="{{ url_for('clienti.admin_lista_clienti') }}">Clienti</a>
+    <a href="{{ url_for('eventi.admin_list') }}">Eventi</a>
+    <a href="{{ url_for('prenotazioni.admin_list') }}">Prenotazioni</a>
+    <a href="{{ url_for('ingressi.admin_list') }}">Ingressi</a>
+    <a href="{{ url_for('consumi.admin_list') }}">Consumi</a>
+    <a href="{{ url_for('fedelta.admin_list') }}">Fedeltà</a>
+    <a href="{{ url_for('promozioni.admin_list') }}">Promozioni</a>
+    <a href="{{ url_for('staff_admin.admin_list') }}">Staff</a>
+    <a href="{{ url_for('feedback.admin_list') }}">Feedback</a>
+    <a href="{{ url_for('log.list') }}">Log</a>
+    <a href="{{ url_for('auth.logout') }}" class="admin-nav__logout">Logout</a>
+  </nav>
+{% endblock %}
+
+{% block content %}
+  {% block admin_content %}{% endblock %}
+{% endblock %}
+

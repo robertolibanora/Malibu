@@ -1,0 +1,26 @@
+{% extends "shared/base.html" %}
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card__header">
+      <h1 class="card__title">Evento Attivo</h1>
+    </div>
+    <div class="card__content">
+      {% if evento_attivo %}
+        <div class="list">
+          <div class="list__item"><strong>Nome:</strong> {{ evento_attivo.nome_evento }}</div>
+          <div class="list__item"><strong>Data:</strong> {{ evento_attivo.data_evento }}</div>
+          <div class="list__item"><strong>DJ/Artista:</strong> {{ evento_attivo.dj_artista or '-' }}</div>
+          <div class="list__item"><strong>Promozione:</strong> {{ evento_attivo.promozione or '-' }}</div>
+          <div class="list__item"><strong>Capienza:</strong> {{ evento_attivo.capienza_max }}</div>
+        </div>
+      {% else %}
+        <p class="text--muted">Nessun evento attivo impostato.</p>
+      {% endif %}
+      <div class="form__actions" style="margin-top:1rem;">
+        <a class="btn btn--ghost" href="{{ url_for('staff.dashboard') }}">Torna alla dashboard</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

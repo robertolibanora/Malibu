@@ -1,0 +1,75 @@
+{% macro pagination_controls(page, per_page, total, total_pages, pages_list, base_url_params) %}
+{% if total_pages > 1 %}
+<section class="card" style="padding: 1.5rem; margin-top: 2rem;">
+  <!-- Info paginazione -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} risultati</strong>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+      <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
+      <select class="form__input" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
+        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+      </select>
+    </div>
+  </div>
+  
+  <!-- Navigazione pagine -->
+  <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+    {% if page > 1 %}
+    <a href="{{ url_for(base_url_params.route, page=1, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">« Prima</a>
+    <a href="{{ url_for(base_url_params.route, page=page-1, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
+    {% endif %}
+    
+    <div style="display: flex; gap: 0.25rem; align-items: center; margin: 0 1rem;">
+      {% set start_page = pages_list[0] if pages_list else 1 %}
+      {% set end_page = pages_list[-1] if pages_list else total_pages %}
+      
+      {% if start_page > 1 %}
+      <a href="{{ url_for(base_url_params.route, page=1, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">1</a>
+      {% if start_page > 2 %}
+      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
+      {% endif %}
+      {% endif %}
+      
+      {% for p in pages_list %}
+      {% if p == page %}
+      <span class="btn btn--primary btn--small" style="pointer-events: none;">{{ p }}</span>
+      {% else %}
+      <a href="{{ url_for(base_url_params.route, page=p, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">{{ p }}</a>
+      {% endif %}
+      {% endfor %}
+      
+      {% if end_page < total_pages %}
+      {% if end_page < total_pages - 1 %}
+      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
+      {% endif %}
+      <a href="{{ url_for(base_url_params.route, page=total_pages, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">{{ total_pages }}</a>
+      {% endif %}
+    </div>
+    
+    {% if page < total_pages %}
+    <a href="{{ url_for(base_url_params.route, page=page+1, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">Successiva ›</a>
+    <a href="{{ url_for(base_url_params.route, page=total_pages, per_page=per_page, **base_url_params.params) }}" class="btn btn--ghost btn--small">Ultima »</a>
+    {% endif %}
+  </div>
+  
+  <div style="text-align: center; margin-top: 1rem;">
+    <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
+  </div>
+  
+  <script>
+    function updatePerPage(value) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('per_page', value);
+      url.searchParams.set('page', '1');
+      window.location.href = url.toString();
+    }
+  </script>
+</section>
+{% endif %}
+{% endmacro %}
+

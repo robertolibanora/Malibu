@@ -1,0 +1,60 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if e else 'Nuovo' }} Ingresso{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} ingresso</h1>
+  <form class="form" method="post">
+    {% if not e %}
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Cliente</label>
+        <select class="form__input" name="cliente_id" required>
+          {% for c in clienti %}
+          <option value="{{ c.id_cliente }}">{{ c.cognome }} {{ c.nome }} — {{ c.telefono }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Evento</label>
+        <select class="form__input" name="evento_id" required>
+          {% for ev in eventi %}
+          <option value="{{ ev.id_evento }}">{{ ev.data_evento }} — {{ ev.nome_evento }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="form__group">
+      <label class="form__label">Tipo ingresso</label>
+      <select class="form__input" name="tipo_ingresso" required>
+        <option value="lista" {% if e and e.tipo_ingresso=='lista' %}selected{% endif %}>Lista</option>
+        <option value="tavolo" {% if e and e.tipo_ingresso=='tavolo' %}selected{% endif %}>Tavolo</option>
+        <option value="omaggio" {% if e and e.tipo_ingresso=='omaggio' %}selected{% endif %}>Omaggio</option>
+        <option value="prevendita" {% if e and e.tipo_ingresso=='prevendita' %}selected{% endif %}>Prevendita</option>
+      </select>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">Staff</label>
+      <select class="form__input" name="staff_id">
+        <option value="">—</option>
+        {% for s in staff_list %}
+        <option value="{{ s.id_staff }}" {% if e and e.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">Note</label>
+      <input class="form__input" name="note" value="{{ e.note if e else '' }}">
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary">{{ 'Salva' if e else 'Crea' }}</button>
+      <a class="btn btn--ghost" href="{{ url_for('ingressi.admin_list') }}">Annulla</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

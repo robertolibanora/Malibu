@@ -1,0 +1,199 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Eventi{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 class="card__title" style="margin: 0;">Eventi</h1>
+    <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">Nuovo Evento</a>
+  </div>
+  
+  <form class="form" method="get">
+    <div class="grid grid--2">
+    <div class="form__group">
+        <label class="form__label">Filtra per Stato</label>
+      <select class="form__input" name="stato">
+        <option value="">Tutti</option>
+        <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivi</option>
+        <option value="chiuso" {% if stato=='chiuso' %}selected{% endif %}>Chiusi</option>
+      </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Mostra</label>
+        <select class="form__input" name="periodo">
+          <option value="">Tutti (Programmati + Passati)</option>
+          <option value="programmati" {% if periodo=='programmati' %}selected{% endif %}>Solo Programmati</option>
+          <option value="passati" {% if periodo=='passati' %}selected{% endif %}>Solo Passati</option>
+        </select>
+        <small class="text--muted">La classificazione è automatica in base alla data evento rispetto a oggi ({{ oggi.strftime('%d/%m/%Y') }})</small>
+      </div>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--secondary">Filtra</button>
+    </div>
+  </form>
+</section>
+
+{% if not periodo or periodo == 'programmati' %}
+<section class="card" style="margin-bottom: 2rem;">
+  <h2 class="card__title">Eventi Programmati ({{ eventi_programmati|length }})</h2>
+  <p class="text--muted">Eventi con data >= {{ oggi.strftime('%d/%m/%Y') }}</p>
+</section>
+
+<section class="list" style="margin-bottom: 3rem;">
+  {% for e in eventi_programmati %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" style="text-decoration: none;">
+          <strong style="font-size: 1.1rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            {{ e.nome_evento }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.5rem;">
+          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+          <span class="badge badge--success">Programmato</span>
+          <span class="badge">ID: {{ e.id_evento }}</span>
+        </div>
+      </div>
+      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>
+    </div>
+    <div class="card__meta">
+      <div style="margin-top: 0.75rem; display: flex; gap: 1.5rem; align-items: flex-start;">
+        {% if e.cover_url %}
+        <div style="flex-shrink: 0;">
+          <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="{{ e.nome_evento }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.2);">
+        </div>
+        {% endif %}
+        <div style="flex: 1;">
+          <div>
+            <strong>Data:</strong> {{ e.data_evento }}
+            {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
+            {% if e.tipo_musica %} • <strong>Musica:</strong> {{ e.tipo_musica }}{% endif %}
+            {% if e.capienza_max %} • <strong>Capienza:</strong> {{ e.capienza_max }}{% endif %}
+          </div>
+          {% if e.promozione %}
+          <div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--gold-primary); border-radius: 4px;">
+            <strong>Promozione:</strong> {{ e.promozione }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </article>
+  {% else %}
+    <div class="card">
+      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento programmato.</p>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if not periodo or periodo == 'passati' %}
+<section class="card" style="margin-bottom: 2rem;">
+  <h2 class="card__title">Eventi Passati ({{ eventi_passati|length }})</h2>
+  <p class="text--muted">Eventi con data < {{ oggi.strftime('%d/%m/%Y') }}</p>
+</section>
+
+<section class="list">
+  {% for e in eventi_passati %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" style="text-decoration: none;">
+          <strong style="font-size: 1.1rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            {{ e.nome_evento }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.5rem;">
+          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+          <span class="badge badge--secondary">Passato</span>
+          <span class="badge">ID: {{ e.id_evento }}</span>
+        </div>
+      </div>
+      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>
+    </div>
+    <div class="card__meta">
+      <div style="margin-top: 0.75rem; display: flex; gap: 1.5rem; align-items: flex-start;">
+        {% if e.cover_url %}
+        <div style="flex-shrink: 0;">
+          <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="{{ e.nome_evento }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.2);">
+        </div>
+        {% endif %}
+        <div style="flex: 1;">
+          <div>
+            <strong>Data:</strong> {{ e.data_evento }}
+            {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
+            {% if e.tipo_musica %} • <strong>Musica:</strong> {{ e.tipo_musica }}{% endif %}
+            {% if e.capienza_max %} • <strong>Capienza:</strong> {{ e.capienza_max }}{% endif %}
+          </div>
+          {% if e.promozione %}
+          <div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--gold-primary); border-radius: 4px;">
+            <strong>Promozione:</strong> {{ e.promozione }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </article>
+  {% else %}
+    <div class="card">
+      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento passato.</p>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if periodo and periodo not in ['programmati', 'passati'] %}
+<section class="list">
+  {% for e in eventi %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" style="text-decoration: none;">
+          <strong style="font-size: 1.1rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            {{ e.nome_evento }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.5rem;">
+          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+          <span class="badge badge--{{ 'success' if e.data_evento >= oggi else 'secondary' }}">{{ 'Programmato' if e.data_evento >= oggi else 'Passato' }}</span>
+          <span class="badge">ID: {{ e.id_evento }}</span>
+        </div>
+      </div>
+      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>
+    </div>
+    <div class="card__meta">
+      <div style="margin-top: 0.75rem; display: flex; gap: 1.5rem; align-items: flex-start;">
+        {% if e.cover_url %}
+        <div style="flex-shrink: 0;">
+          <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="{{ e.nome_evento }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.2);">
+        </div>
+        {% endif %}
+        <div style="flex: 1;">
+          <div>
+            <strong>Data:</strong> {{ e.data_evento }}
+            {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
+            {% if e.tipo_musica %} • <strong>Musica:</strong> {{ e.tipo_musica }}{% endif %}
+            {% if e.capienza_max %} • <strong>Capienza:</strong> {{ e.capienza_max }}{% endif %}
+          </div>
+          {% if e.promozione %}
+          <div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--gold-primary); border-radius: 4px;">
+            <strong>Promozione:</strong> {{ e.promozione }}
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </article>
+  {% else %}
+    <div class="card">
+      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento trovato.</p>
+    </div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}

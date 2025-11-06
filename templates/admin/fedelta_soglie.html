@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Soglie Fedeltà{% endblock %}
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Soglie livelli</h1>
+  {% if not editable %}
+    <p class="text--muted">Tabella <code>soglie_fedelta</code> assente: in uso valori di default.</p>
+  {% endif %}
+  <form class="form" method="post">
+    <div class="grid grid--2">
+      <div class="form__group"><label class="form__label">BASE (min)</label><input class="form__input" type="number" name="base" value="{{ soglie.base }}" {% if not editable %}disabled{% endif %}></div>
+      <div class="form__group"><label class="form__label">LOYAL (min)</label><input class="form__input" type="number" name="loyal" value="{{ soglie.loyal }}" {% if not editable %}disabled{% endif %}></div>
+      <div class="form__group"><label class="form__label">PREMIUM (min)</label><input class="form__input" type="number" name="premium" value="{{ soglie.premium }}" {% if not editable %}disabled{% endif %}></div>
+      <div class="form__group"><label class="form__label">VIP (min)</label><input class="form__input" type="number" name="vip" value="{{ soglie.vip }}" {% if not editable %}disabled{% endif %}></div>
+    </div>
+    <div class="form__actions">
+      {% if editable %}<button class="btn btn--primary">Salva</button>{% endif %}
+      <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_list') }}">Torna</a>
+    </div>
+  </form>
+</section>
+{% endblock %}

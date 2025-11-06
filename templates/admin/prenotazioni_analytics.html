@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Analytics Prenotazioni • {{ e.nome_evento }}{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1 class="card__title">Analytics — {{ e.nome_evento }}</h1>
+  <div class="card__meta">{{ e.data_evento }}</div>
+  <ul class="list">
+    <li class="list__item">Per tipo:
+      <strong>lista {{ per_tipo.get('lista',0) }},
+      tavolo {{ per_tipo.get('tavolo',0) }},
+      prevendita {{ per_tipo.get('prevendita',0) }}</strong>
+    </li>
+    <li class="list__item">Persone ai tavoli (somma): <strong>{{ tavolo_persone }}</strong></li>
+    <li class="list__item">Cancellazioni: <strong>{{ cancellazioni }}</strong></li>
+    <li class="list__item">No-show: <strong>{{ no_show }}</strong></li>
+  </ul>
+  <div class="form__actions">
+    <a class="btn btn--ghost" href="{{ url_for('prenotazioni.admin_list') }}">Torna</a>
+  </div>
+</section>
+{% endblock %}

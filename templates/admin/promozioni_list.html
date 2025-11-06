@@ -1,0 +1,82 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Promozioni{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+    <h1 class="card__title" style="margin: 0;">Promozioni</h1>
+    <a href="{{ url_for('promozioni.admin_new') }}" class="btn btn--primary">Nuova Promozione</a>
+  </div>
+  
+  <form class="form" method="get">
+    <div class="form__group">
+      <label class="form__label">Filtra per Stato</label>
+      <select class="form__input" name="attiva">
+        <option value="">Tutte</option>
+        <option value="true" {% if filtro.attiva=='true' %}selected{% endif %}>Attive</option>
+        <option value="false" {% if filtro.attiva=='false' %}selected{% endif %}>Disattive</option>
+      </select>
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--secondary">Filtra</button>
+    </div>
+  </form>
+</section>
+
+<section class="list">
+  {% for p in promozioni %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('promozioni.admin_promozione_detail', promozione_id=p.id_promozione) }}" style="text-decoration: none;">
+          <strong style="font-size: 1.1rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+            {{ p.nome }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.5rem;">
+          <span class="badge badge--{{ 'success' if p.attiva else 'secondary' }}">{{ 'Attiva' if p.attiva else 'Disattiva' }}</span>
+          <span class="badge badge--warning">{{ p.tipo|replace('_', ' ')|title }}</span>
+          {% if p.auto_assegnazione %}
+          <span class="badge">Auto-assegnazione</span>
+          {% endif %}
+        </div>
+      </div>
+      <a href="{{ url_for('promozioni.admin_promozione_detail', promozione_id=p.id_promozione) }}" class="btn btn--primary">Visualizza</a>
+    </div>
+    <div class="card__meta">
+      <div style="margin-top: 0.75rem;">
+        {% if p.descrizione %}
+        <p>{{ p.descrizione[:150] }}{% if p.descrizione|length > 150 %}...{% endif %}</p>
+        {% endif %}
+        <div style="margin-top: 0.5rem;">
+          {% if p.valore %}
+            <strong>Valore:</strong> 
+            {% if p.tipo == 'sconto_percentuale' %}
+              {{ p.valore }}%
+            {% else %}
+              €{{ "%.2f"|format(p.valore) }}
+            {% endif %}
+          {% endif %}
+          {% if p.data_inizio or p.data_fine %}
+            • <strong>Periodo:</strong> 
+            {{ p.data_inizio.strftime('%d/%m/%Y') if p.data_inizio else '—' }} - 
+            {{ p.data_fine.strftime('%d/%m/%Y') if p.data_fine else '—' }}
+          {% endif %}
+          {% if p.livello_richiesto %}
+            • <strong>Livello:</strong> {{ p.livello_richiesto|upper }}
+          {% endif %}
+          {% if p.punti_richiesti %}
+            • <strong>Punti:</strong> {{ p.punti_richiesti }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </article>
+  {% else %}
+    <div class="card">
+      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessuna promozione trovata.</p>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}
+
