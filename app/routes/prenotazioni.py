@@ -279,7 +279,7 @@ def admin_new():
             if stato == "no-show":
                 award_on_no_show(db, cliente_id=pren.cliente_id, evento_id=pren.evento_id)
             flash("Prenotazione creata.", "success")
-            return redirect(url_for("prenotazioni.admin_list"))
+            return redirect(url_for("prenotazioni.admin_prenotazione_detail", pren_id=pren.id_prenotazione))
 
         return render_template("admin/prenotazioni_form.html", e=None, eventi=eventi, clienti=clienti)
     finally:
@@ -338,9 +338,39 @@ def admin_edit(pren_id):
             if stato == "no-show":
                 award_on_no_show(db, cliente_id=pren.cliente_id, evento_id=pren.evento_id)
             flash("Prenotazione aggiornata.", "success")
-            return redirect(url_for("prenotazioni.admin_list"))
+            return redirect(url_for("prenotazioni.admin_prenotazione_detail", pren_id=pren_id))
 
         return render_template("admin/prenotazioni_form.html", e=pren, eventi=eventi, clienti=clienti)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/<int:pren_id>", methods=["GET"])
+@require_admin
+def admin_prenotazione_detail(pren_id):
+    db = SessionLocal()
+    try:
+        from app.models.ingressi import Ingresso
+        
+        pren = db.query(Prenotazione).get(pren_id)
+        if not pren:
+            flash("Prenotazione non trovata.", "danger")
+            return redirect(url_for("prenotazioni.admin_list"))
+        
+        # Carica relazioni
+        cliente = db.query(Cliente).get(pren.cliente_id)
+        evento = db.query(Evento).get(pren.evento_id)
+        
+        # Verifica se c'è un ingresso collegato
+        ingresso = None
+        if pren.id_prenotazione:
+            ingresso = db.query(Ingresso).filter(Ingresso.prenotazione_id == pren.id_prenotazione).first()
+        
+        return render_template("admin/prenotazione_detail.html",
+                             prenotazione=pren,
+                             cliente=cliente,
+                             evento=evento,
+                             ingresso=ingresso)
     finally:
         db.close()
 

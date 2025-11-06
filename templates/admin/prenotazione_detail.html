@@ -1,0 +1,124 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Prenotazione #{{ prenotazione.id_prenotazione }}{% endblock %}
+
+{% block admin_content %}
+<div class="cliente-detail">
+  <!-- Header con info principali -->
+  <section class="card">
+    <div class="cliente-header">
+      <div class="cliente-header__main">
+        <h1 class="card__title">Prenotazione #{{ prenotazione.id_prenotazione }}</h1>
+        <div class="cliente-header__meta">
+          <span class="badge badge--{{ 'success' if prenotazione.stato == 'attiva' else 'secondary' }}">
+            {{ prenotazione.stato|capitalize }}
+          </span>
+          <span class="badge badge--warning">{{ prenotazione.tipo|capitalize }}</span>
+        </div>
+      </div>
+      <div class="cliente-header__actions">
+        <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--secondary">← Torna alla lista</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Informazioni prenotazione -->
+  <div class="grid grid--2">
+    <section class="card">
+      <h2 class="card__title">Informazioni Prenotazione</h2>
+      <div class="info-list">
+        <div class="info-item">
+          <span class="info-label">Cliente:</span>
+          <span class="info-value">
+            <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cliente.id_cliente) }}" class="text--gold">
+              {{ cliente.nome }} {{ cliente.cognome }}
+            </a>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Evento:</span>
+          <span class="info-value">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="text--gold">
+              {{ evento.nome_evento }}
+            </a>
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Data Evento:</span>
+          <span class="info-value">{{ evento.data_evento }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Tipo:</span>
+          <span class="info-value">{{ prenotazione.tipo|capitalize }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Stato:</span>
+          <span class="info-value">
+            <span class="badge badge--{{ 'success' if prenotazione.stato == 'attiva' else 'secondary' }}">
+              {{ prenotazione.stato|capitalize }}
+            </span>
+          </span>
+        </div>
+        {% if prenotazione.tipo == 'tavolo' and prenotazione.num_persone %}
+        <div class="info-item">
+          <span class="info-label">Numero Persone:</span>
+          <span class="info-value">{{ prenotazione.num_persone }}</span>
+        </div>
+        {% endif %}
+        {% if prenotazione.orario_previsto %}
+        <div class="info-item">
+          <span class="info-label">Orario Previsto:</span>
+          <span class="info-value">{{ prenotazione.orario_previsto }}</span>
+        </div>
+        {% endif %}
+        {% if prenotazione.note %}
+        <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+          <span class="info-label" style="margin-bottom: 0.5rem;">Note:</span>
+          <span class="info-value">{{ prenotazione.note }}</span>
+        </div>
+        {% endif %}
+        {% if ingresso %}
+        <div class="info-item">
+          <span class="info-label">Ingresso Collegato:</span>
+          <span class="info-value">
+            <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=ingresso.id_ingresso) }}" class="text--gold">
+              Visualizza ingresso
+            </a>
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Gestione prenotazione -->
+    <section class="card">
+      <h2 class="card__title">Gestione Prenotazione</h2>
+      
+      <div class="form__actions" style="margin-bottom: 1.5rem;">
+        <a href="{{ url_for('prenotazioni.admin_edit', pren_id=prenotazione.id_prenotazione) }}" class="btn btn--primary">Modifica Prenotazione</a>
+      </div>
+
+      <form class="form" method="post" action="{{ url_for('prenotazioni.admin_edit', pren_id=prenotazione.id_prenotazione) }}">
+        <div class="form__group">
+          <label class="form__label">Cambia Stato</label>
+          <div class="form__inline">
+            <select class="form__input" name="stato">
+              <option value="attiva" {% if prenotazione.stato=='attiva' %}selected{% endif %}>Attiva</option>
+              <option value="usata" {% if prenotazione.stato=='usata' %}selected{% endif %}>Usata</option>
+              <option value="no-show" {% if prenotazione.stato=='no-show' %}selected{% endif %}>No-show</option>
+              <option value="cancellata" {% if prenotazione.stato=='cancellata' %}selected{% endif %}>Cancellata</option>
+            </select>
+            <button type="submit" class="btn btn--secondary">Aggiorna Stato</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
+        <form method="post" action="{{ url_for('prenotazioni.admin_delete', pren_id=prenotazione.id_prenotazione) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente questa prenotazione? Questa azione non può essere annullata.');">
+          <button class="btn btn--danger">Elimina Prenotazione</button>
+        </form>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+

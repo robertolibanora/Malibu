@@ -274,7 +274,7 @@ def admin_new():
             db.commit()
             award_on_ingresso(db, cliente_id=cliente_id, evento_id=evento_id)
             flash("Ingresso creato.", "success")
-            return redirect(url_for("ingressi.admin_list"))
+            return redirect(url_for("ingressi.admin_ingresso_detail", ingresso_id=ing.id_ingresso))
 
         return render_template("admin/ingressi_form.html", e=None, eventi=eventi, clienti=clienti, staff_list=staff_list)
     finally:
@@ -307,9 +307,41 @@ def admin_edit(ingresso_id):
             ing.staff_id = staff_id
             db.commit()
             flash("Ingresso aggiornato.", "success")
-            return redirect(url_for("ingressi.admin_list"))
+            return redirect(url_for("ingressi.admin_ingresso_detail", ingresso_id=ingresso_id))
 
         return render_template("admin/ingressi_form.html", e=ing, eventi=[], clienti=[], staff_list=staff_list)
+    finally:
+        db.close()
+
+
+@ingressi_bp.route("/admin/<int:ingresso_id>", methods=["GET"])
+@require_admin
+def admin_ingresso_detail(ingresso_id):
+    db = SessionLocal()
+    try:
+        ing = db.query(Ingresso).get(ingresso_id)
+        if not ing:
+            flash("Ingresso non trovato.", "danger")
+            return redirect(url_for("ingressi.admin_list"))
+        
+        # Carica relazioni
+        cliente = db.query(Cliente).get(ing.cliente_id)
+        evento = db.query(Evento).get(ing.evento_id)
+        staff = None
+        if ing.staff_id:
+            staff = db.query(Staff).get(ing.staff_id)
+        
+        # Carica prenotazione collegata se presente
+        prenotazione = None
+        if ing.prenotazione_id:
+            prenotazione = db.query(Prenotazione).get(ing.prenotazione_id)
+        
+        return render_template("admin/ingresso_detail.html",
+                             ingresso=ing,
+                             cliente=cliente,
+                             evento=evento,
+                             staff=staff,
+                             prenotazione=prenotazione)
     finally:
         db.close()
 

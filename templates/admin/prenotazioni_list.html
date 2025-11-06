@@ -78,21 +78,18 @@
 <section class="list">
   {% for p, c, e in rows %}
   <article class="card list__item">
-    <div class="card__title">{{ e.data_evento }} — {{ e.nome_evento }}</div>
-    <div class="card__meta">{{ c.cognome }} {{ c.nome }} • {{ p.tipo|capitalize }} • Stato: {{ p.stato }}</div>
-    {% if p.tipo == 'tavolo' and p.num_persone %}
-      <div class="text--muted">Persone: {{ p.num_persone }}</div>
-    {% endif %}
-    {% if p.note %}
-      <div class="text--muted">Note: {{ p.note }}</div>
-    {% endif %}
-
-    <div class="form__actions">
-      <a class="btn btn--primary" href="{{ url_for('prenotazioni.admin_edit', pren_id=p.id_prenotazione) }}">Modifica</a>
-      <form method="post" action="{{ url_for('prenotazioni.admin_delete', pren_id=p.id_prenotazione) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente?');">
-        <button class="btn btn--danger">Elimina</button>
-      </form>
-      <a class="btn btn--ghost" href="{{ url_for('prenotazioni.admin_analytics', evento_id=e.id_evento) }}">Analytics</a>
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=p.id_prenotazione) }}" style="text-decoration: none; display: block;">
+          <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+            {{ c.nome }} {{ c.cognome }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;">
+          {{ e.data_evento }} — {{ e.nome_evento }}
+        </div>
+      </div>
+      <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=p.id_prenotazione) }}" class="btn btn--primary btn--small">Visualizza</a>
     </div>
   </article>
   {% else %}

@@ -86,14 +86,18 @@
 <section class="list">
   {% for i, c, e in rows %}
   <article class="card list__item">
-    <div class="card__title">{{ e.data_evento }} — {{ e.nome_evento }}</div>
-    <div class="card__meta">{{ c.cognome }} {{ c.nome }} • {{ i.tipo_ingresso|capitalize }} • {{ i.orario_ingresso }}</div>
-    {% if i.note %}<div class="text--muted">Note: {{ i.note }}</div>{% endif %}
-    <div class="form__actions">
-      <a class="btn btn--primary" href="{{ url_for('ingressi.admin_edit', ingresso_id=i.id_ingresso) }}">Modifica</a>
-      <form method="post" action="{{ url_for('ingressi.admin_delete', ingresso_id=i.id_ingresso) }}" style="display:inline" onsubmit="return confirm('Annullare il check-in?');">
-        <button class="btn btn--danger">Undo</button>
-      </form>
+    <div class="list__item-header">
+      <div>
+        <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" style="text-decoration: none; display: block;">
+          <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+            {{ c.nome }} {{ c.cognome }}
+          </strong>
+        </a>
+        <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;">
+          {{ e.data_evento }} — {{ e.nome_evento }}
+        </div>
+      </div>
+      <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="btn btn--primary btn--small">Visualizza</a>
     </div>
   </article>
   {% else %}
