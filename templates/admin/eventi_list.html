@@ -51,10 +51,9 @@
           </strong>
         </a>
         <div style="margin-top: 0.5rem;">
-          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
-          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
-          <span class="badge badge--success">Programmato</span>
-          <span class="badge">ID: {{ e.id_evento }}</span>
+                 <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+                 <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+                 <span class="badge badge--success">Programmato</span>
         </div>
       </div>
       <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>
@@ -107,10 +106,9 @@
           </strong>
         </a>
         <div style="margin-top: 0.5rem;">
-          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
-          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
-          <span class="badge badge--secondary">Passato</span>
-          <span class="badge">ID: {{ e.id_evento }}</span>
+                 <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+                 <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+                 <span class="badge badge--secondary">Passato</span>
         </div>
       </div>
       <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>
@@ -158,10 +156,9 @@
           </strong>
         </a>
         <div style="margin-top: 0.5rem;">
-          <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
-          <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
-          <span class="badge badge--{{ 'success' if e.data_evento >= oggi else 'secondary' }}">{{ 'Programmato' if e.data_evento >= oggi else 'Passato' }}</span>
-          <span class="badge">ID: {{ e.id_evento }}</span>
+                 <span class="badge badge--{{ 'success' if e.stato == 'attivo' else 'secondary' }}">{{ e.stato|capitalize }}</span>
+                 <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
+                 <span class="badge badge--{{ 'success' if e.data_evento >= oggi else 'secondary' }}">{{ 'Programmato' if e.data_evento >= oggi else 'Passato' }}</span>
         </div>
       </div>
       <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Visualizza</a>

@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Prenotazione #{{ prenotazione.id_prenotazione }}{% endblock %}
+{% block admin_title %}Prenotazione{% endblock %}
 
 {% block admin_content %}
 <div class="cliente-detail">
@@ -7,7 +7,7 @@
   <section class="card">
     <div class="cliente-header">
       <div class="cliente-header__main">
-        <h1 class="card__title">Prenotazione #{{ prenotazione.id_prenotazione }}</h1>
+        <h1 class="card__title">Prenotazione</h1>
         <div class="cliente-header__meta">
           <span class="badge badge--{{ 'success' if prenotazione.stato == 'attiva' else 'secondary' }}">
             {{ prenotazione.stato|capitalize }}
@@ -98,6 +98,12 @@
       </div>
 
       <form class="form" method="post" action="{{ url_for('prenotazioni.admin_edit', pren_id=prenotazione.id_prenotazione) }}">
+        <input type="hidden" name="cliente_id" value="{{ prenotazione.cliente_id }}">
+        <input type="hidden" name="evento_id" value="{{ prenotazione.evento_id }}">
+        <input type="hidden" name="tipo" value="{{ prenotazione.tipo }}">
+        <input type="hidden" name="num_persone" value="{{ prenotazione.num_persone or '' }}">
+        <input type="hidden" name="orario_previsto" value="{{ prenotazione.orario_previsto or '' }}">
+        <input type="hidden" name="note" value="{{ prenotazione.note or '' }}">
         <div class="form__group">
           <label class="form__label">Cambia Stato</label>
           <div class="form__inline">

@@ -18,7 +18,7 @@
       {% if per_staff %}
         <ul class="list">
           {% for sid, cnt in per_staff.items() %}
-          <li class="list__item">ID Staff {{ sid or '—' }}: <strong>{{ cnt }}</strong></li>
+          <li class="list__item">Staff: <strong>{{ cnt }}</strong></li>
           {% endfor %}
         </ul>
       {% else %}

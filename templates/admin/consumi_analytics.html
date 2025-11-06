@@ -25,7 +25,7 @@
     <li class="list__item">Per staff:
       <ul class="list">
         {% for sid, euro in per_staff.items() %}
-        <li class="list__item">ID Staff {{ sid or '—' }} — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
+        <li class="list__item">Staff — <strong>€ {{ '%.2f'|format(euro) }}</strong></li>
         {% endfor %}
       </ul>
     </li>

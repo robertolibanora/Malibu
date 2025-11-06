@@ -42,7 +42,7 @@
   <h2 class="card__title">Punti medi per evento</h2>
   <ul class="list">
     {% for ev_id, avgp in per_evento.items() %}
-    <li class="list__item">Evento #{{ ev_id }} — <strong>{{ '%.2f'|format(avgp) }}</strong> pt</li>
+    <li class="list__item">Evento — <strong>{{ '%.2f'|format(avgp) }}</strong> pt</li>
     {% endfor %}
   </ul>
 </section>

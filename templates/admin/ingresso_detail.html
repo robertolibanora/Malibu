@@ -1,5 +1,5 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Ingresso #{{ ingresso.id_ingresso }}{% endblock %}
+{% block admin_title %}Ingresso{% endblock %}
 
 {% block admin_content %}
 <div class="cliente-detail">
@@ -7,10 +7,9 @@
   <section class="card">
     <div class="cliente-header">
       <div class="cliente-header__main">
-        <h1 class="card__title">Ingresso #{{ ingresso.id_ingresso }}</h1>
+        <h1 class="card__title">Ingresso</h1>
         <div class="cliente-header__meta">
           <span class="badge badge--warning">{{ ingresso.tipo_ingresso|capitalize }}</span>
-          <span class="badge">ID: {{ ingresso.id_ingresso }}</span>
         </div>
       </div>
       <div class="cliente-header__actions">
@@ -73,7 +72,7 @@
           <span class="info-label">Prenotazione Collegata:</span>
           <span class="info-value">
             <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=prenotazione.id_prenotazione) }}" class="text--gold">
-              Prenotazione #{{ prenotazione.id_prenotazione }}
+              Visualizza prenotazione
             </a>
             <span class="badge badge--{{ 'success' if prenotazione.stato == 'usata' else 'secondary' }}" style="margin-left: 0.5rem;">
               {{ prenotazione.stato|capitalize }}

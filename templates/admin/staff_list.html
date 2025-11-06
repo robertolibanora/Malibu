@@ -50,7 +50,7 @@
         {% endif %}
       </div>
     </div>
-    <div class="card__meta">Username: {{ s.username }} • ID: {{ s.id_staff }}</div>
+    <div class="card__meta">Username: {{ s.username }}</div>
     
     <div class="form__actions">
       <a href="{{ url_for('staff_admin.admin_edit', staff_id=s.id_staff) }}" class="btn btn--primary">Modifica</a>

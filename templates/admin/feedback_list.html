@@ -71,7 +71,7 @@
           {% for fb, cl, ev in rows %}
             <div class="list__item">
               <div><strong>{{ ev.nome_evento }}</strong> — {{ ev.data_evento }}</div>
-              <div>{{ cl.nome }} {{ cl.cognome }} (ID {{ cl.id_cliente }})</div>
+              <div>{{ cl.nome }} {{ cl.cognome }}</div>
               <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }}</div>
               {% if fb.note %}<div class="text--muted">{{ fb.note }}</div>{% endif %}
               <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}">

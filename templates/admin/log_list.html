@@ -48,7 +48,7 @@
         <div class="list">
           {% for log, staff in rows %}
             <div class="list__item">
-              <div><strong>{{ log.tabella }}</strong> — record #{{ log.record_id }}</div>
+              <div><strong>{{ log.tabella }}</strong></div>
               <div>Azione: <span class="badge">{{ log.azione }}</span></div>
               <div>Staff: {{ staff.nome if staff else '-' }}</div>
               <div class="text--muted">{{ log.timestamp }}</div>
