@@ -292,6 +292,14 @@ def admin_evento_detail(evento_id):
               .order_by(Consumo.data_consumo.desc())
               .all()
         )
+
+        feedback_evento = (
+            db.query(Feedback, Cliente)
+              .join(Cliente, Cliente.id_cliente == Feedback.cliente_id)
+              .filter(Feedback.evento_id == evento_id)
+              .order_by(Feedback.data_feedback.desc())
+              .all()
+        )
         
         # Breakdown prenotazioni
         pren_by_tipo = dict(db.query(Prenotazione.tipo, func.count(Prenotazione.id_prenotazione))
@@ -353,6 +361,7 @@ def admin_evento_detail(evento_id):
                              prenotazioni_evento=prenotazioni_evento,
                              ingressi_evento=ingressi_evento,
                              consumi_evento=consumi_evento,
+                             feedback_evento=feedback_evento,
                              pren_by_tipo=pren_by_tipo,
                              pren_by_stato=pren_by_stato,
                              tavolo_persone=tavolo_persone,

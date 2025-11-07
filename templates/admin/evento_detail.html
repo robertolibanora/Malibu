@@ -316,6 +316,39 @@
     <p class="text--muted">Nessun consumo registrato per questo evento.</p>
     {% endif %}
   </section>
+
+  <!-- Feedback -->
+  <section class="card">
+    <h2 class="card__title">Feedback</h2>
+    {% if feedback_evento %}
+    <div class="list">
+      {% for fb, cliente in feedback_evento %}
+      <div class="list__item">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+          <div>
+            <strong>{{ cliente.nome }} {{ cliente.cognome }}</strong><br>
+            <small class="text--muted">{{ fb.data_feedback.strftime('%d/%m/%Y %H:%M') if fb.data_feedback else '—' }}</small>
+          </div>
+          <div class="badge-group">
+            <span class="badge">Musica: {{ fb.voto_musica }}</span>
+            <span class="badge">Ingresso: {{ fb.voto_ingresso }}</span>
+            <span class="badge">Ambiente: {{ fb.voto_ambiente }}</span>
+          </div>
+        </div>
+        {% if fb.note %}
+        <p class="text--muted" style="margin-top: 0.75rem;">{{ fb.note }}</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}" style="margin-top: 0.75rem;">
+          <input type="hidden" name="next" value="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}">
+          <button class="btn btn--danger btn--small" onclick="return confirm('Eliminare il feedback selezionato?');" type="submit">Elimina</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text--muted">Nessun feedback registrato per questo evento.</p>
+    {% endif %}
+  </section>
 </div>
 {% endblock %}
 

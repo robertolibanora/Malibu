@@ -187,6 +187,9 @@ def admin_delete(id_feedback):
         db.delete(fb)
         db.commit()
         flash("Feedback eliminato.", "success")
+        next_url = request.form.get("next")
+        if next_url:
+            return redirect(next_url)
         return redirect(url_for("feedback.admin_list"))
     finally:
         db.close()
