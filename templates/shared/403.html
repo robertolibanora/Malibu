@@ -1,0 +1,146 @@
+{% extends "shared/base.html" %}
+{% block title %}Accesso Negato - Malibù{% endblock %}
+
+{% block content %}
+<section class="error-page">
+  <div class="error-card">
+    <div class="error-icon">🚫</div>
+    <h1 class="error-title">Accesso Negato</h1>
+    <p class="error-message">Non hai i permessi necessari per accedere a questa risorsa.</p>
+    
+    <div class="error-details">
+      {% if session.get('cliente_id') %}
+        <p>Sei autenticato come <strong>Cliente</strong>.</p>
+        <p>Questa pagina è riservata allo staff o agli amministratori.</p>
+      {% elif session.get('staff_id') %}
+        <p>Sei autenticato come <strong>Staff</strong>.</p>
+        <p>Questa pagina richiede privilegi di amministratore.</p>
+      {% else %}
+        <p>Non sei autenticato. Effettua il login per continuare.</p>
+      {% endif %}
+    </div>
+
+    <div class="error-actions">
+      {% if session.get('cliente_id') %}
+        <a href="{{ url_for('clienti.area_personale') }}" class="btn btn--primary">Torna all'Area Cliente</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn--ghost">Logout</a>
+      {% elif session.get('staff_id') %}
+        <a href="{{ url_for('staff.dashboard') }}" class="btn btn--primary">Torna alla Dashboard Staff</a>
+        <a href="{{ url_for('auth.logout') }}" class="btn btn--ghost">Logout</a>
+      {% else %}
+        <a href="{{ url_for('auth.auth_login_form') }}" class="btn btn--primary">Vai al Login</a>
+        <a href="/" class="btn btn--ghost">Torna alla Home</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<style>
+.error-page {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error-card {
+  max-width: 600px;
+  width: 100%;
+  background-color: var(--color-black-soft);
+  border: 1px solid var(--color-gray-soft);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.error-icon {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-10px); }
+  75% { transform: translateX(10px); }
+}
+
+.error-title {
+  color: var(--color-red-accent);
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 1rem;
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.error-message {
+  color: var(--color-text-light);
+  font-size: var(--font-size-lg);
+  margin-bottom: 2rem;
+  line-height: var(--line-height-relaxed);
+}
+
+.error-details {
+  background-color: rgba(255, 79, 79, 0.1);
+  border: 1px solid rgba(255, 79, 79, 0.3);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.error-details p {
+  color: var(--color-text-light);
+  margin-bottom: 0.5rem;
+  font-size: var(--font-size-base);
+}
+
+.error-details p:last-child {
+  margin-bottom: 0;
+}
+
+.error-details strong {
+  color: var(--color-gold-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-actions .btn {
+  min-width: 180px;
+}
+
+@media (max-width: 640px) {
+  .error-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .error-icon {
+    font-size: 4rem;
+  }
+  
+  .error-title {
+    font-size: var(--font-size-2xl);
+  }
+  
+  .error-message {
+    font-size: var(--font-size-base);
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .error-actions .btn {
+    width: 100%;
+  }
+}
+</style>
+{% endblock %}
+

@@ -8,15 +8,55 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/clienti.css') }}">
 {% endblock %}
 
-{% block header_meta %}
-  <nav class="cliente-nav">
-    <a href="{{ url_for('clienti.area_personale') }}">Profilo</a>
-    <a href="{{ url_for('eventi.lista_pubblica') }}">Eventi</a>
-    <a href="{{ url_for('prenotazioni.mie') }}">Prenotazioni</a>
-    <a href="{{ url_for('ingressi.mie') }}">Ingressi</a>
-    <a href="{{ url_for('consumi.miei') }}">Consumi</a>
-    <a href="{{ url_for('fedelta.mio_dashboard') }}">Fedeltà</a>
-    <a href="{{ url_for('feedback.miei') }}">Feedback</a>
+{% block header_nav %}
+  <nav class="cliente-nav app__header-nav" role="navigation" aria-label="Navigazione principale cliente">
+    <div class="cliente-nav__brand">
+      <span class="cliente-nav__logo">Malibù</span>
+      <span class="cliente-nav__role">Cliente</span>
+    </div>
+    
+    <ul class="cliente-nav__menu">
+      <li class="cliente-nav__item">
+        <a href="{{ url_for('clienti.area_personale') }}" 
+           class="cliente-nav__link {% if request.endpoint == 'clienti.area_personale' or request.endpoint == 'clienti.me_edit' %}cliente-nav__link--active{% endif %}"
+           aria-label="Il mio profilo">
+          <span class="cliente-nav__icon">👤</span>
+          <span class="cliente-nav__text">Profilo</span>
+        </a>
+      </li>
+      <li class="cliente-nav__item">
+        <a href="{{ url_for('eventi.lista_pubblica') }}" 
+           class="cliente-nav__link {% if request.endpoint and request.endpoint.startswith('eventi.') %}cliente-nav__link--active{% endif %}"
+           aria-label="Eventi disponibili">
+          <span class="cliente-nav__icon">🎉</span>
+          <span class="cliente-nav__text">Eventi</span>
+        </a>
+      </li>
+      <li class="cliente-nav__item">
+        <a href="{{ url_for('prenotazioni.mie') }}" 
+           class="cliente-nav__link {% if request.endpoint and request.endpoint.startswith('prenotazioni.') %}cliente-nav__link--active{% endif %}"
+           aria-label="Le mie prenotazioni">
+          <span class="cliente-nav__icon">📅</span>
+          <span class="cliente-nav__text">Prenotazioni</span>
+        </a>
+      </li>
+      <li class="cliente-nav__item">
+        <a href="{{ url_for('fedelta.mio_dashboard') }}" 
+           class="cliente-nav__link {% if request.endpoint and request.endpoint.startswith('fedelta.') %}cliente-nav__link--active{% endif %}"
+           aria-label="Programma fedeltà">
+          <span class="cliente-nav__icon">⭐</span>
+          <span class="cliente-nav__text">Fedeltà</span>
+        </a>
+      </li>
+      <li class="cliente-nav__item cliente-nav__item--secondary">
+        <a href="{{ url_for('auth.logout') }}" 
+           class="cliente-nav__link cliente-nav__link--logout"
+           aria-label="Esci dal tuo account">
+          <span class="cliente-nav__icon">🚪</span>
+          <span class="cliente-nav__text">Esci</span>
+        </a>
+      </li>
+    </ul>
   </nav>
 {% endblock %}
 

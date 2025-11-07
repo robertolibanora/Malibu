@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from app.database import SessionLocal
-from app.utils.decorators import require_cliente, require_admin
+from app.utils.decorators import require_cliente, require_admin, require_staff
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -70,7 +70,7 @@ def mie():
 # 🧑‍🍳 STAFF — Scan QR (evento attivo in sessione)
 # ============================================
 @ingressi_bp.route("/staff/scan", methods=["GET", "POST"])
-@require_admin   # ⛳️ In attesa di auth staff dedicata; poi usa @require_staff
+@require_staff
 def staff_scan():
     db = SessionLocal()
     try:
@@ -141,7 +141,7 @@ def staff_scan():
 
 
 @ingressi_bp.route("/staff/esito/<int:ingresso_id>", methods=["GET"])
-@require_admin
+@require_staff
 def staff_esito(ingresso_id):
     db = SessionLocal()
     try:

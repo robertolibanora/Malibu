@@ -1,0 +1,87 @@
+{# Component: Breadcrumb per navigazione intuitiva #}
+{% if breadcrumbs %}
+<nav class="breadcrumb fade-in" aria-label="Breadcrumb" style="margin-bottom: var(--spacing-6);">
+  <ol class="breadcrumb__list">
+    <li class="breadcrumb__item">
+      <a href="{{ url_for('dashboard.admin_dashboard') }}" class="breadcrumb__link">
+        <span class="breadcrumb__icon">🏠</span>
+        <span>Dashboard</span>
+      </a>
+    </li>
+    {% for item in breadcrumbs %}
+    <li class="breadcrumb__item {% if loop.last %}breadcrumb__item--active{% endif %}">
+      {% if item.url and not loop.last %}
+        <span class="breadcrumb__separator">›</span>
+        <a href="{{ item.url }}" class="breadcrumb__link">{{ item.label }}</a>
+      {% else %}
+        <span class="breadcrumb__separator">›</span>
+        <span class="breadcrumb__current">{{ item.label }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</nav>
+
+<style>
+.breadcrumb {
+  background-color: var(--admin-bg-secondary);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-3) var(--spacing-4);
+}
+
+.breadcrumb__list {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-sm);
+}
+
+.breadcrumb__link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-gray-light);
+  text-decoration: none;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.breadcrumb__link:hover {
+  color: var(--admin-accent);
+  background-color: var(--admin-bg-primary);
+}
+
+.breadcrumb__icon {
+  font-size: var(--font-size-base);
+}
+
+.breadcrumb__separator {
+  color: var(--color-gray-soft);
+  font-weight: var(--font-weight-normal);
+}
+
+.breadcrumb__current {
+  color: var(--admin-accent);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-1) var(--spacing-2);
+}
+
+.breadcrumb__item--active .breadcrumb__link {
+  color: var(--admin-accent);
+  pointer-events: none;
+}
+</style>
+{% endif %}
+

@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Listino Prodotti{% endblock %}
+
+{% block admin_content %}
+<section class="card">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+    <div>
+      <h1 class="card__title" style="margin: 0;">Listino Prodotti</h1>
+      <p class="text--muted" style="margin-top: var(--spacing-sm);">Gestisci i prodotti disponibili per lo staff</p>
+    </div>
+    <a href="{{ url_for('prodotti.admin_new') }}" class="btn btn--primary">Nuovo Prodotto</a>
+  </div>
+
+  <!-- Filtri -->
+  <form method="get" class="form">
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Categoria</label>
+        <input type="text" name="categoria" placeholder="Cerca categoria..." class="form__input" value="{{ filtro.categoria }}">
+      </div>
+      <div class="form__group">
+        <label class="form__label">Stato</label>
+        <select class="form__input" name="attivo">
+          <option value="">Tutti</option>
+          <option value="si" {% if filtro.attivo=='si' %}selected{% endif %}>Attivi</option>
+          <option value="no" {% if filtro.attivo=='no' %}selected{% endif %}>Disattivi</option>
+        </select>
+      </div>
+    </div>
+    <div class="form__actions">
+      <button type="submit" class="btn btn--secondary">Filtra</button>
+      {% if filtro.categoria or filtro.attivo %}
+      <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost">Reset</a>
+      {% endif %}
+    </div>
+  </form>
+</section>
+
+<!-- Lista prodotti -->
+{% if prodotti %}
+<section class="list">
+  {% for p in prodotti %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
+          <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+            {{ p.nome }}
+          </strong>
+          <span class="badge badge--{{ 'success' if p.attivo else 'secondary' }}">
+            {{ 'Attivo' if p.attivo else 'Disattivo' }}
+          </span>
+          {% if p.categoria %}
+          <span class="badge badge--warning">{{ p.categoria }}</span>
+          {% endif %}
+        </div>
+        <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
+          <span style="color: var(--gold-primary); font-weight: 600; font-size: 1.125rem;">€{{ "%.2f"|format(p.prezzo) }}</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: var(--spacing-sm);">
+        <a href="{{ url_for('prodotti.admin_edit', prodotto_id=p.id_prodotto) }}" class="btn btn--primary btn--small">Modifica</a>
+        <form method="post" action="{{ url_for('prodotti.admin_delete', prodotto_id=p.id_prodotto) }}" style="display:inline" onsubmit="return confirm('Eliminare questo prodotto?');">
+          <button class="btn btn--danger btn--small">Elimina</button>
+        </form>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card">
+  <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun prodotto trovato.</p>
+</section>
+{% endif %}
+{% endblock %}
+

@@ -1,7 +1,7 @@
-{% extends "shared/base.html" %}
+{% extends "clienti/base.html" %}
 {% block title %}Nuova prenotazione{% endblock %}
 
-{% block content %}
+{% block cliente_content %}
 <section class="card">
   <h1 class="card__title">{{ e.nome_evento }}</h1>
   <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>

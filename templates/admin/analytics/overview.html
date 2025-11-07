@@ -1,0 +1,709 @@
+{% extends "admin/base.html" %}
+
+{% block admin_title %}Statistiche{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <style>
+    .analytics-wrapper {
+      display: grid;
+      gap: 2rem;
+    }
+
+    .analytics-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+    }
+
+    .summary-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1.25rem;
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(26, 26, 26, 0.8), rgba(0, 0, 0, 0.6));
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(10px);
+    }
+
+    .summary-card__label {
+      font-size: 0.85rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted, rgba(255,255,255,0.7));
+    }
+
+    .summary-card__value {
+      font-size: 2rem;
+      font-weight: 600;
+    }
+
+    .summary-card__meta {
+      font-size: 0.85rem;
+      color: var(--text-muted, rgba(255,255,255,0.7));
+    }
+
+    .chart-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+
+    .chart-card {
+      padding: 1.25rem;
+      border-radius: 18px;
+      background: rgba(17, 24, 39, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chart-card__header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .chart-card__title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .chart-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .chart-select,
+    .chart-range,
+    .chart-option {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      color: #ffffff;
+      padding: 0.4rem 0.9rem;
+      font-size: 0.85rem;
+      appearance: none;
+    }
+
+    .chart-select:focus,
+    .chart-range:focus {
+      outline: 2px solid rgba(212, 175, 55, 0.6);
+      outline-offset: 2px;
+    }
+
+    .chart-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted, rgba(255,255,255,0.65));
+    }
+
+    .chart-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      padding: 0.25rem 0.75rem;
+      font-size: 0.8rem;
+      color: #ffffff;
+    }
+
+    .chart-checkbox input {
+      accent-color: #d4af37;
+    }
+
+    .chart-range-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .chart-range-output {
+      font-size: 0.85rem;
+      color: var(--text-muted, rgba(255,255,255,0.7));
+      min-width: 2ch;
+      text-align: right;
+    }
+
+    .chart-card__empty {
+      display: none;
+      margin-top: 1rem;
+      text-align: center;
+      color: var(--text-muted, rgba(255,255,255,0.6));
+    }
+
+    .chart-card canvas {
+      width: 100%;
+      max-height: 360px;
+    }
+
+    @media (min-width: 1024px) {
+      .chart-grid {
+        grid-template-columns: repeat(12, 1fr);
+      }
+
+      .chart-card--full {
+        grid-column: span 12;
+      }
+
+      .chart-card--wide {
+        grid-column: span 8;
+      }
+
+      .chart-card--tall {
+        grid-column: span 4;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block admin_content %}
+<section class="analytics-wrapper">
+  <header class="card" style="padding: 1.5rem;">
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div>
+        <h1 class="card__title" style="margin-bottom: 0.25rem;">Statistiche generali</h1>
+        <p class="text--muted">Overview complessiva delle performance. Periodo temporale ingressi: ultimi {{ range_days }} giorni.</p>
+      </div>
+
+      <div class="analytics-summary">
+        <article class="summary-card">
+          <span class="summary-card__label">Ingressi totali</span>
+          <span class="summary-card__value">{{ tot_ingressi }}</span>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__label">Prenotazioni</span>
+          <span class="summary-card__value">{{ tot_prenotazioni }}</span>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__label">Consumi</span>
+          <span class="summary-card__value">€ {{ '%.2f'|format(tot_consumi) }}</span>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-card__label">Valutazione media</span>
+          {% if feedback_global %}
+            <span class="summary-card__value">{{ '%.1f'|format(feedback_global.average) }}</span>
+            <span class="summary-card__meta">{{ feedback_global.samples }} feedback analizzati</span>
+          {% else %}
+            <span class="summary-card__value">—</span>
+            <span class="summary-card__meta">Nessun feedback disponibile</span>
+          {% endif %}
+        </article>
+      </div>
+    </div>
+  </header>
+
+  <section class="chart-grid">
+    <article class="chart-card chart-card--full">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Ingressi per evento (top <span id="labelIngressiLimite">10</span>)</h2>
+        <div class="chart-controls">
+          <label class="chart-label" for="filterIngressiCategoria">Categoria</label>
+          <select id="filterIngressiCategoria" class="chart-select">
+            <option value="__all">Tutte</option>
+          {% for categoria in event_categories %}
+              <option value="{{ categoria }}">{{ categoria|capitalize }}</option>
+            {% endfor %}
+          </select>
+          <label class="chart-label" for="filterIngressiLimite">Top</label>
+          <select id="filterIngressiLimite" class="chart-select">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+      </div>
+      <canvas id="chartIngressiPerEvento"></canvas>
+      <p class="chart-card__empty">Non ci sono ingressi sufficienti per mostrare il grafico.</p>
+    </article>
+
+    <article class="chart-card chart-card--wide">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Flusso ingressi ultimi <span id="labelIngressiPeriodo">{{ range_days }}</span> giorni</h2>
+        <div class="chart-controls">
+          <label class="chart-label" for="filterIngressiPeriodo">Periodo</label>
+          <select id="filterIngressiPeriodo" class="chart-select">
+            <option value="7">7 gg</option>
+            <option value="14">14 gg</option>
+            <option value="30" selected>30 gg</option>
+            <option value="60">60 gg</option>
+            <option value="90">90 gg</option>
+            <option value="120">120 gg</option>
+          </select>
+          <label class="chart-label" for="filterIngressiTipoGrafico">Visualizzazione</label>
+          <select id="filterIngressiTipoGrafico" class="chart-select">
+            <option value="line">Linea</option>
+            <option value="bar">Barre</option>
+          </select>
+        </div>
+      </div>
+      <canvas id="chartIngressiTemporali"></canvas>
+      <p class="chart-card__empty">Nessun ingresso registrato nel periodo selezionato.</p>
+    </article>
+
+    <article class="chart-card chart-card--tall">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Prenotazioni per tipologia</h2>
+        <div class="chart-controls" id="filterPrenotazioniContainer">
+          {% for item in prenotazioni_per_tipo['items'] %}
+            <label class="chart-checkbox">
+              <input type="checkbox" class="filter-prenotazioni" data-label="{{ item.label }}" checked>
+              {{ item.label|capitalize }}
+            </label>
+          {% endfor %}
+        </div>
+      </div>
+      <canvas id="chartPrenotazioni"></canvas>
+      <p class="chart-card__empty">Nessuna prenotazione registrata.</p>
+    </article>
+
+    <article class="chart-card chart-card--wide">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Prodotti più venduti</h2>
+        <div class="chart-controls">
+          <label class="chart-label" for="filterProdottiMetric">Metrica</label>
+          <select id="filterProdottiMetric" class="chart-select">
+            <option value="count">Quantità</option>
+            <option value="revenue">Ricavi</option>
+            <option value="both" selected>Entrambi</option>
+          </select>
+          <label class="chart-label" for="filterProdottiLimite">Top</label>
+          <select id="filterProdottiLimite" class="chart-select">
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+      </div>
+      <canvas id="chartProdotti"></canvas>
+      <p class="chart-card__empty">Non risultano consumi registrati.</p>
+    </article>
+
+    <article class="chart-card chart-card--tall">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Valutazione media per evento</h2>
+        <div class="chart-controls">
+          <label class="chart-label" for="filterFeedbackCategoria">Categoria</label>
+          <select id="filterFeedbackCategoria" class="chart-select">
+            <option value="__all">Tutte</option>
+            {% for categoria in event_categories %}
+              <option value="{{ categoria }}">{{ categoria|capitalize }}</option>
+            {% endfor %}
+          </select>
+          <div class="chart-range-wrapper">
+            <label class="chart-label" for="filterFeedbackMin">Feedback minimi</label>
+            {% set max_feedback = feedback_per_evento.max_samples if feedback_per_evento.max_samples > 0 else 1 %}
+            <input type="range" id="filterFeedbackMin" class="chart-range" min="0" max="{{ max_feedback }}" value="0">
+            <span class="chart-range-output" id="filterFeedbackMinValue">0</span>
+          </div>
+        </div>
+      </div>
+      <canvas id="chartFeedbackEvento"></canvas>
+      <p class="chart-card__empty">Nessun feedback disponibile.</p>
+    </article>
+
+    <article class="chart-card chart-card--full">
+      <div class="chart-card__header">
+        <h2 class="chart-card__title">Ricavi per evento (top <span id="labelRicaviLimite">10</span>)</h2>
+        <div class="chart-controls">
+          <label class="chart-label" for="filterRicaviCategoria">Categoria</label>
+          <select id="filterRicaviCategoria" class="chart-select">
+            <option value="__all">Tutte</option>
+            {% for categoria in event_categories %}
+              <option value="{{ categoria }}">{{ categoria|capitalize }}</option>
+            {% endfor %}
+          </select>
+          <label class="chart-label" for="filterRicaviLimite">Top</label>
+          <select id="filterRicaviLimite" class="chart-select">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+      </div>
+      <canvas id="chartRicaviEvento"></canvas>
+      <p class="chart-card__empty">Non risultano ricavi associati agli eventi.</p>
+    </article>
+  </section>
+</section>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    const GOLD = '#d4af37';
+    const GOLD_LIGHT = 'rgba(212, 175, 55, 0.25)';
+    const GOLD_DARK = '#a37c00';
+    const GOLD_PALETTE = ['#d4af37', '#f7d774', '#b8922b', '#ffe8a6', '#a37c00', '#c9aa43', '#8c6c00'];
+
+    const charts = {};
+
+    const ingressiPerEventoData = {{ ingressi_per_evento | tojson }};
+    const ingressiTemporaliData = {{ ingressi_temporali | tojson }};
+    const prodottiTopData = {{ prodotti_top | tojson }};
+    const prenotazioniPerTipoData = {{ prenotazioni_per_tipo | tojson }};
+    const feedbackPerEventoData = {{ feedback_per_evento | tojson }};
+    const ricaviPerEventoData = {{ ricavi_per_evento | tojson }};
+
+    function renderChart(canvasId, buildConfig) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return;
+      const card = canvas.closest('.chart-card');
+      const emptyMessage = card ? card.querySelector('.chart-card__empty') : null;
+
+      if (typeof Chart === 'undefined') {
+        canvas.style.display = 'none';
+        if (emptyMessage) {
+          emptyMessage.textContent = 'Impossibile caricare i grafici: libreria Chart.js non disponibile.';
+          emptyMessage.style.display = 'block';
+        }
+        return;
+      }
+
+      const config = buildConfig();
+      const datasets = (config && config.data && config.data.datasets) ? config.data.datasets : [];
+      const labels = (config && config.data && config.data.labels) ? config.data.labels : [];
+      const values = [];
+
+      datasets.forEach(dataset => {
+        (dataset.data || []).forEach(value => {
+          const parsed = Number(value);
+          if (!Number.isNaN(parsed)) values.push(parsed);
+        });
+      });
+
+      const hasData = labels.length > 0 && values.some(val => val > 0);
+
+      if (!hasData) {
+        canvas.style.display = 'none';
+        if (emptyMessage) emptyMessage.style.display = 'block';
+        if (charts[canvasId]) {
+          charts[canvasId].destroy();
+          delete charts[canvasId];
+        }
+        return;
+      }
+
+      canvas.style.display = 'block';
+      if (emptyMessage) emptyMessage.style.display = 'none';
+
+      if (charts[canvasId]) {
+        charts[canvasId].destroy();
+      }
+      charts[canvasId] = new Chart(canvas, config);
+    }
+
+    function updateIngressiChart() {
+      const categoria = document.getElementById('filterIngressiCategoria')?.value || '__all';
+      const limite = parseInt(document.getElementById('filterIngressiLimite')?.value || '10', 10);
+      const labelTarget = document.getElementById('labelIngressiLimite');
+      if (labelTarget) labelTarget.textContent = limite;
+
+      const filtered = (ingressiPerEventoData.items || [])
+        .filter(item => categoria === '__all' || item.categoria === categoria)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, limite);
+
+      renderChart('chartIngressiPerEvento', () => ({
+        type: 'bar',
+        data: {
+          labels: filtered.map(item => item.label),
+          datasets: [{
+            label: 'Ingressi',
+            data: filtered.map(item => item.count),
+            backgroundColor: GOLD,
+            borderRadius: 10,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+            },
+            x: { grid: { display: false }, ticks: { color: '#ffffff' } },
+          },
+          plugins: { legend: { display: false } },
+        },
+      }));
+    }
+
+    function updateIngressiTemporaliChart() {
+      const periodoSelect = document.getElementById('filterIngressiPeriodo');
+      const tipoGraficoSelect = document.getElementById('filterIngressiTipoGrafico');
+      const labelTarget = document.getElementById('labelIngressiPeriodo');
+
+      const periodo = parseInt(periodoSelect?.value || ingressiTemporaliData.default_range_days || 30, 10);
+      if (labelTarget) labelTarget.textContent = periodo;
+      const tipoGrafico = tipoGraficoSelect?.value || 'line';
+
+      const points = (ingressiTemporaliData.points || []);
+      const sliced = periodo >= points.length ? points : points.slice(points.length - periodo);
+
+      const dataset = {
+        label: `Ingressi (${tipoGrafico === 'line' ? 'linea' : 'barre'})`,
+        data: sliced.map(point => point.value),
+      };
+
+      if (tipoGrafico === 'line') {
+        dataset.fill = true;
+        dataset.borderColor = GOLD;
+        dataset.backgroundColor = GOLD_LIGHT;
+        dataset.tension = 0.35;
+        dataset.pointRadius = 3;
+      } else {
+        dataset.backgroundColor = GOLD;
+        dataset.borderRadius = 8;
+      }
+
+      renderChart('chartIngressiTemporali', () => ({
+        type: tipoGrafico,
+        data: {
+          labels: sliced.map(point => point.label),
+          datasets: [dataset],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { precision: 0, color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+            },
+            x: { ticks: { color: '#ffffff' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+          },
+          plugins: { legend: { display: false } },
+        },
+      }));
+    }
+
+    function updatePrenotazioniChart() {
+      const checkboxes = document.querySelectorAll('.filter-prenotazioni');
+      const activeLabels = [];
+      checkboxes.forEach(cb => {
+        if (cb.checked) activeLabels.push(cb.dataset.label);
+      });
+
+      const filtered = (prenotazioniPerTipoData.items || [])
+        .filter(item => activeLabels.includes(item.label));
+
+      renderChart('chartPrenotazioni', () => ({
+        type: 'doughnut',
+        data: {
+          labels: filtered.map(item => item.label),
+          datasets: [{
+            data: filtered.map(item => item.value),
+            backgroundColor: GOLD_PALETTE.slice(0, Math.max(filtered.length, 1)),
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#ffffff' },
+            },
+          },
+        },
+      }));
+    }
+
+    function updateProdottiChart() {
+      const metric = document.getElementById('filterProdottiMetric')?.value || 'both';
+      const limite = parseInt(document.getElementById('filterProdottiLimite')?.value || '5', 10);
+
+      const items = (prodottiTopData.items || []).slice().sort((a, b) => b.count - a.count);
+      const selected = items.slice(0, limite);
+
+      const datasets = [];
+      if (metric === 'count' || metric === 'both') {
+        datasets.push({
+          label: 'Quantità',
+          data: selected.map(item => item.count),
+          backgroundColor: GOLD,
+          borderRadius: 10,
+        });
+      }
+      if (metric === 'revenue' || metric === 'both') {
+        datasets.push({
+          label: 'Ricavi (€)',
+          data: selected.map(item => Number(item.revenue || 0)),
+          backgroundColor: GOLD_DARK,
+          borderRadius: 10,
+        });
+      }
+
+      renderChart('chartProdotti', () => ({
+        type: 'bar',
+        data: {
+          labels: selected.map(item => item.label),
+          datasets,
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+            },
+            x: { ticks: { color: '#ffffff' }, grid: { display: false } },
+          },
+          plugins: {
+            legend: {
+              labels: { color: '#ffffff' },
+            },
+          },
+        },
+      }));
+    }
+
+    function updateFeedbackChart() {
+      const categoria = document.getElementById('filterFeedbackCategoria')?.value || '__all';
+      const slider = document.getElementById('filterFeedbackMin');
+      const minValue = parseInt(slider?.value || '0', 10);
+      const output = document.getElementById('filterFeedbackMinValue');
+      if (output) output.textContent = minValue;
+
+      const filtered = (feedbackPerEventoData.items || [])
+        .filter(item => item.samples >= minValue)
+        .filter(item => categoria === '__all' || item.categoria === categoria)
+        .sort((a, b) => b.overall - a.overall);
+
+      renderChart('chartFeedbackEvento', () => ({
+        type: 'bar',
+        data: {
+          labels: filtered.map(item => item.label),
+          datasets: [{
+            label: 'Valutazione media (1-10)',
+            data: filtered.map(item => item.overall),
+            backgroundColor: GOLD,
+            borderRadius: 8,
+            _samples: filtered.map(item => item.samples),
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              suggestedMax: 10,
+              ticks: { color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+            },
+            x: { ticks: { color: '#ffffff' }, grid: { display: false } },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                afterBody: ctx => {
+                  const dataset = ctx[0]?.dataset;
+                  const index = ctx[0]?.dataIndex ?? 0;
+                  const samples = dataset && dataset._samples ? dataset._samples[index] : 0;
+                  return `Feedback raccolti: ${samples}`;
+                },
+              },
+            },
+            legend: { display: false },
+          },
+        },
+      }));
+    }
+
+    function updateRicaviChart() {
+      const categoria = document.getElementById('filterRicaviCategoria')?.value || '__all';
+      const limite = parseInt(document.getElementById('filterRicaviLimite')?.value || '10', 10);
+      const labelTarget = document.getElementById('labelRicaviLimite');
+      if (labelTarget) labelTarget.textContent = limite;
+
+      const filtered = (ricaviPerEventoData.items || [])
+        .filter(item => categoria === '__all' || item.categoria === categoria)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, limite);
+
+      renderChart('chartRicaviEvento', () => ({
+        type: 'bar',
+        data: {
+          labels: filtered.map(item => item.label),
+          datasets: [{
+            label: 'Ricavi (€)',
+            data: filtered.map(item => Number(item.value || 0)),
+            backgroundColor: GOLD,
+            borderRadius: 10,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.08)' },
+            },
+            x: { ticks: { color: '#ffffff' }, grid: { display: false } },
+          },
+          plugins: { legend: { display: false } },
+        },
+      }));
+    }
+
+    document.getElementById('filterIngressiCategoria')?.addEventListener('change', updateIngressiChart);
+    document.getElementById('filterIngressiLimite')?.addEventListener('change', updateIngressiChart);
+
+    const periodoSelect = document.getElementById('filterIngressiPeriodo');
+    const defaultRange = String(ingressiTemporaliData.default_range_days || 30);
+    if (periodoSelect) {
+      periodoSelect.value = defaultRange;
+      periodoSelect.addEventListener('change', updateIngressiTemporaliChart);
+    }
+    document.getElementById('filterIngressiTipoGrafico')?.addEventListener('change', updateIngressiTemporaliChart);
+
+    document.querySelectorAll('.filter-prenotazioni').forEach(cb => {
+      cb.addEventListener('change', updatePrenotazioniChart);
+    });
+
+    document.getElementById('filterProdottiMetric')?.addEventListener('change', updateProdottiChart);
+    document.getElementById('filterProdottiLimite')?.addEventListener('change', updateProdottiChart);
+
+    const feedbackSlider = document.getElementById('filterFeedbackMin');
+    if (feedbackSlider) {
+      feedbackSlider.addEventListener('input', () => {
+        const output = document.getElementById('filterFeedbackMinValue');
+        if (output) output.textContent = feedbackSlider.value;
+      });
+      feedbackSlider.addEventListener('change', updateFeedbackChart);
+    }
+    document.getElementById('filterFeedbackCategoria')?.addEventListener('change', updateFeedbackChart);
+
+    document.getElementById('filterRicaviCategoria')?.addEventListener('change', updateRicaviChart);
+    document.getElementById('filterRicaviLimite')?.addEventListener('change', updateRicaviChart);
+
+    updateIngressiChart();
+    updateIngressiTemporaliChart();
+    updatePrenotazioniChart();
+    updateProdottiChart();
+    updateFeedbackChart();
+    updateRicaviChart();
+  </script>
+{% endblock %}
+

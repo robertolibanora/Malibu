@@ -61,6 +61,6 @@ def require_staff(f):
     def wrapper(*args, **kwargs):
         if not session.get("staff_id"):
             flash("Devi effettuare l'accesso staff.", "error")
-            return redirect(url_for("auth.login"))  # usiamo il login shared
+            return redirect(url_for("auth.auth_login_form"))  # usiamo il login shared
         return f(*args, **kwargs)
     return wrapper

@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy.exc import IntegrityError
 from app.database import SessionLocal
 from app.models.clienti import Cliente
+from app.models.staff import Staff
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.qr import generate_short_code
 import os
@@ -21,6 +22,7 @@ def _generate_unique_qr(db) -> str:
 def _clear_identities():
     # Sgombera eventuali sessioni pregresse
     session.pop("cliente_id", None)
+    session.pop("staff_id", None)
     session.pop("staff_role", None)
     session.pop("admin_user", None)
 
@@ -41,7 +43,7 @@ def auth_register_submit():
     password = request.form.get("password", "").strip()
 
     if not all([nome, cognome, telefono, password]):
-        flash("Compila tutti i campi obbligatori.", "danger")
+        flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
         return redirect(url_for("auth.auth_register_form"))
 
     db = SessionLocal()
@@ -63,12 +65,12 @@ def auth_register_submit():
         db.commit()
         _clear_identities()
         session["cliente_id"] = nuovo.id_cliente
-        flash("Registrazione completata!", "success")
+        flash("🎉 Benvenuto! Il tuo account è stato creato con successo.", "success")
         return redirect(url_for("clienti.area_personale"))
     except IntegrityError:
         db.rollback()
-        flash("Telefono o email già registrati. Se è tuo, fai il login.", "warning")
-        return redirect(url_for("auth.auth_register_form"))
+        flash("Sembra che questo numero sia già registrato. Hai già un account? Prova ad accedere.", "info")
+        return redirect(url_for("auth.auth_login_form"))
     finally:
         db.close()
 
@@ -85,7 +87,7 @@ def auth_login_submit():
     password = request.form.get("password", "").strip()
 
     if not identifier or not password:
-        flash("Compila tutti i campi.", "danger")
+        flash("Per favore, inserisci il tuo numero di telefono e la password.", "warning")
         return redirect(url_for("auth.auth_login_form"))
 
     db = SessionLocal()
@@ -94,15 +96,32 @@ def auth_login_submit():
         cli = db.query(Cliente).filter(Cliente.telefono == identifier).first()
         if cli and cli.password_hash and check_password_hash(cli.password_hash, password):
             if cli.stato_account == "disattivato":
-                flash("Account disattivato. Contatta l'assistenza.", "danger")
+                flash("Il tuo account risulta temporaneamente disattivato. Per assistenza, contattaci.", "danger")
                 return redirect(url_for("auth.auth_login_form"))
 
             _clear_identities()
             session["cliente_id"] = cli.id_cliente
-            flash("Login eseguito.", "success")
+            flash(f"Bentornato, {cli.nome}! 👋", "success")
             return redirect(url_for("clienti.area_personale"))
 
-        # Se non è un cliente, prova come ADMIN (cerca per username)
+        # Se non è un cliente, prova come STAFF (cerca per username)
+        staff = db.query(Staff).filter(Staff.username == identifier).first()
+        if staff:
+            if not staff.attivo:
+                flash("Il tuo account staff risulta disattivato. Contatta l'amministratore per assistenza.", "danger")
+                return redirect(url_for("auth.auth_login_form"))
+
+            if staff.password_hash and check_password_hash(staff.password_hash, password):
+                _clear_identities()
+                session["staff_id"] = staff.id_staff
+                session["staff_role"] = staff.ruolo
+
+                flash(f"Benvenuto, {staff.nome}! 🎯", "success")
+                if staff.ruolo == "admin":
+                    return redirect(url_for("dashboard.admin_dashboard"))
+                return redirect(url_for("staff.dashboard"))
+
+        # Se non è un cliente né staff, prova come ADMIN .env (cerca per username)
         env_user = os.getenv("ADMIN_USER")
         env_pw_hash = os.getenv("ADMIN_PASSWORD_HASH", "").strip()
         env_pw_plain = os.getenv("ADMIN_PASSWORD", "").strip()
@@ -128,11 +147,11 @@ def auth_login_submit():
                 _clear_identities()
                 session["staff_role"] = "admin"
                 session["admin_user"] = env_user
-                flash("Benvenuto, admin.", "success")
-                return redirect(url_for("clienti.admin_dashboard"))
+                flash("Benvenuto, Amministratore! 🔐", "success")
+                return redirect(url_for("dashboard.admin_dashboard"))
 
         # Nessuna corrispondenza trovata
-        flash("Credenziali non valide.", "danger")
+        flash("Le credenziali inserite non sono corrette. Riprova o contattaci per assistenza.", "danger")
         return redirect(url_for("auth.auth_login_form"))
     finally:
         db.close()
@@ -140,7 +159,7 @@ def auth_login_submit():
 @auth_bp.route("/logout")
 def logout():
     _clear_identities()
-    flash("Logout eseguito.", "success")
+    flash("Disconnessione avvenuta con successo. A presto! 👋", "success")
     return redirect(url_for("auth.auth_login_form"))
 
 # Route login-admin mantenuta per retrocompatibilità, ma reindirizza al login unificato

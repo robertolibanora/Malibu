@@ -11,7 +11,8 @@ from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
 from app.models.prenotazioni import Prenotazione
 from app.models.consumi import Consumo
-from app.utils.decorators import require_admin  # per ora usiamo admin anche per staff
+from app.models.feedback import Feedback
+from app.utils.decorators import require_admin, require_staff
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
@@ -78,7 +79,7 @@ def dettaglio_pubblico(evento_id):
 # (per ora protetti da require_admin finché non c'è login staff)
 # ------------------------------------------------
 @eventi_bp.route("/staff/select", methods=["GET", "POST"])
-@require_admin
+@require_staff
 def staff_select_event():
     db = SessionLocal()
     try:
@@ -99,7 +100,7 @@ def staff_select_event():
         db.close()
 
 @eventi_bp.route("/staff/dashboard", methods=["GET"])
-@require_admin
+@require_staff
 def staff_dashboard():
     evento_id = session.get("evento_attivo_id")
     if not evento_id:
@@ -138,6 +139,38 @@ def staff_dashboard():
 # --------------------------
 # ADMIN — LISTA + CRUD + DUPLICA + CHIUDI + ANALYTICS
 # --------------------------
+@eventi_bp.route("/admin/menu", methods=["GET"])
+@require_admin
+def admin_menu():
+    """Menu principale per la gestione eventi"""
+    db = SessionLocal()
+    try:
+        from datetime import date
+        oggi = date.today()
+        
+        # Statistiche rapide
+        tot_eventi = db.query(func.count(Evento.id_evento)).scalar() or 0
+        eventi_attivi = db.query(func.count(Evento.id_evento)).filter(Evento.stato == "attivo").scalar() or 0
+        eventi_programmati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento >= oggi).scalar() or 0
+        eventi_passati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento < oggi).scalar() or 0
+        
+        # Prossimi 3 eventi
+        prossimi_eventi = db.query(Evento).filter(Evento.data_evento >= oggi).order_by(Evento.data_evento.asc()).limit(3).all()
+        
+        # Ultimi 3 eventi
+        ultimi_eventi = db.query(Evento).order_by(Evento.data_evento.desc()).limit(3).all()
+        
+        return render_template("admin/eventi_menu.html",
+                             tot_eventi=tot_eventi,
+                             eventi_attivi=eventi_attivi,
+                             eventi_programmati=eventi_programmati,
+                             eventi_passati=eventi_passati,
+                             prossimi_eventi=prossimi_eventi,
+                             ultimi_eventi=ultimi_eventi,
+                             oggi=oggi)
+    finally:
+        db.close()
+
 @eventi_bp.route("/admin", methods=["GET"])
 @require_admin
 def admin_list():
@@ -446,20 +479,143 @@ def admin_analytics(evento_id):
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
 
-        ingressi_tot = db.query(func.count(Ingresso.id_ingresso)) \
-                         .filter(Ingresso.evento_id == evento_id).scalar() or 0
+        ingressi_tot = (db.query(func.count(Ingresso.id_ingresso))
+                          .filter(Ingresso.evento_id == evento_id)
+                          .scalar()) or 0
 
-        pren_by_tipo = dict(db.query(Prenotazione.tipo, func.count(Prenotazione.id_prenotazione))
+        pren_by_tipo_items = (db.query(Prenotazione.tipo,
+                                       func.count(Prenotazione.id_prenotazione))
                               .filter(Prenotazione.evento_id == evento_id)
-                              .group_by(Prenotazione.tipo).all())
+                                .group_by(Prenotazione.tipo)
+                                .all())
+        pren_by_tipo = {tipo or "non_specificato": count for tipo, count in pren_by_tipo_items}
 
-        consumi_sum = db.query(func.coalesce(func.sum(Consumo.importo), 0)) \
-                        .filter(Consumo.evento_id == evento_id).scalar() or 0
+        consumi_sum = (db.query(func.coalesce(func.sum(Consumo.importo), 0))
+                         .filter(Consumo.evento_id == evento_id)
+                         .scalar()) or 0
 
-        return render_template("admin/eventi_analytics.html",
+        ingressi_per_evento_rows = (
+            db.query(
+                Evento.nome_evento,
+                Evento.categoria,
+                func.count(Ingresso.id_ingresso).label("tot_ingressi")
+            )
+            .outerjoin(Ingresso, Ingresso.evento_id == Evento.id_evento)
+            .group_by(Evento.id_evento, Evento.nome_evento, Evento.categoria)
+            .order_by(func.count(Ingresso.id_ingresso).desc())
+            .limit(20)
+            .all()
+        )
+
+        ingressi_per_evento_items = []
+        ingressi_categories = set()
+        for row in ingressi_per_evento_rows:
+            categoria = row.categoria or "non specificato"
+            ingressi_categories.add(categoria)
+            ingressi_per_evento_items.append({
+                "label": row.nome_evento,
+                "count": int(row.tot_ingressi or 0),
+                "categoria": categoria,
+            })
+
+        ingressi_per_evento = {
+            "items": ingressi_per_evento_items,
+            "categories": sorted(ingressi_categories),
+        }
+
+        feedback_media_row = (db.query(
+            func.avg(Feedback.voto_musica),
+            func.avg(Feedback.voto_ingresso),
+            func.avg(Feedback.voto_ambiente),
+            func.count(Feedback.id_feedback)
+        )
+            .filter(Feedback.evento_id == evento_id)
+            .one())
+
+        feedback_media = None
+        if feedback_media_row and feedback_media_row[3]:
+            valori_feedback = [
+                float(feedback_media_row[0] or 0),
+                float(feedback_media_row[1] or 0),
+                float(feedback_media_row[2] or 0),
+            ]
+            feedback_media = {
+                "labels": ["Musica", "Ingresso", "Ambiente"],
+                "values": valori_feedback,
+                "samples": int(feedback_media_row[3]),
+                "average": (sum(valori_feedback) / len(valori_feedback)) if valori_feedback else 0.0,
+            }
+
+        slot_expr = func.date_format(Ingresso.orario_ingresso, "%Y-%m-%d %H:00")
+        ingressi_temporali_rows = (
+            db.query(
+                slot_expr.label("slot"),
+                func.count(Ingresso.id_ingresso).label("tot_slot")
+            )
+            .filter(Ingresso.evento_id == evento_id)
+            .group_by(slot_expr)
+            .order_by(slot_expr)
+            .all()
+        )
+
+        ingressi_temporali_points = []
+        for row in ingressi_temporali_rows:
+            slot_str = row.slot
+            ingressi_temporali_points.append({
+                "slot": slot_str,
+                "value": int(row.tot_slot or 0),
+            })
+
+        ingressi_temporali = {
+            "points": ingressi_temporali_points,
+        }
+
+        prodotti_top_rows = (
+            db.query(
+                Consumo.prodotto,
+                func.count(Consumo.id_consumo).label("quantita"),
+                func.coalesce(func.sum(Consumo.importo), 0).label("ricavi")
+            )
+            .filter(Consumo.evento_id == evento_id)
+            .group_by(Consumo.prodotto)
+            .order_by(func.count(Consumo.id_consumo).desc())
+            .limit(10)
+            .all()
+        )
+
+        prodotti_top_items = []
+        for row in prodotti_top_rows:
+            prodotti_top_items.append({
+                "label": row.prodotto,
+                "count": int(row.quantita or 0),
+                "revenue": float(row.ricavi or 0),
+            })
+
+        prodotti_top = {
+            "items": prodotti_top_items,
+        }
+
+        prenotazioni_chart = {
+            "items": [
+                {
+                    "label": label,
+                    "value": int(value or 0),
+                }
+                for label, value in pren_by_tipo.items()
+            ] or [{"label": "Nessuna", "value": 0}],
+        }
+
+        return render_template(
+            "admin/analytics/evento_dashboard.html",
                                e=e,
                                ingressi_tot=ingressi_tot,
                                pren_by_tipo=pren_by_tipo,
-                               consumi_sum=consumi_sum)
+            consumi_sum=float(consumi_sum),
+            ingressi_per_evento=ingressi_per_evento,
+            feedback_media=feedback_media,
+            ingressi_temporali=ingressi_temporali,
+            prodotti_top=prodotti_top,
+            prenotazioni_chart=prenotazioni_chart,
+        )
     finally:
         db.close()

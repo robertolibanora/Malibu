@@ -5,24 +5,24 @@
 <div class="dashboard">
   <!-- Statistiche principali -->
   <div class="dashboard__stats">
-    <div class="stat-card">
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 0ms;">
       <div class="stat-card__value">{{ tot_clienti }}</div>
       <div class="stat-card__label">Clienti Totali</div>
       <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
     </div>
     
-    <div class="stat-card">
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 100ms;">
       <div class="stat-card__value">{{ tot_eventi }}</div>
       <div class="stat-card__label">Eventi Totali</div>
       <div class="stat-card__meta">{{ eventi_attivi }} attivi</div>
     </div>
     
-    <div class="stat-card">
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 200ms;">
       <div class="stat-card__value">{{ ingressi_recenti }}</div>
       <div class="stat-card__label">Ingressi (30gg)</div>
     </div>
     
-    <div class="stat-card">
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 300ms;">
       <div class="stat-card__value">€{{ "%.2f"|format(consumi_recenti) }}</div>
       <div class="stat-card__label">Consumi (30gg)</div>
     </div>
@@ -30,7 +30,7 @@
 
   <!-- Prossimo evento -->
   {% if prossimo_evento %}
-  <section class="card">
+  <section class="card fade-in" style="animation-delay: 400ms;">
     <h2 class="card__title">Prossimo Evento</h2>
     <div class="evento-preview">
       <h3>{{ prossimo_evento.nome_evento }}</h3>
@@ -47,7 +47,7 @@
   <!-- Grid con statistiche dettagliate -->
   <div class="grid grid--2">
     <!-- Distribuzione livelli -->
-    <section class="card">
+    <section class="card fade-in" style="animation-delay: 500ms;">
       <h2 class="card__title">Distribuzione Livelli</h2>
       <ul class="list">
         {% for livello, count in livelli_dist.items() %}
@@ -59,7 +59,7 @@
     </section>
 
     <!-- Media Feedback -->
-    <section class="card">
+    <section class="card fade-in" style="animation-delay: 600ms;">
       <h2 class="card__title">Media Feedback</h2>
       <ul class="list">
         <li class="list__item"><strong>Musica:</strong> {{ avg_musica }}/10</li>
@@ -70,7 +70,7 @@
   </div>
 
   <!-- Top clienti -->
-  <section class="card">
+  <section class="card fade-in" style="animation-delay: 700ms;">
     <h2 class="card__title">Top 5 Clienti per Punti</h2>
     <div class="table-responsive">
       <table class="table">
@@ -99,7 +99,7 @@
   </section>
 
   <!-- Eventi recenti -->
-  <section class="card">
+  <section class="card fade-in" style="animation-delay: 800ms;">
     <h2 class="card__title">Eventi Recenti</h2>
     <div class="list">
       {% for evento in eventi_recenti %}
@@ -119,10 +119,11 @@
   </section>
 
   <!-- Quick actions -->
-  <section class="card">
+  <section class="card fade-in" style="animation-delay: 900ms;">
     <h2 class="card__title">Azioni Rapide</h2>
     <div class="grid grid--3" style="margin-top: var(--spacing-lg);">
       <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--primary">Gestisci Clienti</a>
+      <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--primary">Gestisci Eventi</a>
       <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">Nuovo Evento</a>
       <a href="{{ url_for('staff_admin.admin_new') }}" class="btn btn--primary">Nuovo Staff</a>
       <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--secondary">Prenotazioni</a>

@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
-from app.utils.decorators import require_cliente, require_admin
+from app.utils.decorators import require_cliente, require_admin, require_staff
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -67,10 +67,128 @@ def miei():
         db.close()
 
 # ============================================
+# 🧑‍🍳 STAFF — Listino prodotti e addebito QR
+# ============================================
+@consumi_bp.route("/staff/listino", methods=["GET"])
+@require_staff
+def staff_listino():
+    """Visualizza il listino prodotti per lo staff"""
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            flash("Seleziona prima un evento attivo.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+        
+        # Carica prodotti attivi raggruppati per categoria
+        prodotti = []
+        if Prodotto is not None:
+            prodotti = db.query(Prodotto).filter(Prodotto.attivo == True).order_by(Prodotto.categoria.asc(), Prodotto.nome.asc()).all()
+        
+        # Raggruppa per categoria
+        prodotti_per_categoria = {}
+        for p in prodotti:
+            categoria = p.categoria or "Altro"
+            if categoria not in prodotti_per_categoria:
+                prodotti_per_categoria[categoria] = []
+            prodotti_per_categoria[categoria].append(p)
+        
+        return render_template("staff/listino.html", 
+                             evento=e, 
+                             prodotti_per_categoria=prodotti_per_categoria,
+                             prodotti=prodotti)
+    finally:
+        db.close()
+
+
+@consumi_bp.route("/staff/listino/addebito", methods=["POST"])
+@require_staff
+def staff_listino_addebito():
+    """Processa l'addebito di prodotti selezionati al QR code del cliente"""
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            flash("Seleziona prima un evento attivo.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+        
+        qr = (request.form.get("qr") or "").strip()
+        cli = _cliente_by_qr(db, qr)
+        if not cli:
+            flash("QR non valido o cliente non trovato.", "danger")
+            return redirect(url_for("consumi.staff_listino"))
+        
+        # Controllo ingresso -> solo warning
+        if not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
+            flash("Attenzione: cliente non risulta entrato a questo evento.", "warning")
+        
+        # Recupera prodotti selezionati
+        prodotti_selezionati = request.form.getlist("prodotto_id")
+        quantita = {}
+        for pid in prodotti_selezionati:
+            qty = request.form.get(f"quantita_{pid}", type=int, default=1)
+            if qty and qty > 0:
+                quantita[int(pid)] = qty
+        
+        if not quantita:
+            flash("Seleziona almeno un prodotto.", "danger")
+            return redirect(url_for("consumi.staff_listino"))
+        
+        # Recupera altri parametri
+        punto_vendita = request.form.get("punto_vendita", "bar")
+        note = (request.form.get("note") or "").strip() or None
+        
+        if punto_vendita in PUNTI and not note:
+            flash("Per tavolo/privè è obbligatoria una nota (es. Tavolo 7).", "danger")
+            return redirect(url_for("consumi.staff_listino"))
+        
+        # Crea consumi per ogni prodotto selezionato
+        totale_importo = 0
+        consumi_creati = []
+        
+        for pid, qty in quantita.items():
+            if Prodotto is None:
+                continue
+            p = db.query(Prodotto).get(pid)
+            if not p or not p.attivo:
+                continue
+            
+            importo_totale = float(p.prezzo) * qty
+            totale_importo += importo_totale
+            
+            # Crea un consumo per ogni quantità (o un unico consumo con quantità nel nome)
+            nome_prodotto = f"{p.nome}" + (f" x{qty}" if qty > 1 else "")
+            
+            c = Consumo(
+                cliente_id=cli.id_cliente,
+                evento_id=e.id_evento,
+                staff_id=_get_staff_id(),
+                prodotto_id=pid,
+                prodotto=nome_prodotto,
+                importo=importo_totale,
+                punto_vendita=punto_vendita,
+                note=note
+            )
+            db.add(c)
+            consumi_creati.append(c)
+        
+        db.commit()
+        
+        # Assegna punti fedeltà basati sul totale
+        if totale_importo > 0:
+            award_on_consumo(db, cliente_id=cli.id_cliente, evento_id=e.id_evento, importo_euro=totale_importo)
+        
+        flash(f"Addebito completato! Totale: €{totale_importo:.2f}. Punti assegnati: {int(totale_importo // 10)}", "success")
+        return redirect(url_for("consumi.staff_listino"))
+    finally:
+        db.close()
+
+
+# ============================================
 # 🧑‍🍳 STAFF — Nuovo consumo (QR + evento attivo)
 # ============================================
 @consumi_bp.route("/staff/new", methods=["GET", "POST"])
-@require_admin   # placeholder finché non attiviamo auth staff
+@require_staff
 def staff_new():
     db = SessionLocal()
     try:

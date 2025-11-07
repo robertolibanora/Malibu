@@ -1,0 +1,197 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Listino{% endblock %}
+
+{% block staff_content %}
+<section class="card">
+  <h1 class="card__title">Listino Prodotti</h1>
+  <div class="card__meta">
+    <strong>Evento:</strong> {{ evento.data_evento }} — {{ evento.nome_evento }}
+  </div>
+</section>
+
+<!-- Scanner QR -->
+<section class="card">
+  <h2 class="card__title">Scanner QR Cliente</h2>
+  <div id="reader" style="width:100%; max-width:420px; margin:auto;"></div>
+  <form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}" style="margin-top:1rem;">
+    <input type="hidden" name="qr" id="qr_hidden" required>
+    
+    <div class="form__group">
+      <label class="form__label">QR Code Cliente</label>
+      <input class="form__input" type="text" name="qr_manual" id="qr_manual" placeholder="Oppure inserisci manualmente il QR code">
+      <small>Scansiona il QR code o inseriscilo manualmente</small>
+    </div>
+
+    <!-- Listino prodotti per categoria -->
+    {% if prodotti_per_categoria %}
+    <div class="form__group" style="margin-top: 2rem;">
+      <label class="form__label">Seleziona Prodotti</label>
+      
+      {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
+      <div style="margin-bottom: 2rem; padding: 1rem; background: rgba(212, 175, 55, 0.05); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.1);">
+        <h3 style="margin: 0 0 1rem 0; color: var(--gold-primary); font-size: 1.125rem;">{{ categoria }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+          {% for p in prodotti_cat %}
+          <div style="padding: 1rem; background: var(--black-soft); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.1);">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" style="width: 20px; height: 20px;">
+              <div style="flex: 1;">
+                <strong style="display: block; color: var(--text-light);">{{ p.nome }}</strong>
+                <span style="color: var(--gold-primary); font-weight: 600;">€{{ "%.2f"|format(p.prezzo) }}</span>
+              </div>
+            </label>
+            <div style="margin-top: 0.5rem; display: none;" class="quantita-container">
+              <label class="form__label" style="font-size: 0.75rem;">Quantità:</label>
+              <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="form__input" style="padding: 0.5rem; font-size: 0.875rem;">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
+      <p>Nessun prodotto disponibile nel listino.</p>
+      <p style="font-size: 0.875rem; margin-top: 0.5rem;">L'admin deve aggiungere prodotti al listino.</p>
+    </div>
+    {% endif %}
+
+    {% if prodotti_per_categoria %}
+    <div class="grid grid--2" style="margin-top: 1.5rem;">
+      <div class="form__group">
+        <label class="form__label">Punto Vendita</label>
+        <select class="form__input" name="punto_vendita" required>
+          <option value="bar">Bar</option>
+          <option value="tavolo">Tavolo</option>
+          <option value="privè">Privè</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Note</label>
+        <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input">
+        <small>Obbligatorio per Tavolo/Privè</small>
+      </div>
+    </div>
+
+    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+      <strong style="display: block; margin-bottom: 0.5rem; color: var(--gold-primary);">Totale selezionato:</strong>
+      <div id="totale" style="font-size: 1.5rem; font-weight: 700; color: var(--text-light);">€0.00</div>
+      <small style="color: var(--text-muted);">Punti che verranno assegnati: <span id="punti">0</span></small>
+    </div>
+
+    <div class="form__actions" style="margin-top: 1.5rem;">
+      <button class="btn btn--primary" type="submit" id="submit_btn" disabled>Addebita al Cliente</button>
+      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">Annulla</a>
+    </div>
+    {% endif %}
+  </form>
+</section>
+
+<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const form = document.getElementById('listinoForm');
+  const qrHidden = document.getElementById('qr_hidden');
+  const qrManual = document.getElementById('qr_manual');
+  const noteInput = document.getElementById('note_input');
+  const puntoVendita = document.querySelector('select[name="punto_vendita"]');
+  const submitBtn = document.getElementById('submit_btn');
+  const totaleEl = document.getElementById('totale');
+  const puntiEl = document.getElementById('punti');
+  
+  // Sincronizza QR manuale con hidden
+  qrManual.addEventListener('input', function(){
+    qrHidden.value = this.value.trim();
+    checkForm();
+  });
+  
+  // QR Scanner
+  function handleDecoded(txt){
+    qrHidden.value = txt;
+    qrManual.value = txt;
+    checkForm();
+  }
+  
+  if (window.Html5Qrcode) {
+    const html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: 250 };
+    html5QrCode.start({ facingMode: "environment" }, config, handleDecoded)
+      .catch(() => {/* fallback manuale */});
+  }
+  
+  // Calcola totale e punti - costruisci dizionario prezzi da tutti i prodotti
+  const prezzi = {};
+  {% if prodotti %}
+  {% for p in prodotti %}
+  prezzi[{{ p.id_prodotto }}] = {{ p.prezzo }};
+  {% endfor %}
+  {% endif %}
+  {% if prodotti_per_categoria %}
+  {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
+  {% for p in prodotti_cat %}
+  if (!prezzi[{{ p.id_prodotto }}]) {
+    prezzi[{{ p.id_prodotto }}] = {{ p.prezzo }};
+  }
+  {% endfor %}
+  {% endfor %}
+  {% endif %}
+  
+  function updateTotale(){
+    let totale = 0;
+    document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
+      const pid = parseInt(cb.value);
+      const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || 1);
+      totale += (prezzi[pid] || 0) * qty;
+    });
+    totaleEl.textContent = '€' + totale.toFixed(2);
+    puntiEl.textContent = Math.floor(totale / 10);
+    checkForm();
+  }
+  
+  // Mostra/nascondi quantità quando si seleziona prodotto
+  document.querySelectorAll('.prodotto-checkbox').forEach(cb => {
+    cb.addEventListener('change', function(){
+      const container = this.closest('div').querySelector('.quantita-container');
+      if (this.checked) {
+        container.style.display = 'block';
+      } else {
+        container.style.display = 'none';
+        const qtyInput = container.querySelector('input[type="number"]');
+        if (qtyInput) qtyInput.value = 1;
+      }
+      updateTotale();
+    });
+  });
+  
+  // Aggiorna totale quando cambia quantità
+  document.querySelectorAll('input[name^="quantita_"]').forEach(input => {
+    input.addEventListener('change', updateTotale);
+    input.addEventListener('input', updateTotale);
+  });
+  
+  // Validazione form
+  function checkForm(){
+    const hasQR = qrHidden.value.trim().length > 0;
+    const hasProdotti = document.querySelectorAll('.prodotto-checkbox:checked').length > 0;
+    const punto = puntoVendita.value;
+    const hasNote = noteInput.value.trim().length > 0;
+    
+    let valid = hasQR && hasProdotti;
+    
+    if (punto === 'tavolo' || punto === 'privè') {
+      valid = valid && hasNote;
+    }
+    
+    submitBtn.disabled = !valid;
+  }
+  
+  puntoVendita.addEventListener('change', checkForm);
+  noteInput.addEventListener('input', checkForm);
+  
+  // Inizializza
+  checkForm();
+});
+</script>
+{% endblock %}
+

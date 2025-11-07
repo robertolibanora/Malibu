@@ -1,0 +1,59 @@
+{# Component: Back Button - Per navigazione intuitiva #}
+{% if back_url %}
+<div class="back-nav fade-in" style="margin-bottom: var(--spacing-4);">
+  <a href="{{ back_url }}" class="back-nav__link" aria-label="{{ back_label or 'Torna indietro' }}">
+    <span class="back-nav__icon">←</span>
+    <span class="back-nav__text">{{ back_label or 'Indietro' }}</span>
+  </a>
+</div>
+
+<style>
+.back-nav {
+  display: inline-block;
+}
+
+.back-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-gray-light);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  background-color: transparent;
+  border: 1px solid transparent;
+}
+
+.back-nav__link:hover {
+  color: var(--color-gold-primary);
+  background-color: rgba(212, 175, 55, 0.08);
+  border-color: rgba(212, 175, 55, 0.2);
+  transform: translateX(-4px);
+}
+
+.back-nav__link:active {
+  transform: translateX(-2px);
+  transition: all var(--transition-instant);
+}
+
+.back-nav__icon {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+
+.back-nav__text {
+  line-height: 1;
+}
+
+/* Focus accessibile */
+.back-nav__link:focus-visible {
+  outline: 2px solid var(--color-gold-primary);
+  outline-offset: 2px;
+}
+</style>
+{% endif %}
+

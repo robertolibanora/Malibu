@@ -1,29 +1,28 @@
-{% extends "shared/base.html" %}
-{% block content %}
-<div class="container">
-  <div class="card">
-    <div class="card__header">
-      <h1 class="card__title">I miei feedback</h1>
-      <a class="btn btn--primary" href="{{ url_for('feedback.nuovo') }}">Nuovo feedback</a>
-    </div>
-    <div class="card__content">
-      {% if feedbacks and feedbacks|length %}
-        <div class="list">
-          {% for fb, ev in feedbacks %}
-            <div class="list__item">
-              <div><strong>{{ ev.nome_evento }}</strong> — {{ ev.data_evento }}</div>
-              <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }}</div>
-              {% if fb.note %}
-                <div class="text--muted">{{ fb.note }}</div>
-              {% endif %}
-              <div class="text--muted">{{ fb.data_feedback }}</div>
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="text--muted">Nessun feedback ancora.</p>
-      {% endif %}
-    </div>
+{% extends "clienti/base.html" %}
+{% block title %}I miei feedback - Malibù{% endblock %}
+{% block cliente_content %}
+<section class="card">
+  <div class="card__header">
+    <h1 class="card__title">I miei feedback</h1>
+    <a class="btn btn--primary" href="{{ url_for('feedback.nuovo') }}">Nuovo feedback</a>
   </div>
-</div>
+  <div class="card__content">
+    {% if feedbacks and feedbacks|length %}
+      <div class="list">
+        {% for fb, ev in feedbacks %}
+          <div class="list__item">
+            <div><strong>{{ ev.nome_evento }}</strong> — {{ ev.data_evento }}</div>
+            <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }}</div>
+            {% if fb.note %}
+              <div class="text--muted">{{ fb.note }}</div>
+            {% endif %}
+            <div class="text--muted">{{ fb.data_feedback }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text--muted">Nessun feedback ancora.</p>
+    {% endif %}
+  </div>
+</section>
 {% endblock %}

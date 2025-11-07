@@ -1,0 +1,141 @@
+{% extends "shared/base.html" %}
+{% block title %}Pagina Non Trovata - Malibù{% endblock %}
+
+{% block content %}
+<section class="error-page">
+  <div class="error-card">
+    <div class="error-icon">🔍</div>
+    <h1 class="error-title">404</h1>
+    <h2 class="error-subtitle">Pagina Non Trovata</h2>
+    <p class="error-message">La pagina che stai cercando non esiste o è stata spostata.</p>
+    
+    <div class="error-details">
+      <p>Verifica l'URL o torna alla pagina principale.</p>
+    </div>
+
+    <div class="error-actions">
+      {% if session.get('cliente_id') %}
+        <a href="{{ url_for('clienti.area_personale') }}" class="btn btn--primary">Area Cliente</a>
+      {% elif session.get('staff_id') %}
+        <a href="{{ url_for('staff.dashboard') }}" class="btn btn--primary">Dashboard Staff</a>
+      {% elif session.get('staff_role') == 'admin' %}
+        <a href="{{ url_for('dashboard.admin_dashboard') }}" class="btn btn--primary">Dashboard Admin</a>
+      {% else %}
+        <a href="{{ url_for('auth.auth_login_form') }}" class="btn btn--primary">Vai al Login</a>
+      {% endif %}
+      <a href="/" class="btn btn--ghost">Torna alla Home</a>
+    </div>
+  </div>
+</section>
+
+<style>
+.error-page {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.error-card {
+  max-width: 600px;
+  width: 100%;
+  background-color: var(--color-black-soft);
+  border: 1px solid var(--color-gray-soft);
+  border-radius: 16px;
+  padding: 3rem 2rem;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.error-icon {
+  font-size: 5rem;
+  margin-bottom: 1.5rem;
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.error-title {
+  color: var(--color-gold-primary);
+  font-size: 6rem;
+  font-weight: var(--font-weight-bold);
+  margin-bottom: 0.5rem;
+  letter-spacing: var(--letter-spacing-tight);
+  line-height: 1;
+}
+
+.error-subtitle {
+  color: var(--color-text-light);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: 1rem;
+}
+
+.error-message {
+  color: var(--color-gray-light);
+  font-size: var(--font-size-lg);
+  margin-bottom: 2rem;
+  line-height: var(--line-height-relaxed);
+}
+
+.error-details {
+  background-color: rgba(212, 175, 55, 0.05);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.error-details p {
+  color: var(--color-text-light);
+  margin-bottom: 0;
+  font-size: var(--font-size-base);
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-actions .btn {
+  min-width: 180px;
+}
+
+@media (max-width: 640px) {
+  .error-card {
+    padding: 2rem 1.5rem;
+  }
+  
+  .error-icon {
+    font-size: 4rem;
+  }
+  
+  .error-title {
+    font-size: 4rem;
+  }
+  
+  .error-subtitle {
+    font-size: var(--font-size-xl);
+  }
+  
+  .error-message {
+    font-size: var(--font-size-base);
+  }
+  
+  .error-actions {
+    flex-direction: column;
+  }
+  
+  .error-actions .btn {
+    width: 100%;
+  }
+}
+</style>
+{% endblock %}
+

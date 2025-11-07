@@ -8,14 +8,63 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/staff.css') }}">
 {% endblock %}
 
-{% block header_meta %}
-  <nav class="staff-nav">
-    <a href="{{ url_for('staff.dashboard') }}">Dashboard</a>
-    <a href="{{ url_for('eventi.staff_select_event') }}">Eventi</a>
-    <a href="{{ url_for('ingressi.staff_scan') }}">Ingressi</a>
-    <a href="{{ url_for('consumi.staff_new') }}">Consumi</a>
-    <a href="{{ url_for('eventi.staff_select_event') }}">Prenotazioni</a>
-    <a href="{{ url_for('fedelta.staff_quick') }}">Fedeltà</a>
+{% block header_nav %}
+  <nav class="staff-nav app__header-nav" role="navigation" aria-label="Navigazione principale staff">
+    <div class="staff-nav__brand">
+      <span class="staff-nav__logo">Malibù</span>
+      <span class="staff-nav__role">Staff</span>
+    </div>
+    
+    <ul class="staff-nav__menu">
+      <li class="staff-nav__item">
+        <a href="{{ url_for('staff.dashboard') }}" 
+           class="staff-nav__link {% if request.endpoint == 'staff.dashboard' %}staff-nav__link--active{% endif %}"
+           aria-label="Dashboard operativa">
+          <span class="staff-nav__icon">📊</span>
+          <span class="staff-nav__text">Dashboard</span>
+        </a>
+      </li>
+      <li class="staff-nav__item">
+        <a href="{{ url_for('eventi.staff_select_event') }}" 
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('eventi.staff') %}staff-nav__link--active{% endif %}"
+           aria-label="Gestione eventi">
+          <span class="staff-nav__icon">🎯</span>
+          <span class="staff-nav__text">Eventi</span>
+        </a>
+      </li>
+      <li class="staff-nav__item">
+        <a href="{{ url_for('ingressi.staff_scan') }}" 
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('ingressi.staff') %}staff-nav__link--active{% endif %}"
+           aria-label="Scansione ingressi">
+          <span class="staff-nav__icon">🔍</span>
+          <span class="staff-nav__text">Ingressi</span>
+        </a>
+      </li>
+      <li class="staff-nav__item">
+        <a href="{{ url_for('consumi.staff_new') }}" 
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('consumi.staff') %}staff-nav__link--active{% endif %}"
+           aria-label="Registra consumi">
+          <span class="staff-nav__icon">🧾</span>
+          <span class="staff-nav__text">Consumi</span>
+        </a>
+      </li>
+      <li class="staff-nav__item">
+        <a href="{{ url_for('fedelta.staff_quick') }}" 
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('fedelta.staff') %}staff-nav__link--active{% endif %}"
+           aria-label="Gestione fedeltà">
+          <span class="staff-nav__icon">⚡</span>
+          <span class="staff-nav__text">Fedeltà</span>
+        </a>
+      </li>
+      <li class="staff-nav__item staff-nav__item--secondary">
+        <a href="{{ url_for('auth.logout') }}" 
+           class="staff-nav__link staff-nav__link--logout"
+           aria-label="Esci dal sistema">
+          <span class="staff-nav__icon">🚪</span>
+          <span class="staff-nav__text">Esci</span>
+        </a>
+      </li>
+    </ul>
   </nav>
 {% endblock %}
 

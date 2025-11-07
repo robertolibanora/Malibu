@@ -1,7 +1,7 @@
-{% extends "shared/base.html" %}
-{% block title %}Dashboard evento - Staff{% endblock %}
+{% extends "staff/base.html" %}
+{% block staff_title %}Dashboard evento{% endblock %}
 
-{% block content %}
+{% block staff_content %}
 <section class="card">
   <h1 class="card__title">{{ e.nome_evento }}</h1>
   <div class="card__meta">{{ e.data_evento }} • Capienza: {{ capienza }}</div>

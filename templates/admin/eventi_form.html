@@ -4,10 +4,31 @@
 {% block admin_content %}
 <section class="card">
   <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} evento</h1>
-  <form class="form" method="post" enctype="multipart/form-data">
+  <form class="form" method="post" enctype="multipart/form-data" id="eventoForm">
+    {% if not e %}
     <div class="form__group">
-      <label class="form__label">Nome evento</label>
-      <input class="form__input" name="nome_evento" value="{{ e.nome_evento if e else '' }}" required>
+      <label class="form__label">Seleziona Template Evento *</label>
+      <select class="form__input" name="template_evento" id="template_evento" required>
+        <option value="">— Seleziona un template —</option>
+        {% for idx in range(TEMPLATE_EVENTI|length) %}
+        {% set template = TEMPLATE_EVENTI[idx] %}
+        <option value="{{ idx }}" {% if template_selezionato and template_selezionato|int == idx %}selected{% endif %} 
+                data-nome="{{ template.nome }}" 
+                data-categoria="{{ template.categoria }}" 
+                data-tipo-musica="{{ template.tipo_musica }}" 
+                data-capienza="{{ template.capienza }}">
+          {{ template.nome }} ({{ template.categoria|capitalize }})
+        </option>
+        {% endfor %}
+        <option value="custom">— Personalizzato —</option>
+      </select>
+      <small>Seleziona un template per precompilare i campi, oppure "Personalizzato" per inserire tutto manualmente</small>
+    </div>
+    {% endif %}
+    
+    <div class="form__group">
+      <label class="form__label">Nome evento *</label>
+      <input class="form__input" name="nome_evento" id="nome_evento" value="{{ e.nome_evento if e else '' }}" required>
     </div>
     <div class="form__group">
       <label class="form__label">Data evento</label>
@@ -15,7 +36,7 @@
     </div>
     <div class="form__group">
       <label class="form__label">Tipo musica</label>
-      <input class="form__input" name="tipo_musica" value="{{ e.tipo_musica if e else '' }}">
+      <input class="form__input" name="tipo_musica" id="tipo_musica" value="{{ e.tipo_musica if e else '' }}">
     </div>
     <div class="form__group">
       <label class="form__label">DJ / Artista</label>
@@ -27,11 +48,11 @@
     </div>
     <div class="form__group">
       <label class="form__label">Capienza max</label>
-      <input class="form__input" type="number" min="0" name="capienza_max" value="{{ e.capienza_max if e else 2000 }}" required>
+      <input class="form__input" type="number" min="0" name="capienza_max" id="capienza_max" value="{{ e.capienza_max if e else 2000 }}" required>
     </div>
     <div class="form__group">
       <label class="form__label">Categoria</label>
-      <select class="form__input" name="categoria" required>
+      <select class="form__input" name="categoria" id="categoria" required>
         {% for c in CATEGORIES_PUBLIC %}
           <option value="{{ c }}" {% if e and e.categoria==c %}selected{% endif %}>{{ c|capitalize }}</option>
         {% endfor %}
@@ -45,8 +66,8 @@
       </select>
     </div>
     <div class="form__group">
-      <label class="form__label">Immagine Copertina (JPG/PNG)</label>
-      <input class="form__input" type="file" name="cover_image" accept="image/jpeg,image/jpg,image/png">
+      <label class="form__label">Immagine Copertina (JPG/PNG) {% if not e %}*{% endif %}</label>
+      <input class="form__input" type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/jpg,image/png" {% if not e %}required{% endif %}>
       {% if e and e.cover_url %}
       <div style="margin-top: 1rem;">
         <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="Cover evento" style="max-width: 300px; max-height: 200px; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
@@ -58,7 +79,7 @@
         </div>
       </div>
       {% endif %}
-      <small>Formati supportati: JPG, PNG (max 16MB)</small>
+      <small>Formati supportati: JPG, PNG (max 16MB). {% if not e %}<strong>L'immagine è obbligatoria per nuovi eventi.</strong>{% endif %}</small>
     </div>
 
     <div class="form__actions">
@@ -71,4 +92,34 @@
     </div>
   </form>
 </section>
+
+{% if not e %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const templateSelect = document.getElementById('template_evento');
+  const nomeInput = document.getElementById('nome_evento');
+  const categoriaSelect = document.getElementById('categoria');
+  const tipoMusicaInput = document.getElementById('tipo_musica');
+  const capienzaInput = document.getElementById('capienza_max');
+  
+  templateSelect.addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    
+    if (selectedOption.value && selectedOption.value !== 'custom' && selectedOption.value !== '') {
+      // Precompila i campi con i valori del template
+      nomeInput.value = selectedOption.getAttribute('data-nome') || '';
+      categoriaSelect.value = selectedOption.getAttribute('data-categoria') || 'altro';
+      tipoMusicaInput.value = selectedOption.getAttribute('data-tipo-musica') || '';
+      capienzaInput.value = selectedOption.getAttribute('data-capienza') || '2500';
+    } else if (selectedOption.value === 'custom') {
+      // Pulisci i campi per permettere inserimento personalizzato
+      nomeInput.value = '';
+      tipoMusicaInput.value = '';
+      capienzaInput.value = '2500';
+      categoriaSelect.value = 'altro';
+    }
+  });
+});
+</script>
+{% endif %}
 {% endblock %}

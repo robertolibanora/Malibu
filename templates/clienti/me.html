@@ -1,7 +1,7 @@
-{% extends "shared/base.html" %}
+{% extends "clienti/base.html" %}
 {% block title %}Area personale - Malibù{% endblock %}
 
-{% block content %}
+{% block cliente_content %}
 <section class="card">
   <h1 class="card__title">Ciao {{ cliente.nome }} {{ cliente.cognome }}</h1>
   <p class="card__meta">Livello: {{ cliente.livello }} • Punti: {{ cliente.punti_fedelta or 0 }}</p>

@@ -1,38 +1,58 @@
 {% extends "shared/base.html" %}
 {% block title %}Registrazione - Malibù{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
-<section class="card">
-  <h1 class="card__title">Crea account</h1>
-  <form class="form" method="post" action="{{ url_for('auth.auth_register_submit') }}">
+<section class="auth">
+  <div class="auth__brand">
+    <span class="auth__brand-title">Malibù</span>
+    <span class="auth__brand-subtitle">Crea il tuo accesso personale</span>
+    <span class="auth__divider"></span>
+  </div>
+
+  <form class="auth-card form" method="post" action="{{ url_for('auth.auth_register_submit') }}" onsubmit="handleFormSubmit(event, this)">
     <div class="form__group">
-      <label class="form__label">Nome</label>
-      <input class="form__input" name="nome" required>
+      <label class="form__label" for="nome">Nome</label>
+      <input class="form__input" id="nome" name="nome" required autocomplete="given-name" aria-label="Nome">
     </div>
     <div class="form__group">
-      <label class="form__label">Cognome</label>
-      <input class="form__input" name="cognome" required>
+      <label class="form__label" for="cognome">Cognome</label>
+      <input class="form__input" id="cognome" name="cognome" required autocomplete="family-name" aria-label="Cognome">
     </div>
     <div class="form__group">
-      <label class="form__label">Telefono</label>
-      <input class="form__input" name="telefono" inputmode="tel" required>
+      <label class="form__label" for="telefono">Telefono</label>
+      <input class="form__input" id="telefono" name="telefono" inputmode="tel" required autocomplete="tel" aria-label="Telefono">
     </div>
     <div class="form__group">
-      <label class="form__label">Data di nascita</label>
-      <input class="form__input" type="date" name="data_nascita">
+      <label class="form__label" for="data_nascita">Data di nascita (opzionale)</label>
+      <input class="form__input" id="data_nascita" type="date" name="data_nascita" autocomplete="bday" aria-label="Data di nascita">
     </div>
     <div class="form__group">
-      <label class="form__label">Città</label>
-      <input class="form__input" name="citta">
+      <label class="form__label" for="citta">Città (opzionale)</label>
+      <input class="form__input" id="citta" name="citta" autocomplete="address-level2" aria-label="Città">
     </div>
     <div class="form__group">
-      <label class="form__label">Password</label>
-      <input class="form__input" type="password" name="password" required>
+      <label class="form__label" for="password_reg">Password</label>
+      <input class="form__input" id="password_reg" type="password" name="password" required autocomplete="new-password" aria-label="Password" minlength="6">
+      <small class="form__help">Minimo 6 caratteri</small>
     </div>
     <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Registrati</button>
-      <a class="btn btn--ghost" href="{{ url_for('auth.auth_login_form') }}">Ho già un account</a>
+      <button class="btn btn--primary" type="submit" id="registerBtn">Registrati</button>
     </div>
+    <p class="auth__alt">
+      Hai già un account?
+      <a href="{{ url_for('auth.auth_login_form') }}">Accedi</a>
+    </p>
   </form>
+
+  <script>
+    function handleFormSubmit(event, form) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.classList.contains('btn--loading')) {
+        submitBtn.classList.add('btn--loading');
+        submitBtn.disabled = true;
+      }
+    }
+  </script>
 </section>
 {% endblock %}

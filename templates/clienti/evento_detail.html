@@ -1,7 +1,7 @@
-{% extends "shared/base.html" %}
+{% extends "clienti/base.html" %}
 {% block title %}{{ e.nome_evento }} - Malibù{% endblock %}
 
-{% block content %}
+{% block cliente_content %}
 <article class="card">
   {% if e.cover_url %}
     <img src="{{ e.cover_url }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">

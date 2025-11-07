@@ -14,15 +14,20 @@
   {% block extra_head %}{% endblock %}
 </head>
 <body class="app {% block body_class %}{% endblock %}">
-  <header class="app__header">
-    <div class="container">
-      <strong>Malibù</strong>
-      <span class="text--muted hide-desktop">{% block header_meta %}{% endblock %}</span>
-      <div class="show-desktop-only">{% block header_meta_desktop %}{% endblock %}</div>
+  <header class="app__header" role="banner">
+    <div class="app__header-shell">
+      <div class="app__brand">
+        <a href="/" class="app__brand-logo" aria-label="Malibù Home">Malibù</a>
+        {% block header_tagline %}{% endblock %}
+      </div>
+      <div class="app__header-actions">
+        {% block header_actions %}{% endblock %}
+      </div>
     </div>
+    {% block header_nav %}{% endblock %}
   </header>
 
-  <main class="app__main container">
+  <main class="app__main container" role="main">
     {% include "shared/_flash.html" %}
     {% block content %}{% endblock %}
   </main>

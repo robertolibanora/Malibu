@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
-from app.utils.decorators import require_cliente, require_admin
+from app.utils.decorators import require_cliente, require_admin, require_staff
 
 # Modelli
 from app.models.clienti import Cliente
@@ -150,7 +150,7 @@ def mio_dashboard():
 # 🧑‍🍳 Staff — scan QR → mostra saldo/tier
 # =========================================
 @fedelta_bp.route("/staff/scan", methods=["GET", "POST"])
-@require_admin   # placeholder finché non c'è auth staff
+@require_staff
 def staff_quick():
     db = SessionLocal()
     try:

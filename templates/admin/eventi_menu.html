@@ -1,0 +1,175 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Gestione Eventi{% endblock %}
+
+{% block admin_content %}
+<div class="dashboard">
+  <!-- Header con statistiche -->
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+      <div>
+        <h1 class="card__title" style="margin: 0;">Gestione Eventi</h1>
+        <p class="text--muted" style="margin-top: var(--spacing-sm);">Menu principale per la gestione completa degli eventi</p>
+      </div>
+      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">+ Nuovo Evento</a>
+    </div>
+
+    <!-- Statistiche rapide -->
+    <div class="dashboard__stats" style="margin-top: var(--spacing-xl);">
+      <div class="stat-card">
+        <div class="stat-card__value">{{ tot_eventi }}</div>
+        <div class="stat-card__label">Eventi Totali</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value">{{ eventi_attivi }}</div>
+        <div class="stat-card__label">Eventi Attivi</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value">{{ eventi_programmati }}</div>
+        <div class="stat-card__label">Eventi Programmati</div>
+        <div class="stat-card__meta">Data >= {{ oggi.strftime('%d/%m/%Y') }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-card__value">{{ eventi_passati }}</div>
+        <div class="stat-card__label">Eventi Passati</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Menu principale -->
+  <section class="card">
+    <h2 class="card__title">Menu Gestione</h2>
+    <div class="grid grid--2" style="margin-top: var(--spacing-lg);">
+      <!-- Creazione e Lista -->
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+        <h3 style="color: var(--gold-primary); font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); text-transform: uppercase; letter-spacing: 0.05em;">Creazione e Visualizzazione</h3>
+        <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">+</span>
+          <div>
+            <div style="font-weight: 700;">Nuovo Evento</div>
+            <small style="opacity: 0.8; font-weight: 400;">Crea un nuovo evento con template</small>
+          </div>
+        </a>
+        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📋</span>
+          <div>
+            <div style="font-weight: 700;">Lista Eventi</div>
+            <small style="opacity: 0.8; font-weight: 400;">Visualizza tutti gli eventi</small>
+          </div>
+        </a>
+        <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📅</span>
+          <div>
+            <div style="font-weight: 700;">Eventi Programmati</div>
+            <small style="opacity: 0.8; font-weight: 400;">Solo eventi futuri</small>
+          </div>
+        </a>
+        <a href="{{ url_for('eventi.admin_list', periodo='passati') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📜</span>
+          <div>
+            <div style="font-weight: 700;">Eventi Passati</div>
+            <small style="opacity: 0.8; font-weight: 400;">Storico eventi</small>
+          </div>
+        </a>
+      </div>
+
+      <!-- Azioni e Analytics -->
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+        <h3 style="color: var(--gold-primary); font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); text-transform: uppercase; letter-spacing: 0.05em;">Azioni e Analytics</h3>
+        <a href="{{ url_for('eventi.admin_list', stato='attivo') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">✅</span>
+          <div>
+            <div style="font-weight: 700;">Eventi Attivi</div>
+            <small style="opacity: 0.8; font-weight: 400;">Solo eventi attivi</small>
+          </div>
+        </a>
+        <a href="{{ url_for('eventi.admin_list', stato='chiuso') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
+          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">🔒</span>
+          <div>
+            <div style="font-weight: 700;">Eventi Chiusi</div>
+            <small style="opacity: 0.8; font-weight: 400;">Eventi chiusi</small>
+          </div>
+        </a>
+        <div style="padding: var(--spacing-md); background: rgba(212, 175, 55, 0.05); border-radius: var(--radius-md); border: 1px solid rgba(212, 175, 55, 0.1);">
+          <div style="color: var(--gold-primary); font-weight: 600; margin-bottom: var(--spacing-xs);">💡 Suggerimento</div>
+          <small style="color: var(--text-muted); line-height: 1.5;">
+            Seleziona un evento dalla lista per accedere a tutte le funzionalità: modifica, duplica, chiudi, analytics e statistiche dettagliate.
+          </small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prossimi eventi -->
+  {% if prossimi_eventi %}
+  <section class="card">
+    <h2 class="card__title">Prossimi Eventi</h2>
+    <div class="list">
+      {% for evento in prossimi_eventi %}
+      <article class="list__item">
+        <div class="list__item-header">
+          <div style="flex: 1;">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none;">
+              <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+                {{ evento.nome_evento }}
+              </strong>
+            </a>
+            <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+              <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
+                {{ evento.stato|capitalize }}
+              </span>
+              <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
+              <span style="color: var(--text-muted); font-size: 0.875rem;">{{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
+            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Analytics</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div style="margin-top: var(--spacing-lg); text-align: center;">
+      <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="btn btn--ghost">Vedi tutti gli eventi programmati →</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Ultimi eventi -->
+  {% if ultimi_eventi %}
+  <section class="card">
+    <h2 class="card__title">Eventi Recenti</h2>
+    <div class="list">
+      {% for evento in ultimi_eventi %}
+      <article class="list__item">
+        <div class="list__item-header">
+          <div style="flex: 1;">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none;">
+              <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
+                {{ evento.nome_evento }}
+              </strong>
+            </a>
+            <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+              <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
+                {{ evento.stato|capitalize }}
+              </span>
+              <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
+              <span style="color: var(--text-muted); font-size: 0.875rem;">{{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
+            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Analytics</a>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    <div style="margin-top: var(--spacing-lg); text-align: center;">
+      <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost">Vedi tutti gli eventi →</a>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+

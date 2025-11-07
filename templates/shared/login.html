@@ -1,25 +1,42 @@
 {% extends "shared/base.html" %}
 
 {% block title %}Login - Malibù{% endblock %}
+{% block body_class %}auth-page{% endblock %}
 
 {% block content %}
-<section class="card">
-  <h1 class="card__title">Login</h1>
-  <p class="text--muted">Accedi con le tue credenziali</p>
+<section class="auth">
+  <div class="auth__brand">
+    <span class="auth__brand-title">Malibù</span>
+    <span class="auth__brand-subtitle">Dashboard & Area Riservata</span>
+    <span class="auth__divider"></span>
+  </div>
 
-  <form class="form" method="post" action="{{ url_for('auth.auth_login_submit') }}">
+  <form class="auth-card form" method="post" action="{{ url_for('auth.auth_login_submit') }}" onsubmit="handleFormSubmit(event, this)">
     <div class="form__group">
-      <label class="form__label">Telefono o Username</label>
-      <input class="form__input" type="text" name="identifier" placeholder="Telefono (cliente) o Username (admin)" required autocomplete="username">
+      <label class="form__label" for="identifier">Numero o username</label>
+      <input class="form__input" id="identifier" type="text" name="identifier" required autocomplete="username" aria-label="Numero di telefono o username">
     </div>
     <div class="form__group">
-      <label class="form__label">Password</label>
-      <input class="form__input" type="password" name="password" placeholder="Inserisci la password" required autocomplete="current-password">
+      <label class="form__label" for="password">Password</label>
+      <input class="form__input" id="password" type="password" name="password" required autocomplete="current-password" aria-label="Password">
     </div>
     <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Accedi</button>
-      <a class="btn btn--ghost" href="{{ url_for('auth.auth_register_form') }}">Registrati</a>
+      <button class="btn btn--primary" type="submit" id="loginBtn">Accedi</button>
     </div>
+    <p class="auth__alt">
+      Nuovo utente?
+      <a href="{{ url_for('auth.auth_register_form') }}">Registrati</a>
+    </p>
   </form>
+
+  <script>
+    function handleFormSubmit(event, form) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.classList.contains('btn--loading')) {
+        submitBtn.classList.add('btn--loading');
+        submitBtn.disabled = true;
+      }
+    }
+  </script>
 </section>
 {% endblock %}

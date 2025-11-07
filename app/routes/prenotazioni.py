@@ -6,7 +6,7 @@ from app.database import SessionLocal
 from app.models.prenotazioni import Prenotazione
 from app.models.eventi import Evento
 from app.models.clienti import Cliente
-from app.utils.decorators import require_cliente, require_admin
+from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.fedelta import award_on_no_show
 
 prenotazioni_bp = Blueprint("prenotazioni", __name__, url_prefix="/prenotazioni")
@@ -152,7 +152,7 @@ def cancella_mia(pren_id):
 # 🧑‍🍳 STAFF (solo visualizzazione prenotati per evento)
 # ============================================
 @prenotazioni_bp.route("/staff/evento/<int:evento_id>", methods=["GET"])
-@require_admin  # in attesa di login staff dedicato
+@require_staff
 def staff_lista_evento(evento_id):
     db = SessionLocal()
     try:

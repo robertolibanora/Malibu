@@ -1,13 +1,15 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 from app.database import SessionLocal
 from app.models.clienti import Cliente
 from app.utils.qr import generate_short_code, qr_data_url
 from app.utils.decorators import require_cliente, require_admin
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 clienti_bp = Blueprint("clienti", __name__, url_prefix="/clienti")
+dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
 # -----------------------
 # Helpers session utente
@@ -38,7 +40,7 @@ def register_submit():
     password = request.form.get("password", "").strip()
 
     if not all([nome, cognome, telefono, password]):
-        flash("Compila tutti i campi obbligatori.", "danger")
+        flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
         return redirect(url_for("clienti.register_form"))
 
     db = SessionLocal()
@@ -88,13 +90,13 @@ def register_submit():
         
         db.commit()
         session["cliente_id"] = nuovo.id_cliente
-        flash("Registrazione completata!", "success")
+        flash("🎉 Benvenuto! Il tuo account è stato creato con successo.", "success")
         return redirect(url_for("clienti.area_personale"))
     except IntegrityError:
         db.rollback()
         # blocco duplicati su telefono -> 409
-        flash("Telefono già registrato. Se è tuo, prova il login.", "warning")
-        return redirect(url_for("clienti.register_form"))
+        flash("Sembra che questo numero sia già registrato. Hai già un account? Prova ad accedere.", "info")
+        return redirect(url_for("auth.auth_login_form"))
     finally:
         db.close()
 
@@ -163,10 +165,10 @@ def me_edit():
 
         try:
             db.commit()
-            flash("Profilo aggiornato.", "success")
+            flash("✓ Il tuo profilo è stato aggiornato con successo.", "success")
         except IntegrityError:
             db.rollback()
-            flash("Telefono già in uso.", "danger")
+            flash("Questo numero di telefono è già in uso. Prova con un altro.", "warning")
         return redirect(url_for("clienti.me_edit"))
     finally:
         db.close()
@@ -174,7 +176,7 @@ def me_edit():
 # -----------------------
 # ADMIN — Dashboard
 # -----------------------
-@clienti_bp.route("/admin", methods=["GET"])
+@dashboard_bp.route("/admin", methods=["GET"])
 @require_admin
 def admin_dashboard():
     db = SessionLocal()
@@ -231,23 +233,249 @@ def admin_dashboard():
                           .order_by(Evento.data_evento.desc())\
                           .limit(5).all()
         
-        return render_template("admin/dashboard.html",
-                             tot_clienti=tot_clienti,
-                             clienti_attivi=clienti_attivi,
-                             tot_eventi=tot_eventi,
-                             eventi_attivi=eventi_attivi,
-                             prossimo_evento=prossimo_evento,
-                             ingressi_recenti=ingressi_recenti,
-                             consumi_recenti=consumi_recenti,
-                             prenotazioni_recenti=prenotazioni_recenti,
-                             avg_musica=avg_musica,
-                             avg_ingresso=avg_ingresso,
-                             avg_ambiente=avg_ambiente,
-                             livelli_dist=livelli_dist,
-                             top_clienti=top_clienti,
-                             eventi_recenti=eventi_recenti)
+        return render_template(
+            "admin/dashboard.html",
+            tot_clienti=tot_clienti,
+            clienti_attivi=clienti_attivi,
+            tot_eventi=tot_eventi,
+            eventi_attivi=eventi_attivi,
+            prossimo_evento=prossimo_evento,
+            ingressi_recenti=ingressi_recenti,
+            consumi_recenti=consumi_recenti,
+            prenotazioni_recenti=prenotazioni_recenti,
+            avg_musica=avg_musica,
+            avg_ingresso=avg_ingresso,
+            avg_ambiente=avg_ambiente,
+            livelli_dist=livelli_dist,
+            top_clienti=top_clienti,
+            eventi_recenti=eventi_recenti,
+            oggi=datetime.now().date()
+        )
     finally:
         db.close()
+
+
+@dashboard_bp.route("/admin/statistiche", methods=["GET"])
+@require_admin
+def admin_statistics():
+    db = SessionLocal()
+    try:
+        from app.models.eventi import Evento
+        from app.models.ingressi import Ingresso
+        from app.models.consumi import Consumo
+        from app.models.prenotazioni import Prenotazione
+        from app.models.feedback import Feedback
+
+        tot_ingressi = db.query(func.count(Ingresso.id_ingresso)).scalar() or 0
+        tot_prenotazioni = db.query(func.count(Prenotazione.id_prenotazione)).scalar() or 0
+        tot_consumi = db.query(func.coalesce(func.sum(Consumo.importo), 0)).scalar() or 0
+
+        feedback_global = db.query(
+            func.avg(Feedback.voto_musica),
+            func.avg(Feedback.voto_ingresso),
+            func.avg(Feedback.voto_ambiente),
+            func.count(Feedback.id_feedback)
+        ).one()
+        feedback_global_data = None
+        if feedback_global and feedback_global[3]:
+            componenti = [
+                float(feedback_global[0] or 0),
+                float(feedback_global[1] or 0),
+                float(feedback_global[2] or 0),
+            ]
+            feedback_global_data = {
+                "labels": ["Musica", "Ingresso", "Ambiente"],
+                "values": componenti,
+                "average": sum(componenti) / len(componenti) if componenti else 0.0,
+                "samples": int(feedback_global[3]),
+            }
+
+        ingressi_per_evento_rows = (
+            db.query(
+                Evento.nome_evento,
+                Evento.categoria,
+                func.count(Ingresso.id_ingresso).label("tot_ingressi")
+            )
+            .outerjoin(Ingresso, Ingresso.evento_id == Evento.id_evento)
+            .group_by(Evento.id_evento, Evento.nome_evento, Evento.categoria)
+            .order_by(func.count(Ingresso.id_ingresso).desc())
+            .limit(20)
+            .all()
+        )
+        ingressi_per_evento_items = []
+        ingressi_categories = set()
+        for row in ingressi_per_evento_rows:
+            categoria = row.categoria or "non specificato"
+            ingressi_categories.add(categoria)
+            ingressi_per_evento_items.append({
+                "label": row.nome_evento,
+                "count": int(row.tot_ingressi or 0),
+                "categoria": categoria,
+            })
+        ingressi_per_evento = {
+            "items": ingressi_per_evento_items,
+            "categories": sorted(ingressi_categories),
+        }
+
+        feedback_per_evento_rows = (
+            db.query(
+                Evento.nome_evento,
+                Evento.categoria,
+                func.avg(Feedback.voto_musica).label("avg_musica"),
+                func.avg(Feedback.voto_ingresso).label("avg_ingresso"),
+                func.avg(Feedback.voto_ambiente).label("avg_ambiente"),
+                func.count(Feedback.id_feedback).label("tot_feedback")
+            )
+            .join(Evento, Evento.id_evento == Feedback.evento_id)
+            .group_by(Evento.id_evento, Evento.nome_evento, Evento.categoria)
+            .having(func.count(Feedback.id_feedback) > 0)
+            .order_by(func.count(Feedback.id_feedback).desc())
+            .limit(20)
+            .all()
+        )
+        feedback_per_evento_items = []
+        max_feedback_samples = 0
+        for row in feedback_per_evento_rows:
+            samples = int(row.tot_feedback or 0)
+            max_feedback_samples = max(max_feedback_samples, samples)
+            categoria = row.categoria or "non specificato"
+            overall = (
+                float(row.avg_musica or 0)
+                + float(row.avg_ingresso or 0)
+                + float(row.avg_ambiente or 0)
+            ) / 3
+            feedback_per_evento_items.append({
+                "label": row.nome_evento,
+                "overall": round(overall, 2),
+                "samples": samples,
+                "categoria": categoria,
+            })
+        feedback_per_evento = {
+            "items": feedback_per_evento_items,
+            "max_samples": max_feedback_samples,
+        }
+
+        default_range_days = 30
+        max_range_days = 120
+        start_period = datetime.utcnow() - timedelta(days=max_range_days)
+        date_expr = func.date(Ingresso.orario_ingresso)
+        ingressi_temporali_rows = (
+            db.query(
+                date_expr.label("giorno"),
+                func.count(Ingresso.id_ingresso).label("tot_slot")
+            )
+            .filter(Ingresso.orario_ingresso >= start_period)
+            .group_by(date_expr)
+            .order_by(date_expr)
+            .all()
+        )
+        ingressi_temporali_points = []
+        for row in ingressi_temporali_rows:
+            giorno = row.giorno
+            label = giorno.strftime("%d/%m/%Y") if hasattr(giorno, "strftime") else str(giorno)
+            ingressi_temporali_points.append({
+                "date": giorno.isoformat() if hasattr(giorno, "isoformat") else str(giorno),
+                "label": label,
+                "value": int(row.tot_slot or 0),
+            })
+        ingressi_temporali = {
+            "points": ingressi_temporali_points,
+            "default_range_days": default_range_days,
+        }
+
+        prodotti_top_rows = (
+            db.query(
+                Consumo.prodotto,
+                func.count(Consumo.id_consumo).label("quantita"),
+                func.coalesce(func.sum(Consumo.importo), 0).label("ricavi")
+            )
+            .group_by(Consumo.prodotto)
+            .order_by(func.count(Consumo.id_consumo).desc())
+            .limit(10)
+            .all()
+        )
+        prodotti_top_items = []
+        for row in prodotti_top_rows:
+            prodotti_top_items.append({
+                "label": row.prodotto,
+                "count": int(row.quantita or 0),
+                "revenue": float(row.ricavi or 0),
+            })
+        prodotti_top = {
+            "items": prodotti_top_items,
+        }
+
+        ricavi_per_evento_rows = (
+            db.query(
+                Evento.nome_evento,
+                Evento.categoria,
+                func.coalesce(func.sum(Consumo.importo), 0).label("ricavi_evento")
+            )
+            .join(Evento, Evento.id_evento == Consumo.evento_id)
+            .group_by(Evento.id_evento, Evento.nome_evento, Evento.categoria)
+            .order_by(func.coalesce(func.sum(Consumo.importo), 0).desc())
+            .limit(20)
+            .all()
+        )
+        ricavi_per_evento_items = []
+        ricavi_categories = set()
+        for row in ricavi_per_evento_rows:
+            categoria = row.categoria or "non specificato"
+            ricavi_categories.add(categoria)
+            ricavi_per_evento_items.append({
+                "label": row.nome_evento,
+                "value": float(row.ricavi_evento or 0),
+                "categoria": categoria,
+            })
+        ricavi_per_evento = {
+            "items": ricavi_per_evento_items,
+            "categories": sorted(ricavi_categories),
+        }
+
+        prenotazioni_per_tipo_rows = (
+            db.query(
+                Prenotazione.tipo,
+                func.count(Prenotazione.id_prenotazione).label("totale")
+            )
+            .group_by(Prenotazione.tipo)
+            .all()
+        )
+        prenotazioni_per_tipo = {
+            "items": [
+                {
+                    "label": row.tipo or "non specificato",
+                    "value": int(row.totale or 0),
+                }
+                for row in prenotazioni_per_tipo_rows
+            ]
+        }
+
+        event_categories = db.query(Evento.categoria).distinct().all()
+        event_categories = sorted({row[0] or "non specificato" for row in event_categories})
+
+        return render_template(
+            "admin/analytics/overview.html",
+            tot_ingressi=tot_ingressi,
+            tot_prenotazioni=tot_prenotazioni,
+            tot_consumi=float(tot_consumi or 0),
+            feedback_global=feedback_global_data,
+            ingressi_per_evento=ingressi_per_evento,
+            feedback_per_evento=feedback_per_evento,
+            ingressi_temporali=ingressi_temporali,
+            prodotti_top=prodotti_top,
+            ricavi_per_evento=ricavi_per_evento,
+            prenotazioni_per_tipo=prenotazioni_per_tipo,
+            range_days=default_range_days,
+            event_categories=event_categories,
+        )
+    finally:
+        db.close()
+
+@clienti_bp.route("/admin", methods=["GET"])
+@require_admin
+def admin_dashboard_legacy():
+    """Mantiene la vecchia URL /clienti/admin reindirizzando alla nuova dashboard."""
+    return redirect(url_for("dashboard.admin_dashboard"), code=301)
 
 # -----------------------
 # ADMIN — Lista clienti
@@ -340,7 +568,7 @@ def admin_cliente_detail(cliente_id):
         
         cli = db.query(Cliente).get(cliente_id)
         if not cli:
-            flash("Cliente non trovato.", "danger")
+            flash("Cliente non trovato. Potrebbe essere stato rimosso o l'ID non è valido.", "warning")
             return redirect(url_for("clienti.admin_lista_clienti"))
         
         # Statistiche cliente
@@ -429,7 +657,7 @@ def admin_set_level(cliente_id):
         if not cli: abort(404)
         cli.livello = livello
         db.commit()
-        flash("Livello aggiornato.", "success")
+        flash("✓ Livello cliente aggiornato con successo.", "success")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()
@@ -444,7 +672,7 @@ def admin_adjust_points(cliente_id):
         if not cli: abort(404)
         cli.punti_fedelta = max(0, (cli.punti_fedelta or 0) + delta)
         db.commit()
-        flash("Punti aggiornati.", "success")
+        flash("✓ Punti fedeltà aggiornati con successo.", "success")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()
@@ -458,7 +686,7 @@ def admin_deactivate(cliente_id):
         if not cli: abort(404)
         cli.stato_account = "disattivato"
         db.commit()
-        flash("Account disattivato.", "warning")
+        flash("Account disattivato. Il cliente non potrà più accedere fino alla riattivazione.", "warning")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()
@@ -472,7 +700,7 @@ def admin_activate(cliente_id):
         if not cli: abort(404)
         cli.stato_account = "attivo"
         db.commit()
-        flash("Account riattivato.", "success")
+        flash("✓ Account riattivato con successo. Il cliente può ora accedere.", "success")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()
@@ -487,7 +715,7 @@ def admin_set_note(cliente_id):
         if not cli: abort(404)
         cli.nota_staff = nota
         db.commit()
-        flash("Nota aggiornata.", "success")
+        flash("✓ Nota amministrativa aggiornata con successo.", "success")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()

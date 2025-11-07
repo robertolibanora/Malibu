@@ -1,4 +1,4 @@
-from flask import Flask, redirect, url_for
+from flask import Flask, redirect, url_for, render_template
 from sqlalchemy.orm import sessionmaker
 from app.database import engine, Base
 from dotenv import load_dotenv
@@ -45,6 +45,19 @@ def create_app():
     @app.route("/")
     def root():
         return redirect(url_for("auth.auth_login_form"))
+
+    # Error handlers
+    @app.errorhandler(401)
+    def unauthorized(e):
+        return render_template("shared/401.html"), 401
+
+    @app.errorhandler(403)
+    def forbidden(e):
+        return render_template("shared/403.html"), 403
+
+    @app.errorhandler(404)
+    def not_found(e):
+        return render_template("shared/404.html"), 404
 
     # Registra automaticamente tutti i blueprint
     for bp in all_blueprints:

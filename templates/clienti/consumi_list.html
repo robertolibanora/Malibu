@@ -1,7 +1,7 @@
-{% extends "shared/base.html" %}
+{% extends "clienti/base.html" %}
 {% block title %}I miei consumi{% endblock %}
 
-{% block content %}
+{% block cliente_content %}
 <section class="card">
   <h1 class="card__title">I miei consumi</h1>
   <div class="text--muted">Totale complessivo: <strong>€ {{ '%.2f'|format(totale) }}</strong></div>
