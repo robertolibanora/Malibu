@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Enum
+from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -22,6 +22,7 @@ class Evento(Base):
         default="attivo"
     )
     cover_url = Column(String(255))  # opzionale: URL immagine di copertina
+    template_id = Column(Integer, ForeignKey("template_eventi.id_template", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
 
     # 🔗 Relazioni ORM (verso le altre tabelle)
     prenotazioni = relationship("Prenotazione", back_populates="evento", cascade="all, delete-orphan")
@@ -29,6 +30,7 @@ class Evento(Base):
     consumi = relationship("Consumo", back_populates="evento", cascade="all, delete-orphan")
     fedelta = relationship("Fedelta", back_populates="evento", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="evento", cascade="all, delete-orphan")
+    template = relationship("TemplateEvento", lazy="joined")
 
     def __repr__(self):
         return f"<Evento(id={self.id_evento}, nome='{self.nome_evento}', data={self.data_evento})>"

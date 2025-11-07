@@ -117,23 +117,6 @@
       {% endfor %}
     </div>
   </section>
-
-  <!-- Quick actions -->
-  <section class="card fade-in" style="animation-delay: 900ms;">
-    <h2 class="card__title">Azioni Rapide</h2>
-    <div class="grid grid--3" style="margin-top: var(--spacing-lg);">
-      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--primary">Gestisci Clienti</a>
-      <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--primary">Gestisci Eventi</a>
-      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">Nuovo Evento</a>
-      <a href="{{ url_for('staff_admin.admin_new') }}" class="btn btn--primary">Nuovo Staff</a>
-      <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--secondary">Prenotazioni</a>
-      <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--secondary">Ingressi</a>
-      <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--secondary">Consumi</a>
-      <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--secondary">Fedeltà</a>
-      <a href="{{ url_for('promozioni.admin_list') }}" class="btn btn--secondary">Promozioni</a>
-      <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--secondary">Staff</a>
-    </div>
-  </section>
 </div>
 {% endblock %}
 

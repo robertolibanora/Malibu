@@ -4,6 +4,7 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
+from app.routes.log_attivita import log_action
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -170,6 +171,8 @@ def staff_listino_addebito():
                 note=note
             )
             db.add(c)
+            db.flush()  # assicura id_consumo disponibile
+            log_action(db, tabella="consumi", record_id=c.id_consumo, staff_id=_get_staff_id(), azione="insert")
             consumi_creati.append(c)
         
         db.commit()
@@ -258,6 +261,8 @@ def staff_new():
                 note=note
             )
             db.add(c)
+            db.flush()
+            log_action(db, tabella="consumi", record_id=c.id_consumo, staff_id=_get_staff_id(), azione="insert")
             db.commit()
             award_on_consumo(db, cliente_id=c.cliente_id, evento_id=c.evento_id, importo_euro=c.importo)
             flash("Consumo registrato.", "success")
@@ -369,6 +374,8 @@ def admin_new():
                 note=note
             )
             db.add(c)
+            db.flush()
+            log_action(db, tabella="consumi", record_id=c.id_consumo, staff_id=staff_id, azione="insert")
             db.commit()
             award_on_consumo(db, cliente_id=c.cliente_id, evento_id=c.evento_id, importo_euro=c.importo)
             flash("Consumo creato.", "success")
@@ -429,6 +436,8 @@ def admin_edit(consumo_id):
             c.punto_vendita = punto_vendita
             c.note = note
             c.staff_id = staff_id
+            db.flush()
+            log_action(db, tabella="consumi", record_id=c.id_consumo, staff_id=staff_id, azione="update")
             db.commit()
             flash("Consumo aggiornato.", "success")
             return redirect(url_for("consumi.admin_list"))
@@ -446,6 +455,8 @@ def admin_delete(consumo_id):
         c = db.query(Consumo).get(consumo_id)
         if c:
             db.delete(c)
+            db.flush()
+            log_action(db, tabella="consumi", record_id=consumo_id, staff_id=None, azione="delete")
             db.commit()
             flash("Consumo eliminato.", "warning")
         return redirect(url_for("consumi.admin_list"))

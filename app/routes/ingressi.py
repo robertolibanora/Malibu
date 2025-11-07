@@ -4,6 +4,7 @@ from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
+from app.routes.log_attivita import log_action
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -118,11 +119,11 @@ def staff_scan():
                 note=None
             )
             db.add(ingresso)
-
             # Marca prenotazione come usata se presente
             if pren:
                 pren.stato = "usata"
-
+            db.flush()
+            log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=_get_staff_id(db), azione="insert")
             db.commit()
             award_on_ingresso(db, cliente_id=cli.id_cliente, evento_id=e.id_evento)
             return redirect(url_for("ingressi.staff_esito", ingresso_id=ingresso.id_ingresso))
@@ -271,6 +272,8 @@ def admin_new():
             db.add(ing)
             if pren_id:
                 pren.stato = "usata"
+            db.flush()
+            log_action(db, tabella="ingressi", record_id=ing.id_ingresso, staff_id=staff_id, azione="insert")
             db.commit()
             award_on_ingresso(db, cliente_id=cliente_id, evento_id=evento_id)
             flash("Ingresso creato.", "success")
@@ -305,6 +308,8 @@ def admin_edit(ingresso_id):
             ing.tipo_ingresso = tipo
             ing.note = note or None
             ing.staff_id = staff_id
+            db.flush()
+            log_action(db, tabella="ingressi", record_id=ing.id_ingresso, staff_id=staff_id, azione="update")
             db.commit()
             flash("Ingresso aggiornato.", "success")
             return redirect(url_for("ingressi.admin_ingresso_detail", ingresso_id=ingresso_id))
@@ -359,6 +364,8 @@ def admin_delete(ingresso_id):
                 if pren and pren.stato == "usata":
                     pren.stato = "attiva"
             db.delete(ing)
+            db.flush()
+            log_action(db, tabella="ingressi", record_id=ingresso_id, staff_id=None, azione="delete")
             db.commit()
             flash("Check-in annullato (ingresso eliminato).", "warning")
         return redirect(url_for("ingressi.admin_list"))

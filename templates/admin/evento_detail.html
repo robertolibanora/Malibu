@@ -13,6 +13,9 @@
             {{ evento.stato|capitalize }}
           </span>
           <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
+          {% if evento.template %}
+          <span class="badge">Format: {{ evento.template.nome }}</span>
+          {% endif %}
         </div>
       </div>
       <div class="cliente-header__actions">
@@ -50,7 +53,7 @@
     </div>
   </div>
 
-  <!-- Informazioni evento e CRUD -->
+  <!-- Informazioni evento e gestione -->
   <div class="grid grid--2">
     <section class="card">
       <h2 class="card__title">Informazioni Evento</h2>
@@ -94,15 +97,12 @@
       </div>
     </section>
 
-    <!-- Gestione Evento -->
     <section class="card">
       <h2 class="card__title">Gestione Evento</h2>
-      
       <div class="form__actions" style="margin-bottom: 1.5rem;">
         <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary">Modifica Evento</a>
         <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary">Analytics Dettagliati</a>
       </div>
-
       <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
         <div class="form__group">
           <label class="form__label">Duplica Evento</label>
@@ -113,25 +113,11 @@
           <small>Crea una copia dell'evento con una nuova data</small>
         </div>
       </form>
-
       <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
         {% if evento.stato != 'chiuso' %}
-          <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Chiudere questo evento?');">
-            <button class="btn btn--secondary">Chiudi Evento</button>
-          </form>
-        {% else %}
-          <form method="post" action="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" style="display:inline">
-            <input type="hidden" name="nome_evento" value="{{ evento.nome_evento }}">
-            <input type="hidden" name="data_evento" value="{{ evento.data_evento }}">
-            <input type="hidden" name="tipo_musica" value="{{ evento.tipo_musica or '' }}">
-            <input type="hidden" name="dj_artista" value="{{ evento.dj_artista or '' }}">
-            <input type="hidden" name="promozione" value="{{ evento.promozione or '' }}">
-            <input type="hidden" name="capienza_max" value="{{ evento.capienza_max }}">
-            <input type="hidden" name="categoria" value="{{ evento.categoria }}">
-            <input type="hidden" name="stato" value="attivo">
-            <input type="hidden" name="cover_url" value="{{ evento.cover_url or '' }}">
-            <button type="submit" class="btn btn--primary">Riattiva Evento</button>
-          </form>
+        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Chiudere questo evento?');">
+          <button class="btn btn--secondary">Chiudi Evento</button>
+        </form>
         {% endif %}
         <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">
           <button class="btn btn--danger">Elimina Evento</button>
@@ -140,7 +126,7 @@
     </section>
   </div>
 
-  <!-- Breakdown Prenotazioni -->
+  <!-- Prenotazioni -->
   <section class="card">
     <h2 class="card__title">Prenotazioni</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -172,9 +158,8 @@
         {% endif %}
       </div>
     </div>
-    
-    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Ultime Prenotazioni</h3>
-    {% if ultime_prenotazioni %}
+
+    {% if prenotazioni_evento %}
     <div class="table-responsive">
       <table class="table">
         <thead>
@@ -183,30 +168,30 @@
             <th>Tipo</th>
             <th>Stato</th>
             <th>Persone</th>
-            <th>Azioni</th>
+            <th>Orario previsto</th>
+            <th>Note</th>
           </tr>
         </thead>
         <tbody>
-          {% for pren, cli in ultime_prenotazioni %}
+          {% for pren, cli in prenotazioni_evento %}
           <tr>
             <td>{{ cli.nome }} {{ cli.cognome }}</td>
             <td>{{ pren.tipo|capitalize }}</td>
             <td><span class="badge badge--{{ 'success' if pren.stato == 'attiva' else 'secondary' }}">{{ pren.stato }}</span></td>
             <td>{{ pren.num_persone or '—' }}</td>
-            <td>
-              <a href="{{ url_for('prenotazioni.admin_edit', pren_id=pren.id_prenotazione) }}" class="btn btn--ghost btn--small">Modifica</a>
-            </td>
+            <td>{{ pren.orario_previsto.strftime('%H:%M') if pren.orario_previsto else '—' }}</td>
+            <td>{{ pren.note or '—' }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="text--muted">Nessuna prenotazione.</p>
+    <p class="text--muted">Nessuna prenotazione per questo evento.</p>
     {% endif %}
   </section>
 
-  <!-- Breakdown Ingressi -->
+  <!-- Ingressi -->
   <section class="card">
     <h2 class="card__title">Ingressi</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -235,9 +220,8 @@
       </div>
       {% endif %}
     </div>
-    
-    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Ultimi Ingressi</h3>
-    {% if ultimi_ingressi %}
+
+    {% if ingressi_evento %}
     <div class="table-responsive">
       <table class="table">
         <thead>
@@ -245,29 +229,29 @@
             <th>Cliente</th>
             <th>Tipo</th>
             <th>Orario</th>
-            <th>Azioni</th>
+            <th>Staff</th>
+            <th>Note</th>
           </tr>
         </thead>
         <tbody>
-          {% for ing, cli in ultimi_ingressi %}
+          {% for ing, cli, staff in ingressi_evento %}
           <tr>
             <td>{{ cli.nome }} {{ cli.cognome }}</td>
             <td><span class="badge">{{ ing.tipo_ingresso|capitalize }}</span></td>
             <td>{{ ing.orario_ingresso.strftime('%d/%m/%Y %H:%M') if ing.orario_ingresso else '—' }}</td>
-            <td>
-              <a href="{{ url_for('ingressi.admin_edit', ingresso_id=ing.id_ingresso) }}" class="btn btn--ghost btn--small">Modifica</a>
-            </td>
+            <td>{{ staff.nome if staff else '—' }}</td>
+            <td>{{ ing.note or '—' }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
     {% else %}
-    <p class="text--muted">Nessun ingresso registrato.</p>
+    <p class="text--muted">Nessun ingresso registrato per questo evento.</p>
     {% endif %}
   </section>
 
-  <!-- Breakdown Consumi -->
+  <!-- Consumi -->
   <section class="card">
     <h2 class="card__title">Consumi</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -301,30 +285,35 @@
       {% endif %}
     </div>
 
-    {% if top_clienti_consumi %}
-    <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Top Clienti per Spesa</h3>
+    {% if consumi_evento %}
     <div class="table-responsive">
       <table class="table">
         <thead>
           <tr>
             <th>Cliente</th>
-            <th>Spesa Totale</th>
-            <th>Azioni</th>
+            <th>Prodotto</th>
+            <th>Importo</th>
+            <th>Punto Vendita</th>
+            <th>Staff</th>
+            <th>Note</th>
           </tr>
         </thead>
         <tbody>
-          {% for cli, spesa in top_clienti_consumi %}
+          {% for cons, cli, staff in consumi_evento %}
           <tr>
             <td>{{ cli.nome }} {{ cli.cognome }}</td>
-            <td><strong class="text--gold">€{{ "%.2f"|format(spesa) }}</strong></td>
-            <td>
-              <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cli.id_cliente) }}" class="btn btn--ghost btn--small">Vedi Cliente</a>
-            </td>
+            <td>{{ cons.prodotto }}</td>
+            <td>€{{ "%.2f"|format(cons.importo) }}</td>
+            <td>{{ cons.punto_vendita|capitalize }}</td>
+            <td>{{ staff.nome if staff else '—' }}</td>
+            <td>{{ cons.note or '—' }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
+    {% else %}
+    <p class="text--muted">Nessun consumo registrato per questo evento.</p>
     {% endif %}
   </section>
 </div>

@@ -7,22 +7,34 @@
   <form class="form" method="post" enctype="multipart/form-data" id="eventoForm">
     {% if not e %}
     <div class="form__group">
-      <label class="form__label">Seleziona Template Evento *</label>
+      <label class="form__label">Format *</label>
       <select class="form__input" name="template_evento" id="template_evento" required>
-        <option value="">— Seleziona un template —</option>
-        {% for idx in range(TEMPLATE_EVENTI|length) %}
-        {% set template = TEMPLATE_EVENTI[idx] %}
-        <option value="{{ idx }}" {% if template_selezionato and template_selezionato|int == idx %}selected{% endif %} 
-                data-nome="{{ template.nome }}" 
-                data-categoria="{{ template.categoria }}" 
-                data-tipo-musica="{{ template.tipo_musica }}" 
-                data-capienza="{{ template.capienza }}">
-          {{ template.nome }} ({{ template.categoria|capitalize }})
-        </option>
-        {% endfor %}
+        <option value="">— Seleziona un format —</option>
+        {% if FORMATS and FORMATS|length %}
+          {% for f in FORMATS %}
+          <option value="db-{{ f.id_template }}"
+                  data-nome="{{ f.nome }}"
+                  data-categoria="{{ f.categoria }}"
+                  data-tipo-musica="{{ f.tipo_musica or '' }}"
+                  data-capienza="{{ f.capienza or '' }}">
+            {{ f.nome }} ({{ f.categoria|capitalize }})
+          </option>
+          {% endfor %}
+        {% else %}
+          {% for idx in range(TEMPLATE_EVENTI|length) %}
+          {% set template = TEMPLATE_EVENTI[idx] %}
+          <option value="{{ idx }}" {% if template_selezionato and template_selezionato|int == idx %}selected{% endif %}
+                  data-nome="{{ template.nome }}"
+                  data-categoria="{{ template.categoria }}"
+                  data-tipo-musica="{{ template.tipo_musica }}"
+                  data-capienza="{{ template.capienza }}">
+            {{ template.nome }} ({{ template.categoria|capitalize }})
+          </option>
+          {% endfor %}
+        {% endif %}
         <option value="custom">— Personalizzato —</option>
       </select>
-      <small>Seleziona un template per precompilare i campi, oppure "Personalizzato" per inserire tutto manualmente</small>
+      <small>Il format selezionato viene salvato sull'evento e precompila i campi. Scegli "Personalizzato" per inserire manualmente.</small>
     </div>
     {% endif %}
     
@@ -106,7 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectedOption = this.options[this.selectedIndex];
     
     if (selectedOption.value && selectedOption.value !== 'custom' && selectedOption.value !== '') {
-      // Precompila i campi con i valori del template
+      // Precompila i campi con i valori del format
       nomeInput.value = selectedOption.getAttribute('data-nome') || '';
       categoriaSelect.value = selectedOption.getAttribute('data-categoria') || 'altro';
       tipoMusicaInput.value = selectedOption.getAttribute('data-tipo-musica') || '';

@@ -13,6 +13,7 @@ from app.models.prenotazioni import Prenotazione
 from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.utils.decorators import require_admin, require_staff
+from app.models.template_eventi import TEMPLATE_EVENTI, TemplateEvento
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
@@ -230,13 +231,17 @@ def admin_new():
                 capienza_max=request.form.get("capienza_max", type=int),
                 categoria=request.form.get("categoria"),
                 stato=request.form.get("stato"),
-                cover_url=cover_filename
+                cover_url=cover_filename,
+                template_id=(
+                    int(request.form.get("template_evento").split("-",1)[1])
+                    if (request.form.get("template_evento") or '').startswith("db-") else None
+                ),
             )
             db.add(e)
             db.commit()
             flash("Evento creato.", "success")
             return redirect(url_for("eventi.admin_evento_detail", evento_id=e.id_evento))
-        return render_template("admin/eventi_form.html", e=None, CATEGORIES_PUBLIC=CATEGORIES_PUBLIC)
+        return render_template("admin/eventi_form.html", e=None, CATEGORIES_PUBLIC=CATEGORIES_PUBLIC, TEMPLATE_EVENTI=TEMPLATE_EVENTI, FORMATS=db.query(TemplateEvento).order_by(TemplateEvento.nome.asc()).all(), template_selezionato=request.args.get("t"))
     finally:
         db.close()
 
@@ -262,6 +267,31 @@ def admin_evento_detail(evento_id):
         tot_consumi = float(tot_consumi) if tot_consumi else 0
         tot_punti_fedelta = db.query(func.sum(Fedelta.punti)).filter(Fedelta.evento_id == evento_id).scalar() or 0
         tot_feedback = db.query(func.count(Feedback.id_feedback)).filter(Feedback.evento_id == evento_id).scalar() or 0
+        
+        # Liste dettagliate per evento
+        prenotazioni_evento = (
+            db.query(Prenotazione, Cliente)
+              .join(Cliente, Cliente.id_cliente == Prenotazione.cliente_id)
+              .filter(Prenotazione.evento_id == evento_id)
+              .order_by(Prenotazione.id_prenotazione.desc())
+              .all()
+        )
+        ingressi_evento = (
+            db.query(Ingresso, Cliente, Staff)
+              .join(Cliente, Cliente.id_cliente == Ingresso.cliente_id)
+              .outerjoin(Staff, Staff.id_staff == Ingresso.staff_id)
+              .filter(Ingresso.evento_id == evento_id)
+              .order_by(Ingresso.orario_ingresso.desc())
+              .all()
+        )
+        consumi_evento = (
+            db.query(Consumo, Cliente, Staff)
+              .join(Cliente, Cliente.id_cliente == Consumo.cliente_id)
+              .outerjoin(Staff, Staff.id_staff == Consumo.staff_id)
+              .filter(Consumo.evento_id == evento_id)
+              .order_by(Consumo.data_consumo.desc())
+              .all()
+        )
         
         # Breakdown prenotazioni
         pren_by_tipo = dict(db.query(Prenotazione.tipo, func.count(Prenotazione.id_prenotazione))
@@ -313,19 +343,6 @@ def admin_evento_detail(evento_id):
             func.avg(Feedback.voto_ambiente)
         ).filter(Feedback.evento_id == evento_id).one()
         
-        # Ultime attività
-        ultime_prenotazioni = db.query(Prenotazione, Cliente) \
-                               .join(Cliente, Cliente.id_cliente == Prenotazione.cliente_id) \
-                               .filter(Prenotazione.evento_id == evento_id) \
-                               .order_by(Prenotazione.id_prenotazione.desc()) \
-                               .limit(10).all()
-        
-        ultimi_ingressi = db.query(Ingresso, Cliente) \
-                           .join(Cliente, Cliente.id_cliente == Ingresso.cliente_id) \
-                           .filter(Ingresso.evento_id == evento_id) \
-                           .order_by(Ingresso.orario_ingresso.desc()) \
-                           .limit(10).all()
-        
         return render_template("admin/evento_detail.html",
                              evento=e,
                              tot_prenotazioni=tot_prenotazioni,
@@ -333,6 +350,9 @@ def admin_evento_detail(evento_id):
                              tot_consumi=tot_consumi,
                              tot_punti_fedelta=tot_punti_fedelta,
                              tot_feedback=tot_feedback,
+                             prenotazioni_evento=prenotazioni_evento,
+                             ingressi_evento=ingressi_evento,
+                             consumi_evento=consumi_evento,
                              pren_by_tipo=pren_by_tipo,
                              pren_by_stato=pren_by_stato,
                              tavolo_persone=tavolo_persone,
@@ -346,8 +366,6 @@ def admin_evento_detail(evento_id):
                              avg_musica=round(avg_feedback[0] or 0, 1),
                              avg_ingresso=round(avg_feedback[1] or 0, 1),
                              avg_ambiente=round(avg_feedback[2] or 0, 1),
-                             ultime_prenotazioni=ultime_prenotazioni,
-                             ultimi_ingressi=ultimi_ingressi,
                              CATEGORIES_PUBLIC=CATEGORIES_PUBLIC)
     finally:
         db.close()

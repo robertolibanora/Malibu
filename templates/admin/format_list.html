@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Format{% endblock %}
+{% block admin_content %}
+<section class="card">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1 class="card__title" style="margin:0;">Format</h1>
+    <a href="{{ url_for('format.admin_new') }}" class="btn btn--primary">Nuovo Format</a>
+  </div>
+</section>
+
+<section class="list">
+  {% for f in formats %}
+  <article class="card list__item">
+    <div class="list__item-header">
+      <div>
+        <strong style="font-size:1.1rem;">{{ f.nome }}</strong>
+        <div style="margin-top:.5rem;">
+          <span class="badge badge--warning">{{ f.categoria|capitalize }}</span>
+          {% if f.tipo_musica %}<span class="badge">{{ f.tipo_musica }}</span>{% endif %}
+          {% if f.capienza %}<span class="badge">Capienza {{ f.capienza }}</span>{% endif %}
+        </div>
+      </div>
+      <div style="display:flex; gap:.5rem;">
+        <a href="{{ url_for('format.admin_edit', template_id=f.id_template) }}" class="btn btn--primary btn--small">Modifica</a>
+        <form method="post" action="{{ url_for('format.admin_delete', template_id=f.id_template) }}" onsubmit="return confirm('Eliminare questo format?');">
+          <button class="btn btn--ghost btn--small" type="submit">Elimina</button>
+        </form>
+      </div>
+    </div>
+  </article>
+  {% else %}
+  <div class="card"><p class="text--muted" style="text-align:center; padding:2rem;">Nessun format definito.</p></div>
+  {% endfor %}
+</section>
+{% endblock %}

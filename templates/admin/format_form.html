@@ -1,0 +1,35 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if e else 'Nuovo' }} Format{% endblock %}
+{% block admin_content %}
+<section class="card">
+  <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} format</h1>
+  <form class="form" method="post">
+    <div class="form__group">
+      <label class="form__label">Nome *</label>
+      <input class="form__input" name="nome" value="{{ e.nome if e else '' }}" required>
+      <small class="text--muted">Il nome è fondamentale per le statistiche</small>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Categoria</label>
+      <select class="form__input" name="categoria">
+        <option value="reggaeton" {% if e and e.categoria=='reggaeton' %}selected{% endif %}>Reggaeton</option>
+        <option value="techno" {% if e and e.categoria=='techno' %}selected{% endif %}>Techno</option>
+        <option value="privato" {% if e and e.categoria=='privato' %}selected{% endif %}>Privato</option>
+        <option value="altro" {% if (e and e.categoria=='altro') or not e %}selected{% endif %}>Altro</option>
+      </select>
+    </div>
+    <div class="form__group">
+      <label class="form__label">Tipo musica</label>
+      <input class="form__input" name="tipo_musica" value="{{ e.tipo_musica if e else '' }}">
+    </div>
+    <div class="form__group">
+      <label class="form__label">Capienza</label>
+      <input class="form__input" type="number" min="0" name="capienza" value="{{ e.capienza if e else '' }}">
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary">Salva</button>
+      <a class="btn btn--ghost" href="{{ url_for('format.admin_list') }}">Annulla</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
