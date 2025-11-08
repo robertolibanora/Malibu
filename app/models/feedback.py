@@ -13,6 +13,7 @@ class Feedback(Base):
     voto_musica = Column(SmallInteger, nullable=False)
     voto_ingresso = Column(SmallInteger, nullable=False)
     voto_ambiente = Column(SmallInteger, nullable=False)
+    voto_servizio = Column(SmallInteger, nullable=False, default=5)
     data_feedback = Column(DateTime, server_default=func.now())
     note = Column(Text)
 
@@ -21,6 +22,7 @@ class Feedback(Base):
         CheckConstraint("voto_musica BETWEEN 1 AND 10", name="chk_voto_musica"),
         CheckConstraint("voto_ingresso BETWEEN 1 AND 10", name="chk_voto_ingresso"),
         CheckConstraint("voto_ambiente BETWEEN 1 AND 10", name="chk_voto_ambiente"),
+        CheckConstraint("voto_servizio BETWEEN 1 AND 10", name="chk_voto_servizio"),
     )
 
     # 🔗 Relazioni ORM

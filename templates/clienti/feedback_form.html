@@ -1,0 +1,75 @@
+{% extends "clienti/base.html" %}
+{% block title %}Lascia un feedback - Malibù{% endblock %}
+
+{% block cliente_content %}
+<section class="card">
+  <div class="card__header">
+    <h1 class="card__title">Lascia un feedback</h1>
+  </div>
+  <div class="card__content">
+    <form class="form" method="post">
+      <div class="form__group">
+        <label class="form__label" for="evento_id">Evento</label>
+        <select class="form__input" id="evento_id" name="evento_id" required>
+          <option value="">— Seleziona —</option>
+          {% for ev in eventi %}
+            <option value="{{ ev.id_evento }}" {% if evento_id and evento_id|int == ev.id_evento %}selected{% endif %}>
+              {{ ev.data_evento }} — {{ ev.nome_evento }}
+            </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Musica (1-10)</label>
+          <select class="form__input" name="voto_musica" required>
+            <option value="">—</option>
+            {% for voto in range(1, 11) %}
+              <option value="{{ voto }}">{{ voto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Ingresso (1-10)</label>
+          <select class="form__input" name="voto_ingresso" required>
+            <option value="">—</option>
+            {% for voto in range(1, 11) %}
+              <option value="{{ voto }}">{{ voto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Ambiente (1-10)</label>
+          <select class="form__input" name="voto_ambiente" required>
+            <option value="">—</option>
+            {% for voto in range(1, 11) %}
+              <option value="{{ voto }}">{{ voto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Servizio bar (1-10)</label>
+          <select class="form__input" name="voto_servizio" required>
+            <option value="">—</option>
+            {% for voto in range(1, 11) %}
+              <option value="{{ voto }}">{{ voto }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form__group">
+        <label class="form__label">Note</label>
+        <textarea class="form__input" name="note" rows="3" placeholder="Facoltativo"></textarea>
+      </div>
+
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Invia</button>
+        <a class="btn btn--ghost" href="{{ url_for('prenotazioni.mie') }}">Annulla</a>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}
+

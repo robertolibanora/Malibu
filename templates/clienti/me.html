@@ -2,33 +2,53 @@
 {% block title %}Area personale - Malibù{% endblock %}
 
 {% block cliente_content %}
-<section class="card">
-  <h1 class="card__title">Ciao {{ cliente.nome }} {{ cliente.cognome }}</h1>
-  <p class="card__meta">Livello: {{ cliente.livello }} • Punti: {{ cliente.punti_fedelta or 0 }}</p>
-
-  <div class="qr">
+<section class="card card--qr card--qr-focus">
+  <div class="card__header card__header--compact">
+    <h1 class="card__title">Il tuo QR personale</h1>
+    <p class="card__meta">Mostralo all’ingresso per accumulare punti e accedere rapidamente.</p>
+  </div>
+  <div class="qr qr--focus">
     {% if qr_url %}
       <img class="qr__img" src="{{ qr_url }}" alt="QR personale">
-      <a class="btn btn--secondary" download="qr_cliente_{{ cliente.id_cliente }}.png" href="{{ qr_url }}">Scarica QR</a>
+      <a class="btn btn--secondary qr__action" download="qr_cliente_{{ cliente.id_cliente }}.png" href="{{ qr_url }}">Salva sul telefono</a>
     {% else %}
-      <p class="text--muted">QR non disponibile.</p>
+      <p class="empty-state">QR non disponibile.</p>
     {% endif %}
   </div>
-
-  <div class="grid grid--2">
-    <a class="btn btn--primary" href="{{ url_for('clienti.me_edit') }}">Modifica dati</a>
-    <a class="btn btn--ghost" href="{{ url_for('auth.logout') }}">Logout</a>
+  <div class="form__actions">
+    <a class="btn btn--primary" href="{{ url_for('clienti.me_edit') }}">Modifica profilo</a>
   </div>
 </section>
 
-<section class="card">
-  <h2 class="card__title">I tuoi dati</h2>
-  <ul class="list">
-    <li class="list__item">Telefono: <strong>{{ cliente.telefono }}</strong></li>
-    <li class="list__item">Email: <strong>{{ cliente.email or '—' }}</strong></li>
-    <li class="list__item">Città: <strong>{{ cliente.citta or '—' }}</strong></li>
-    <li class="list__item">Data di nascita: <strong>{{ cliente.data_nascita or '—' }}</strong></li>
-    <li class="list__item">Stato account: <strong>{{ cliente.stato_account }}</strong></li>
-  </ul>
+<section class="card card--loyalty">
+  <h2 class="card__title">Il tuo livello Fedeltà</h2>
+  <p class="text--muted card--loyalty__subtitle">
+    Colleziona punti per sbloccare vantaggi speciali riservati ai membri Malibù.
+  </p>
+
+  <div class="card--loyalty__stats">
+    <div class="card--loyalty__stat">
+      <span class="card--loyalty__label">Livello attuale</span>
+      <span class="card--loyalty__value">{{ current_level|capitalize }}</span>
+    </div>
+    <div class="card--loyalty__stat">
+      <span class="card--loyalty__label">Punti totali</span>
+      <span class="card--loyalty__value">{{ points }}</span>
+    </div>
+  </div>
+
+  <div class="card--loyalty__progress">
+    <span class="card--loyalty__progress-label">Progresso verso il prossimo livello</span>
+    <div class="progress progress--loyalty">
+      <div class="progress__bar" style="width: {{ progress }}%"></div>
+    </div>
+    <div class="card--loyalty__progress-meta">
+      {% if next_level %}
+        Ti mancano <strong>{{ to_go }}</strong> pt per raggiungere <strong>{{ next_level|capitalize }}</strong>.
+      {% else %}
+        Hai raggiunto il livello massimo. Continua a divertirti con Malibù!
+      {% endif %}
+    </div>
+  </div>
 </section>
 {% endblock %}

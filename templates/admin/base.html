@@ -27,7 +27,6 @@
     <a href="{{ url_for('promozioni.admin_list') }}" class="{% if endpoint.startswith('promozioni.admin_') %}active{% endif %}">Promozioni</a>
     <a href="{{ url_for('prodotti.admin_list') }}" class="{% if endpoint.startswith('prodotti.admin_') %}active{% endif %}">Listino</a>
     <a href="{{ url_for('staff_admin.admin_list') }}" class="{% if endpoint.startswith('staff_admin.admin_') %}active{% endif %}">Staff</a>
-    <a href="{{ url_for('feedback.admin_list') }}" class="{% if endpoint.startswith('feedback.admin_') %}active{% endif %}">Feedback</a>
     <a href="{{ url_for('log.list') }}" class="{% if endpoint.startswith('log.') %}active{% endif %}">Log</a>
     <a href="{{ url_for('auth.logout') }}" class="admin-nav__logout">Logout</a>
   </nav>

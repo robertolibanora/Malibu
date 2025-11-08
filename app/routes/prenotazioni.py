@@ -2,12 +2,16 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
 from sqlalchemy import func, and_
 from datetime import datetime, date, time
+from collections import defaultdict
 from app.database import SessionLocal
 from app.models.prenotazioni import Prenotazione
 from app.models.eventi import Evento
 from app.models.clienti import Cliente
+from app.models.consumi import Consumo
+from app.models.feedback import Feedback
+from app.models.fedeltà import Fedelta
 from app.utils.decorators import require_cliente, require_admin, require_staff
-from app.routes.fedelta import award_on_no_show
+from app.routes.fedelta import award_on_no_show, PUNTI_NO_SHOW
 
 prenotazioni_bp = Blueprint("prenotazioni", __name__, url_prefix="/prenotazioni")
 
@@ -78,18 +82,15 @@ def nuova():
 
             # Vincoli: tavolo -> num_persone obbligatorio + note con nome tavolo obbligatorie
             if tipo == "tavolo":
-                if not num_persone or num_persone < 1:
-                    flash("Indica il numero di persone per il tavolo.", "danger")
-                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
                 if not note:
-                    flash("Per il tavolo è obbligatorio indicare il nome del tavolo nelle note.", "danger")
+                    flash("Per il tavolo è obbligatorio indicare il nome del tavolo.", "danger")
                     return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
 
             pren = Prenotazione(
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
                 tipo=tipo,
-                num_persone=num_persone if tipo == "tavolo" else None,
+                num_persone=None,
                 orario_previsto=orario_previsto or None,
                 note=note or None,
                 stato="attiva"
@@ -116,10 +117,76 @@ def mie():
             abort(401)
 
         pren = db.query(Prenotazione).join(Evento, Prenotazione.evento_id == Evento.id_evento) \
-            .filter(Prenotazione.cliente_id == cli.id_cliente) \
+            .filter(
+                Prenotazione.cliente_id == cli.id_cliente,
+                Prenotazione.stato != "cancellata"
+            ) \
             .order_by(Evento.data_evento.desc(), Prenotazione.id_prenotazione.desc()) \
             .all()
-        return render_template("clienti/prenotazioni_list.html", prenotazioni=pren)
+        pren_attive = [p for p in pren if p.stato == "attiva"]
+
+        feedbacks = {
+            fb.evento_id: fb for fb in db.query(Feedback)
+            .filter(Feedback.cliente_id == cli.id_cliente)
+            .all()
+        }
+
+        pren_usate = [
+            (p, feedbacks.get(p.evento_id))
+            for p in pren if p.stato == "usata"
+        ]
+        pren_no_show = [p for p in pren if p.stato == "no-show"]
+        punti_per_no_show = abs(PUNTI_NO_SHOW)
+        punti_persi = punti_per_no_show * len(pren_no_show)
+
+        fedelta_map = defaultdict(int)
+        for mov in db.query(Fedelta).filter(Fedelta.cliente_id == cli.id_cliente).all():
+            if mov.evento_id:
+                fedelta_map[mov.evento_id] += mov.punti or 0
+
+        return render_template(
+            "clienti/prenotazioni_list.html",
+            prenotazioni_attive=pren_attive,
+            prenotazioni_usate=pren_usate,
+            prenotazioni_no_show=pren_no_show,
+            punti_per_no_show=punti_per_no_show,
+            punti_persi_no_show=punti_persi,
+            punti_evento=fedelta_map
+        )
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/mie/<int:pren_id>", methods=["GET"])
+@require_cliente
+def mia_prenotazione_detail(pren_id):
+    db = SessionLocal()
+    try:
+        cli = _get_current_cliente(db)
+        if not cli:
+            abort(401)
+        pren = db.query(Prenotazione).get(pren_id)
+        if not pren or pren.cliente_id != cli.id_cliente:
+            abort(404)
+        if pren.stato != "usata":
+            flash("I dettagli consumo sono disponibili solo dopo aver usufruito della prenotazione.", "info")
+            return redirect(url_for("prenotazioni.mie"))
+
+        consumi = (
+            db.query(Consumo)
+            .filter(
+                Consumo.cliente_id == cli.id_cliente,
+                Consumo.evento_id == pren.evento_id
+            )
+            .order_by(Consumo.data_consumo.asc())
+            .all()
+        )
+
+        return render_template(
+            "clienti/prenotazione_detail.html",
+            prenotazione=pren,
+            consumi=consumi
+        )
     finally:
         db.close()
 

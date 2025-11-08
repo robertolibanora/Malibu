@@ -8,6 +8,7 @@ from app.models.feedback import Feedback
 from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
 from app.models.clienti import Cliente
+from app.models.fedeltà import Fedelta
 
 feedback_bp = Blueprint("feedback", __name__, url_prefix="/feedback")
 
@@ -17,19 +18,9 @@ feedback_bp = Blueprint("feedback", __name__, url_prefix="/feedback")
 @feedback_bp.route("/miei")
 @require_cliente
 def miei():
-    db = SessionLocal()
-    try:
-        cliente_id = session.get("cliente_id")
-        fb = (
-            db.query(Feedback, Evento)
-            .join(Evento, Evento.id_evento == Feedback.evento_id)
-            .filter(Feedback.cliente_id == cliente_id)
-            .order_by(Feedback.data_feedback.desc())
-            .all()
-        )
-        return render_template("clienti/feedback_miei.html", feedbacks=fb)
-    finally:
-        db.close()
+    # Le recensioni sono visualizzabili direttamente in "Le mie prenotazioni"
+    flash("Puoi trovare le tue recensioni nella pagina Le mie prenotazioni.", "info")
+    return redirect(url_for("prenotazioni.mie"))
 
 @feedback_bp.route("/nuovo", methods=["GET", "POST"])
 @require_cliente
@@ -39,11 +30,16 @@ def nuovo():
         cliente_id = session.get("cliente_id")
         evento_id = request.args.get("evento_id") or request.form.get("evento_id")
 
-        # lista eventi passati a cui il cliente è entrato (per tendina)
+        # Lista eventi passati a cui il cliente è entrato e che
+        # non hanno già un feedback associato
         eventi_ok = (
             db.query(Evento)
             .join(Ingresso, Ingresso.evento_id == Evento.id_evento)
-            .filter(Ingresso.cliente_id == cliente_id)
+            .outerjoin(Feedback, (Feedback.evento_id == Evento.id_evento) & (Feedback.cliente_id == cliente_id))
+            .filter(
+                Ingresso.cliente_id == cliente_id,
+                Feedback.id_feedback.is_(None)
+            )
             .order_by(Evento.data_evento.desc())
             .all()
         )
@@ -76,6 +72,7 @@ def nuovo():
             voto_musica = int(request.form.get("voto_musica", 0))
             voto_ingresso = int(request.form.get("voto_ingresso", 0))
             voto_ambiente = int(request.form.get("voto_ambiente", 0))
+            voto_servizio = int(request.form.get("voto_servizio", 0))
             note = request.form.get("note") or None
 
             fb = Feedback(
@@ -84,14 +81,28 @@ def nuovo():
                 voto_musica=voto_musica,
                 voto_ingresso=voto_ingresso,
                 voto_ambiente=voto_ambiente,
+                voto_servizio=voto_servizio,
                 note=note,
             )
             db.add(fb)
-            db.commit()
-            flash("Feedback inviato, grazie!", "success")
-            return redirect(url_for("feedback.miei"))
+            bonus = Fedelta(
+                cliente_id=cliente_id,
+                evento_id=int(evento_id),
+                punti=2,
+                motivo=f"Feedback evento #{evento_id}"
+            )
+            db.add(bonus)
 
-        return render_template("shared/feedback_form.html", eventi=eventi_ok, evento_id=evento_id)
+            cliente = db.query(Cliente).get(cliente_id)
+            if cliente:
+                cliente.punti_fedelta = (cliente.punti_fedelta or 0) + 2
+
+            db.commit()
+
+            flash("Feedback inviato, grazie! Hai guadagnato 2 punti fedeltà.", "success")
+            return redirect(url_for("prenotazioni.mie"))
+
+        return render_template("clienti/feedback_form.html", eventi=eventi_ok, evento_id=evento_id)
     finally:
         db.close()
 
@@ -143,11 +154,12 @@ def admin_list():
                 func.avg(Feedback.voto_musica),
                 func.avg(Feedback.voto_ingresso),
                 func.avg(Feedback.voto_ambiente),
+                func.avg(Feedback.voto_servizio),
             )
         )
         if evento_id:
             agg = agg.filter(Feedback.evento_id == evento_id)
-        count, avg_musica, avg_ingresso, avg_ambiente = agg.one()
+        count, avg_musica, avg_ingresso, avg_ambiente, avg_servizio = agg.one()
 
         # Calcola pagine
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
@@ -166,6 +178,7 @@ def admin_list():
             avg_musica=round(avg_musica or 0, 2),
             avg_ingresso=round(avg_ingresso or 0, 2),
             avg_ambiente=round(avg_ambiente or 0, 2),
+            avg_servizio=round(avg_servizio or 0, 2),
             page=page,
             per_page=per_page,
             total=total,

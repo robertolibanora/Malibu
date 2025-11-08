@@ -4,7 +4,7 @@
 <section class="card">
   <h1 class="card__title">Feedback</h1>
   <div class="card__meta">
-    Totali: {{ count }} • Musica: {{ avg_musica }} • Ingresso: {{ avg_ingresso }} • Ambiente: {{ avg_ambiente }}
+    Totali: {{ count }} • Musica: {{ avg_musica }} • Ingresso: {{ avg_ingresso }} • Ambiente: {{ avg_ambiente }} • Servizio: {{ avg_servizio }}
   </div>
       <form class="form" method="get">
         <div class="grid grid--2">
@@ -72,7 +72,7 @@
             <div class="list__item">
               <div><strong>{{ ev.nome_evento }}</strong> — {{ ev.data_evento }}</div>
               <div>{{ cl.nome }} {{ cl.cognome }}</div>
-              <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }}</div>
+              <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }} • Servizio: {{ fb.voto_servizio }}</div>
               {% if fb.note %}<div class="text--muted">{{ fb.note }}</div>{% endif %}
               <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}">
                 <div class="form__actions">

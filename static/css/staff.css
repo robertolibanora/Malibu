@@ -166,8 +166,9 @@ body.staff-section {
 
 /* Main Content */
 .staff-section .app__main {
-  padding: 1rem;
-  padding-bottom: 2rem;
+  padding: clamp(0.75rem, 3vw, 1.25rem);
+  padding-bottom: clamp(2.5rem, 6.5vw, 4rem);
+  overflow-x: hidden;
 }
 
 @media (max-width: 767px) {
@@ -181,8 +182,8 @@ body.staff-section {
   background-color: var(--black-soft);
   border: 1px solid var(--gray-soft);
   border-radius: 12px;
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+  padding: clamp(0.9rem, 2.8vw, 1.25rem);
+  margin-bottom: clamp(0.75rem, 2.4vw, 1.2rem);
   transition: transform var(--transition-base), 
               border-color var(--transition-base),
               box-shadow var(--transition-slow);
@@ -202,15 +203,15 @@ body.staff-section {
 
 .staff-section .card__title {
   color: var(--gold-primary);
-  margin-bottom: 0.75rem;
-  font-size: 1.25rem;
+  margin-bottom: clamp(0.5rem, 2vw, 0.9rem);
+  font-size: clamp(1.05rem, 3.6vw, 1.25rem);
   font-weight: 600;
 }
 
 .staff-section .card__meta {
   color: var(--gray-light);
-  font-size: 0.85rem;
-  margin-bottom: 1rem;
+  font-size: clamp(0.8rem, 3.1vw, 0.95rem);
+  margin-bottom: clamp(0.5rem, 2.6vw, 1rem);
 }
 
 .staff-section .card__header {
@@ -240,11 +241,11 @@ body.staff-section {
 
 /* Buttons Staff */
 .staff-section .btn {
-  padding: 0.75rem 1.5rem;
+  padding: clamp(0.7rem, 2.6vw, 0.9rem) clamp(1rem, 4vw, 1.5rem);
   border-radius: 8px;
   border: none;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: clamp(0.95rem, 3.4vw, 1.05rem);
   transition: all 0.2s ease;
   text-decoration: none;
   display: inline-block;
@@ -304,29 +305,32 @@ body.staff-section {
 
 /* Forms Staff */
 .staff-section .form__group {
-  margin-bottom: 1.25rem;
+  margin-bottom: clamp(0.9rem, 3vw, 1.25rem);
 }
 
 .staff-section .form__label {
   display: block;
   color: var(--gray-light);
-  margin-bottom: 0.5rem;
-  font-size: 0.9rem;
+  margin-bottom: clamp(0.35rem, 1.8vw, 0.6rem);
+  font-size: clamp(0.85rem, 3.2vw, 0.95rem);
 }
 
 .staff-section .form__input,
 .staff-section .form__select,
 .staff-section .form__textarea {
   width: 100%;
-  padding: 0.75rem;
+  padding: clamp(0.65rem, 2.6vw, 0.9rem);
   background-color: var(--black-deep);
   border: 1px solid var(--gray-soft);
   border-radius: 8px;
   color: var(--text-light);
-  font-size: 1rem;
+  font-size: clamp(0.95rem, 3.5vw, 1.05rem);
   -webkit-appearance: none;
   appearance: none;
 }
+
+.staff-section .form__input::placeholder { color: #bdbdbd; opacity: 1; }
+.staff-section .form__input { caret-color: var(--gold-primary); }
 
 .staff-section .form__input:focus,
 .staff-section .form__select:focus,
@@ -347,7 +351,7 @@ body.staff-section {
 /* Scanner QR */
 .staff-section #reader {
   width: 100%;
-  max-width: 420px;
+  max-width: min(420px, 92vw);
   margin: 0 auto;
   border: 2px solid var(--gold-primary);
   border-radius: 8px;
@@ -373,7 +377,7 @@ body.staff-section {
 /* Grid Staff */
 .staff-section .grid {
   display: grid;
-  gap: 1rem;
+  gap: clamp(0.75rem, 2.8vw, 1.25rem);
 }
 
 .staff-section .grid--2 {

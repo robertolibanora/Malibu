@@ -2,20 +2,50 @@
 {% block title %}{{ e.nome_evento }} - Malibù{% endblock %}
 
 {% block cliente_content %}
-<article class="card">
+<article class="card card--hero">
   {% if e.cover_url %}
-    <img src="{{ e.cover_url }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">
+    <img src="{{ url_for('static', filename='uploads/eventi/' ~ e.cover_url) }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">
   {% endif %}
-  <h1 class="card__title">{{ e.nome_evento }}</h1>
-  <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
-  {% if e.dj_artista %}<p class="text--muted">DJ: {{ e.dj_artista }}</p>{% endif %}
-  {% if e.promozione %}<p class="text--muted">Promo: {{ e.promozione }}</p>{% endif %}
-
-  <div class="form__actions">
-    <a class="btn btn--secondary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
+  <div class="card__header">
+    <div>
+      <h1 class="card__title">{{ e.nome_evento }}</h1>
+      <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+      {% if e.dj_artista %}<p class="text--muted">DJ: {{ e.dj_artista }}</p>{% endif %}
+      {% if e.promozione %}<p class="text--muted">Promo: {{ e.promozione }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="form__actions" style="margin-top:.5rem;">
+    {% if is_future %}
+      <a class="btn btn--primary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
+    {% else %}
+      <a class="btn btn--ghost" href="javascript:void(0)" aria-disabled="true">Evento passato</a>
+    {% endif %}
     <button class="btn btn--ghost" type="button" onclick="copyLink(window.location.href)">Condividi</button>
   </div>
 </article>
+
+<section class="card">
+  <div class="card__header card__header--compact">
+    <h2 class="card__title">I miei acquisti durante la serata</h2>
+    <p class="card__meta">Vedi cosa hai acquistato in questo evento.</p>
+  </div>
+  {% if consumi_miei %}
+    <ul class="timeline timeline--compact">
+      {% for c in consumi_miei %}
+        <li class="timeline__item">
+          <span class="timeline__date">{{ c.data_consumo.strftime('%d/%m/%Y %H:%M') }}</span>
+          <div class="timeline__content">
+            <h3 class="timeline__title">{{ c.prodotto }}</h3>
+            <p class="timeline__meta">Importo: € {{ '%.2f'|format(c.importo) }}</p>
+            {% if c.note %}<p class="timeline__note">{{ c.note }}</p>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">Non risultano acquisti per questa serata.</p>
+  {% endif %}
+</section>
 {% endblock %}
 
 {% block scripts %}

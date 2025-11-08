@@ -29,31 +29,53 @@ CATEGORIES_PUBLIC = ["reggaeton", "techno", "altro"]  # no 'privato' come da tua
 def lista_pubblica():
     db = SessionLocal()
     try:
-        q = db.query(Evento).filter(Evento.data_evento >= date.today())
-
         cat = request.args.get("categoria")
         dal = request.args.get("dal")   # yyyy-mm-dd
         al  = request.args.get("al")    # yyyy-mm-dd
+        # Costruisce filtro base da riusare
+        def apply_common_filters(query):
+            if cat and cat in CATEGORIES_PUBLIC:
+                query = query.filter(Evento.categoria == cat)
+            if dal:
+                try:
+                    dal_d = datetime.strptime(dal, "%Y-%m-%d").date()
+                    query = query.filter(Evento.data_evento >= dal_d)
+                except ValueError:
+                    pass
+            if al:
+                try:
+                    al_d = datetime.strptime(al, "%Y-%m-%d").date()
+                    query = query.filter(Evento.data_evento <= al_d)
+                except ValueError:
+                    pass
+            return query
 
-        if cat and cat in CATEGORIES_PUBLIC:
-            q = q.filter(Evento.categoria == cat)
+        oggi = date.today()
+        # Prossimi eventi (oggi e futuri)
+        q_next = apply_common_filters(db.query(Evento).filter(Evento.data_evento >= oggi))
+        eventi_prossimi = q_next.order_by(Evento.data_evento.asc(), Evento.id_evento.asc()).all()
 
-        if dal:
-            try:
-                dal_d = datetime.strptime(dal, "%Y-%m-%d").date()
-                q = q.filter(Evento.data_evento >= dal_d)
-            except ValueError:
-                pass
-        if al:
-            try:
-                al_d = datetime.strptime(al, "%Y-%m-%d").date()
-                q = q.filter(Evento.data_evento <= al_d)
-            except ValueError:
-                pass
+        # Eventi passati (ultimi 10, più “grigi” a UI)
+        q_past = apply_common_filters(db.query(Evento).filter(Evento.data_evento < oggi))
+        eventi_passati = q_past.order_by(Evento.data_evento.desc(), Evento.id_evento.desc()).limit(10).all()
 
-        eventi = q.order_by(Evento.data_evento.asc(), Evento.id_evento.asc()).all()
+        prenotati_ids = set()
+        cid = session.get("cliente_id")
+        if cid and eventi_prossimi:
+            prenotati_ids = {
+                pid for (pid,) in db.query(Prenotazione.evento_id)
+                .filter(
+                    Prenotazione.cliente_id == cid,
+                    Prenotazione.evento_id.in_([e.id_evento for e in eventi_prossimi]),
+                    Prenotazione.stato.in_(("attiva", "usata"))
+                )
+                .all()
+            }
+
         return render_template("clienti/eventi_list.html",
-                               eventi=eventi,
+                               eventi_prossimi=eventi_prossimi,
+                               eventi_passati=eventi_passati,
+                               eventi_prenotati=prenotati_ids,
                                CATEGORIES_PUBLIC=CATEGORIES_PUBLIC,
                                filtri={"categoria": cat, "dal": dal, "al": al})
     finally:
@@ -70,8 +92,16 @@ def dettaglio_pubblico(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.lista_pubblica"))
-        # Non mostriamo capienza residua ai clienti (come concordato)
-        return render_template("clienti/evento_detail.html", e=e)
+        # Mostra eventuali acquisti dell'utente loggato durante la serata
+        consumi_miei = []
+        cid = session.get("cliente_id")
+        if cid:
+            consumi_miei = (db.query(Consumo)
+                              .filter(Consumo.evento_id == evento_id, Consumo.cliente_id == cid)
+                              .order_by(Consumo.data_consumo.desc())
+                              .all())
+        is_future = e.data_evento >= date.today()
+        return render_template("clienti/evento_detail.html", e=e, consumi_miei=consumi_miei, is_future=is_future)
     finally:
         db.close()
 

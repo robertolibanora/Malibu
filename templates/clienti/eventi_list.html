@@ -2,8 +2,102 @@
 {% block title %}Eventi - Malibù{% endblock %}
 
 {% block cliente_content %}
-<section class="card">
-  <h1 class="card__title">Prossimi eventi</h1>
+
+<div class="section-heading">
+  <span class="section-heading__icon">🎟️</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">In arrivo</span>
+    <h1 class="section-heading__title">Prossimi eventi</h1>
+  </div>
+</div>
+
+<section class="event-list">
+  {% for e in eventi_prossimi %}
+  <article class="event-card">
+    <div class="event-card__media">
+      {% if e.cover_url %}
+        <img src="{{ url_for('static', filename='uploads/eventi/' ~ e.cover_url) }}" alt="{{ e.nome_evento }}">
+      {% else %}
+        <div class="event-card__placeholder">{{ e.nome_evento[0]|upper }}</div>
+      {% endif %}
+      <span class="event-card__chip event-card__chip--future">In arrivo</span>
+      {% if eventi_prenotati and e.id_evento in eventi_prenotati %}
+        <span class="event-card__chip event-card__chip--booked">Prenotato</span>
+      {% endif %}
+    </div>
+    <div class="event-card__body">
+      <div class="event-card__info">
+        <h2 class="event-card__title">{{ e.nome_evento }}</h2>
+        <p class="event-card__meta">
+          <span class="event-card__date">{{ e.data_evento.strftime('%d %b %Y') if e.data_evento else '' }}</span>
+          <span class="event-card__dot">•</span>
+          <span class="event-card__genre">{{ e.tipo_musica or e.categoria }}</span>
+        </p>
+        {% if e.dj_artista %}
+          <p class="event-card__dj">DJ set: <strong>{{ e.dj_artista }}</strong></p>
+        {% endif %}
+        {% if e.promozione %}
+          <p class="event-card__promo">Promo: {{ e.promozione }}</p>
+        {% endif %}
+      </div>
+      <div class="event-card__actions">
+        <a class="btn btn--primary" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Dettagli</a>
+        <a class="btn btn--secondary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
+        <button class="btn btn--ghost" type="button" data-share-url="{{ request.url_root|trim('/') }}{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}" onclick="copyLink(this.dataset.shareUrl)">Condividi</button>
+      </div>
+    </div>
+  </article>
+  {% else %}
+    <div class="card"><p class="text--muted">Nessun evento disponibile.</p></div>
+  {% endfor %}
+</section>
+
+{% if eventi_passati %}
+<div class="section-heading section-heading--muted">
+  <span class="section-heading__icon">🕰️</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">Ricordi recenti</span>
+    <h2 class="section-heading__title">Eventi passati</h2>
+  </div>
+</div>
+
+<section class="event-list event-list--past">
+  {% for e in eventi_passati %}
+  <article class="event-card event-card--past">
+    <div class="event-card__media">
+      {% if e.cover_url %}
+        <img src="{{ url_for('static', filename='uploads/eventi/' ~ e.cover_url) }}" alt="{{ e.nome_evento }}">
+      {% else %}
+        <div class="event-card__placeholder">{{ e.nome_evento[0]|upper }}</div>
+      {% endif %}
+      <span class="event-card__chip event-card__chip--past">Terminato</span>
+    </div>
+    <div class="event-card__body">
+      <div class="event-card__info">
+        <h3 class="event-card__title">{{ e.nome_evento }}</h3>
+        <p class="event-card__meta">
+          <span class="event-card__date">{{ e.data_evento.strftime('%d %b %Y') if e.data_evento else '' }}</span>
+          <span class="event-card__dot">•</span>
+          <span class="event-card__genre">{{ e.tipo_musica or e.categoria }}</span>
+        </p>
+        {% if e.dj_artista %}
+          <p class="event-card__dj">DJ set: <strong>{{ e.dj_artista }}</strong></p>
+        {% endif %}
+        {% if e.promozione %}
+          <p class="event-card__promo">Promo: {{ e.promozione }}</p>
+        {% endif %}
+      </div>
+      <div class="event-card__actions event-card__actions--past">
+        <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Vedi dettagli</a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+{% endif %}
+</section>
+
+<section class="card" style="margin-top: 1rem;">
+  <h1 class="card__title">Filtra eventi</h1>
   <form class="form" method="get">
     <div class="grid grid--2">
       <div class="form__group">
@@ -25,32 +119,10 @@
       </div>
     </div>
     <div class="form__actions">
-      <button class="btn btn--primary">Filtra</button>
+      <button class="btn btn--primary">Applica filtri</button>
       <a class="btn btn--ghost" href="{{ url_for('eventi.lista_pubblica') }}">Reset</a>
     </div>
   </form>
-</section>
-
-<section class="list">
-  {% for e in eventi %}
-  <article class="card list__item">
-    {% if e.cover_url %}
-      <img src="{{ e.cover_url }}" alt="" style="width:100%;border-radius:10px;margin-bottom:10px;">
-    {% endif %}
-    <h2 class="card__title">{{ e.nome_evento }}</h2>
-    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
-    {% if e.dj_artista %}<div class="text--muted">DJ: {{ e.dj_artista }}</div>{% endif %}
-    {% if e.promozione %}<div class="text--muted">Promo: {{ e.promozione }}</div>{% endif %}
-
-    <div class="form__actions">
-      <a class="btn btn--primary" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Dettagli</a>
-      <a class="btn btn--secondary" href="/prenotazioni/nuova?evento_id={{ e.id_evento }}">Prenota</a>
-      <button class="btn btn--ghost" type="button" data-share-url="{{ request.url_root|trim('/') }}{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}" onclick="copyLink(this.dataset.shareUrl)">Condividi</button>
-    </div>
-  </article>
-  {% else %}
-    <div class="card"><p class="text--muted">Nessun evento disponibile.</p></div>
-  {% endfor %}
 </section>
 
 {% endblock %}

@@ -2,34 +2,174 @@
 {% block title %}Le mie prenotazioni{% endblock %}
 
 {% block cliente_content %}
-<section class="card">
-  <h1 class="card__title">Le mie prenotazioni</h1>
-</section>
+<div class="section-heading">
+  <span class="section-heading__icon">🎫</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">Area personale</span>
+    <h1 class="section-heading__title">Le mie prenotazioni</h1>
+  </div>
+</div>
 
-<section class="list">
-  {% for p in prenotazioni %}
-  <article class="card list__item">
-    <h2 class="card__title">{{ p.evento.nome_evento }}</h2>
-    <div class="card__meta">{{ p.evento.data_evento }} • {{ p.tipo|capitalize }}</div>
-    {% if p.tipo == 'tavolo' and p.num_persone %}
-      <div class="text--muted">Persone: {{ p.num_persone }}</div>
-    {% endif %}
-    {% if p.note %}
-      <div class="text--muted">Note: {{ p.note }}</div>
-    {% endif %}
-    <div class="text--muted">Stato: {{ p.stato }}</div>
+{% set stato_label = {
+  'attiva': 'Prenotazione attiva',
+  'usata': 'Prenotazione usata',
+  'no-show': 'Prenotazione non usata'
+} %}
 
-    <div class="form__actions">
-      {% set today18 = p.evento.data_evento|string + ' 18:00' %}
-      {% if p.stato == 'attiva' %}
-        <form method="post" action="{{ url_for('prenotazioni.cancella_mia', pren_id=p.id_prenotazione) }}" onsubmit="return confirm('Cancellare la prenotazione?');" style="display:inline">
+{% if prenotazioni_attive %}
+<div class="section-heading section-heading--muted">
+  <span class="section-heading__icon">🗓️</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">In programma</span>
+    <h2 class="section-heading__title">Prenotazioni attive</h2>
+  </div>
+</div>
+<section class="event-list">
+  {% for p in prenotazioni_attive %}
+  <article class="event-card">
+    <div class="event-card__media">
+      {% if p.evento.cover_url %}
+        <img src="{{ url_for('static', filename='uploads/eventi/' ~ p.evento.cover_url) }}" alt="{{ p.evento.nome_evento }}">
+      {% else %}
+        <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
+      {% endif %}
+      <span class="event-card__chip event-card__chip--attiva">Attiva</span>
+    </div>
+    <div class="event-card__body">
+      <div class="event-card__info">
+        <h3 class="event-card__title">{{ p.evento.nome_evento }}</h3>
+        <p class="event-card__meta">
+          <span class="event-card__date">{{ p.evento.data_evento.strftime('%d %b %Y') if p.evento.data_evento else '' }}</span>
+          <span class="event-card__dot">•</span>
+          <span class="event-card__genre">{{ p.tipo|capitalize }}</span>
+        </p>
+        <p class="event-card__promo">Punti guadagnati finora: {{ punti_evento.get(p.evento_id, 0) }}</p>
+        {% if p.tipo == 'tavolo' and p.num_persone %}
+          <p class="event-card__info">Persone: <strong>{{ p.num_persone }}</strong></p>
+        {% endif %}
+        {% if p.note %}
+          <p class="event-card__promo">Note: {{ p.note }}</p>
+        {% endif %}
+      </div>
+      <div class="event-card__actions">
+        <form method="post" action="{{ url_for('prenotazioni.cancella_mia', pren_id=p.id_prenotazione) }}" onsubmit="return confirm('Cancellare la prenotazione?');">
           <button class="btn btn--danger" type="submit">Cancella (entro le 18)</button>
         </form>
-      {% endif %}
+      </div>
     </div>
   </article>
-  {% else %}
-    <div class="card"><p class="text--muted">Nessuna prenotazione trovata.</p></div>
   {% endfor %}
 </section>
+{% endif %}
+
+{% if prenotazioni_usate %}
+<div class="section-heading">
+  <span class="section-heading__icon">⭐</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">Già vissute</span>
+    <h2 class="section-heading__title">Prenotazioni usate</h2>
+  </div>
+</div>
+<section class="event-list">
+  {% for pren, feedback in prenotazioni_usate %}
+  <article class="event-card">
+    <div class="event-card__media">
+      {% if pren.evento.cover_url %}
+        <img src="{{ url_for('static', filename='uploads/eventi/' ~ pren.evento.cover_url) }}" alt="{{ pren.evento.nome_evento }}">
+      {% else %}
+        <div class="event-card__placeholder">{{ pren.evento.nome_evento[0]|upper }}</div>
+      {% endif %}
+      <span class="event-card__chip event-card__chip--usata">Usata</span>
+      {% if feedback %}
+        <span class="event-card__chip event-card__chip--booked" style="bottom: auto; top: 12px; left: auto; right: 12px;">Già valutata</span>
+      {% endif %}
+    </div>
+    <div class="event-card__body">
+      <div class="event-card__info">
+        <h3 class="event-card__title">{{ pren.evento.nome_evento }}</h3>
+        <p class="event-card__meta">
+          <span class="event-card__date">{{ pren.evento.data_evento.strftime('%d %b %Y') if pren.evento.data_evento else '' }}</span>
+          <span class="event-card__dot">•</span>
+          <span class="event-card__genre">{{ pren.tipo|capitalize }}</span>
+        </p>
+        <p class="event-card__promo">Punti guadagnati: {{ punti_evento.get(pren.evento_id, 0) }}</p>
+        {% if pren.note %}
+          <p class="event-card__promo">Note: {{ pren.note }}</p>
+        {% endif %}
+        {% if feedback %}
+          {% set avg = ((feedback.voto_musica + feedback.voto_ingresso + feedback.voto_ambiente + feedback.voto_servizio) / 4.0) %}
+          <div class="rating-stars" aria-label="Valutazione media {{ avg|round(1) }}/10">
+            {% for star in range(1, 11) %}
+              <span class="rating-stars__star {% if star <= avg %}rating-stars__star--active{% endif %}">★</span>
+            {% endfor %}
+            <span class="rating-stars__label">{{ avg|round(1) }}/10</span>
+          </div>
+        {% else %}
+          <div class="form__actions">
+            <a class="btn btn--ghost" href="{{ url_for('feedback.nuovo', evento_id=pren.evento_id) }}">
+              Lascia feedback
+            </a>
+          </div>
+        {% endif %}
+      </div>
+      <div class="event-card__actions">
+        <a class="btn btn--ghost" href="{{ url_for('prenotazioni.mia_prenotazione_detail', pren_id=pren.id_prenotazione) }}">
+          Vedi dettagli consumi
+        </a>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if prenotazioni_no_show %}
+<div class="section-heading section-heading--muted">
+  <span class="section-heading__icon">⚠️</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">Attenzione</span>
+    <h2 class="section-heading__title">Prenotazioni non usate</h2>
+  </div>
+</div>
+<section class="event-list">
+  <p class="text--muted" style="margin-bottom:.75rem;">
+    Hai perso <strong>{{ punti_persi_no_show }}</strong> pt fedeltà perché non hai registrato l'ingresso.
+  </p>
+  {% for p in prenotazioni_no_show %}
+  <article class="event-card event-card--no-show">
+    <div class="event-card__media">
+      {% if p.evento.cover_url %}
+        <img src="{{ url_for('static', filename='uploads/eventi/' ~ p.evento.cover_url) }}" alt="{{ p.evento.nome_evento }}">
+      {% else %}
+        <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
+      {% endif %}
+      <span class="event-card__chip event-card__chip--no-show">Non usata</span>
+    </div>
+    <div class="event-card__body">
+      <div class="event-card__info">
+        <h3 class="event-card__title">{{ p.evento.nome_evento }}</h3>
+        <p class="event-card__meta">
+          <span class="event-card__date">{{ p.evento.data_evento.strftime('%d %b %Y') if p.evento.data_evento else '' }}</span>
+          <span class="event-card__dot">•</span>
+          <span class="event-card__genre">{{ p.tipo|capitalize }}</span>
+        </p>
+        <p class="event-card__promo">Punti guadagnati: {{ punti_evento.get(p.evento_id, 0) }}</p>
+        {% if p.note %}
+          <p class="event-card__promo">Note: {{ p.note }}</p>
+        {% endif %}
+        <p class="event-card__promo">Perdita punti: -{{ punti_per_no_show }} pt</p>
+      </div>
+      <div class="event-card__actions">
+        <p class="text--muted">Ricorda di effettuare il check-in QR la prossima volta.</p>
+      </div>
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if not prenotazioni_attive and not prenotazioni_usate and not prenotazioni_no_show %}
+  <div><p class="text--muted">Nessuna prenotazione trovata.</p></div>
+{% endif %}
+
 {% endblock %}

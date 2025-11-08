@@ -34,11 +34,14 @@
       {% if filtro.evento_id or filtro.q or filtro.dal or filtro.al %}
       <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost">Reset</a>
       {% endif %}
-      <a class="btn btn--secondary" href="{{ url_for('fedelta.admin_new') }}">Nuovo manuale</a>
       <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_soglie') }}">Soglie livelli</a>
       <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_analytics') }}">Analytics</a>
     </div>
   </form>
+</section>
+
+<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem; background: rgba(17, 24, 39, 0.4);">
+  <strong>Automazione punti:</strong> i movimenti vengono creati dal sistema (ingressi, consumi, no-show). Gli admin non possono più aggiungere o modificare manualmente i punti.
 </section>
 
 <!-- Info paginazione -->
@@ -76,12 +79,6 @@
     <div class="card__meta">{{ m.data_assegnazione }} • {{ c.cognome }} {{ c.nome }}</div>
     <div>{{ m.motivo }}</div>
     <div><strong>{{ m.punti }} pt</strong></div>
-    <div class="form__actions">
-      <a class="btn btn--primary" href="{{ url_for('fedelta.admin_edit', mov_id=m.id_fedelta) }}">Modifica</a>
-      <form method="post" action="{{ url_for('fedelta.admin_delete', mov_id=m.id_fedelta) }}" style="display:inline" onsubmit="return confirm('Eliminare questo movimento?');">
-        <button class="btn btn--danger">Elimina</button>
-      </form>
-    </div>
   </article>
   {% else %}
     <div class="card"><p class="text--muted">Nessun movimento.</p></div>

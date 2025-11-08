@@ -4,7 +4,12 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 from app.database import SessionLocal
 from app.models.clienti import Cliente
+from app.models.prenotazioni import Prenotazione
+from app.models.eventi import Evento
+from app.models.ingressi import Ingresso
+from app.models.consumi import Consumo
 from app.utils.qr import generate_short_code, qr_data_url
+from app.routes.fedelta import get_thresholds, compute_level, next_threshold_info
 from app.utils.decorators import require_cliente, require_admin
 from datetime import datetime, date, timedelta
 
@@ -134,12 +139,81 @@ def area_personale():
         # Prepara QR in data URL per embed
         qr_url = qr_data_url(cli.qr_code) if cli and cli.qr_code else None
 
+        prenotazioni_future = (
+            db.query(Prenotazione)
+            .join(Prenotazione.evento)
+            .options(joinedload(Prenotazione.evento))
+            .filter(
+                Prenotazione.cliente_id == cli.id_cliente,
+                Evento.data_evento >= date.today(),
+                Prenotazione.stato.in_(["attiva"]),
+            )
+            .order_by(Evento.data_evento.asc())
+            .limit(3)
+            .all()
+        )
+
+        prenotazioni_passate = (
+            db.query(Prenotazione)
+            .join(Prenotazione.evento)
+            .options(joinedload(Prenotazione.evento))
+            .filter(
+                Prenotazione.cliente_id == cli.id_cliente,
+                Evento.data_evento < date.today(),
+                Prenotazione.stato.in_(["usata", "no-show", "cancellata"]),
+            )
+            .order_by(Evento.data_evento.desc())
+            .limit(3)
+            .all()
+        )
+
+        ultimo_ingresso = (
+            db.query(Ingresso)
+            .join(Ingresso.evento)
+            .options(joinedload(Ingresso.evento))
+            .filter(Ingresso.cliente_id == cli.id_cliente)
+            .order_by(Ingresso.orario_ingresso.desc())
+            .first()
+        )
+
+        consumi_recenti = (
+            db.query(Consumo)
+            .join(Consumo.evento)
+            .options(joinedload(Consumo.evento))
+            .filter(Consumo.cliente_id == cli.id_cliente)
+            .order_by(Consumo.data_consumo.desc())
+            .limit(3)
+            .all()
+        )
+
+        # Fedeltà: calcolo progress bar e info livello
+        thr = get_thresholds(db)
+        points = int(cli.punti_fedelta or 0)
+        current_level = compute_level(points, thr)
+        nxt, to_go = next_threshold_info(points, thr)
+        next_points = thr.get(nxt) if nxt else None
+        if nxt:
+            prev_min = max([v for k, v in thr.items() if v <= points])
+            denom = max(1, (next_points - prev_min))
+            progress = int(100 * (points - prev_min) / denom)
+        else:
+            progress = 100
+
         # storico (se le relazioni sono mappate)
         # carica lazy-safe (puoi ottimizzare quando definisci i modelli collegati)
         return render_template(
             "clienti/me.html",
             cliente=cli,
-            qr_url=qr_url
+            qr_url=qr_url,
+            prenotazioni_future=prenotazioni_future,
+            prenotazioni_passate=prenotazioni_passate,
+            ultimo_ingresso=ultimo_ingresso,
+            consumi_recenti=consumi_recenti,
+            points=points,
+            current_level=current_level,
+            next_level=nxt,
+            to_go=to_go,
+            progress=progress
         )
     finally:
         db.close()
@@ -156,7 +230,6 @@ def me_edit():
         # POST: aggiornamento campi consentiti
         cli.telefono = request.form.get("telefono", cli.telefono).strip()
         cli.citta = request.form.get("citta", cli.citta).strip() or None
-        cli.data_nascita = request.form.get("data_nascita") or None
 
         # opzionale: cambio password
         new_pass = request.form.get("nuova_password", "").strip()

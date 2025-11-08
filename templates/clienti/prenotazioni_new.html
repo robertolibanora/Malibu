@@ -18,13 +18,10 @@
       </select>
     </div>
 
-    <div class="form__group" id="grp_num_persone" style="display:none;">
-      <label class="form__label">Numero persone (solo tavolo)</label>
-      <input class="form__input" type="number" min="1" name="num_persone" id="num_persone">
-    </div>
+  
 
     <div class="form__group" id="grp_note" style="display:none;">
-      <label class="form__label">Note (obbligatorio per tavolo: inserisci nome tavolo)</label>
+      <label class="form__label">Nome tavolo (obbligatorio)</label>
       <input class="form__input" name="note" id="note" placeholder="Es: Tavolo VIP lato consolle">
     </div>
 
@@ -39,21 +36,15 @@
 {% block scripts %}
 <script>
 const tipo = document.getElementById('tipo');
-const grpNum = document.getElementById('grp_num_persone');
 const grpNote = document.getElementById('grp_note');
-const numPers = document.getElementById('num_persone');
 const note = document.getElementById('note');
 
 function toggleFields(){
   if (tipo.value === 'tavolo'){
-    grpNum.style.display = '';
     grpNote.style.display = '';
-    numPers.setAttribute('required','required');
     note.setAttribute('required','required');
   } else {
-    grpNum.style.display = 'none';
     grpNote.style.display = 'none';
-    numPers.removeAttribute('required');
     note.removeAttribute('required');
   }
 }

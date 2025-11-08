@@ -1,0 +1,72 @@
+{% extends "clienti/base.html" %}
+{% block title %}Dettagli prenotazione - Malibù{% endblock %}
+
+{% block cliente_content %}
+<section class="event-card event-card--detail">
+  <div class="event-card__media">
+    {% if prenotazione.evento.cover_url %}
+      <img src="{{ url_for('static', filename='uploads/eventi/' ~ prenotazione.evento.cover_url) }}" alt="{{ prenotazione.evento.nome_evento }}">
+    {% else %}
+      <div class="event-card__placeholder">{{ prenotazione.evento.nome_evento[0]|upper }}</div>
+    {% endif %}
+    <span class="event-card__chip event-card__chip--usata">Prenotazione usata</span>
+  </div>
+  <div class="event-card__body">
+    <div class="event-card__info">
+      <h1 class="event-card__title">{{ prenotazione.evento.nome_evento }}</h1>
+      <p class="event-card__meta">
+        <span class="event-card__date">
+          {{ prenotazione.evento.data_evento.strftime('%d %b %Y') if prenotazione.evento.data_evento else '' }}
+        </span>
+        <span class="event-card__dot">•</span>
+        <span class="event-card__genre">{{ prenotazione.tipo|capitalize }}</span>
+      </p>
+      {% if prenotazione.tipo == 'tavolo' and prenotazione.num_persone %}
+        <p class="event-card__promo">Persone al tavolo: {{ prenotazione.num_persone }}</p>
+      {% endif %}
+      {% if prenotazione.note %}
+        <p class="event-card__promo">Note: {{ prenotazione.note }}</p>
+      {% endif %}
+    </div>
+    <div class="event-card__actions">
+      <a class="btn btn--ghost" href="{{ url_for('prenotazioni.mie') }}">↩︎ Torna alle prenotazioni</a>
+    </div>
+  </div>
+</section>
+
+<section class="card" style="margin-top: 1.5rem;">
+  <div class="card__header card__header--compact">
+    <h2 class="card__title">Drink consumati durante la serata</h2>
+    <p class="card__meta">Storico dei consumi registrati dai nostri staff.</p>
+  </div>
+
+  {% if consumi %}
+    <ul class="timeline timeline--compact">
+      {% for consumo in consumi %}
+        <li class="timeline__item">
+          <span class="timeline__date">
+            {{ consumo.data_consumo.strftime('%d/%m/%Y %H:%M') if consumo.data_consumo else prenotazione.evento.data_evento.strftime('%d/%m/%Y') }}
+          </span>
+          <div class="timeline__content">
+            <h3 class="timeline__title">{{ consumo.prodotto }}</h3>
+            <p class="timeline__meta">Importo: € {{ '%.2f'|format(consumo.importo) }}</p>
+            {% if consumo.note %}
+              <p class="timeline__note">{{ consumo.note }}</p>
+            {% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty-state">Non risultano consumi registrati per questa prenotazione.</p>
+  {% endif %}
+</section>
+
+<div class="form__actions" style="margin-top: 1.5rem;">
+  <a class="btn btn--primary" href="{{ url_for('feedback.nuovo', evento_id=prenotazione.evento_id) }}">
+    Lascia un feedback
+  </a>
+  <a class="btn btn--ghost" href="{{ url_for('prenotazioni.mie') }}">Torna alle prenotazioni</a>
+</div>
+{% endblock %}
+

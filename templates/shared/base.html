@@ -17,7 +17,9 @@
   <header class="app__header" role="banner">
     <div class="app__header-shell">
       <div class="app__brand">
-        <a href="/" class="app__brand-logo" aria-label="Malibù Home">Malibù</a>
+        <a href="/" class="app__brand-logo" aria-label="Malibù Home">
+          <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù">
+        </a>
         {% block header_tagline %}{% endblock %}
       </div>
       <div class="app__header-actions">

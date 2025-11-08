@@ -118,33 +118,8 @@ def award_on_consumo(db, cliente_id, evento_id, importo_euro):
 @fedelta_bp.route("/mio", methods=["GET"])
 @require_cliente
 def mio_dashboard():
-    db = SessionLocal()
-    try:
-        cid = session.get("cliente_id")
-        cli = db.query(Cliente).get(cid)
-        if not cli:
-            abort(404)
-        thr = get_thresholds(db)
-        points = int(cli.punti_fedelta or 0)
-        current_level = compute_level(points, thr)
-        nxt, to_go = next_threshold_info(points, thr)
-        next_points = thr.get(nxt) if nxt else None
-        # progress % (verso prossimo livello)
-        if nxt:
-            prev_min = max([v for k, v in thr.items() if v <= points])
-            denom = max(1, next_points - prev_min)
-            progress = int(100 * (points - prev_min) / denom)
-        else:
-            progress = 100
-        return render_template("clienti/fedelta_dashboard.html",
-                               cliente=cli,
-                               points=points,
-                               current_level=current_level,
-                               next_level=nxt,
-                               to_go=to_go,
-                               progress=progress)
-    finally:
-        db.close()
+    # Reindirizza al profilo, la barra fedeltà è stata spostata lì
+    return redirect(url_for("clienti.area_personale"))
 
 # =========================================
 # 🧑‍🍳 Staff — scan QR → mostra saldo/tier
@@ -238,96 +213,24 @@ def admin_list():
         db.close()
 
 # =========================================
-# 👑 Admin — nuovo/modifica/elimina (solo manuale)
+# 👑 Admin — blocco operazioni manuali
 # =========================================
-def _is_manual(mov):
-    # se esiste attributo 'tipo', consenti solo 'manuale'
-    return (not hasattr(mov, "tipo")) or (getattr(mov, "tipo", "manuale") == "manuale")
-
 @fedelta_bp.route("/admin/new", methods=["GET", "POST"])
 @require_admin
 def admin_new():
-    db = SessionLocal()
-    try:
-        eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
-        clienti = db.query(Cliente).order_by(Cliente.cognome.asc(), Cliente.nome.asc()).all()
-        if request.method == "POST":
-            cliente_id = request.form.get("cliente_id", type=int)
-            evento_id = request.form.get("evento_id", type=int)
-            punti = request.form.get("punti", type=int)
-            motivo = (request.form.get("motivo") or "").strip()
-            if not motivo:
-                flash("Motivo obbligatorio.", "danger")
-                return redirect(url_for("fedelta.admin_new"))
-            m = Fedelta(cliente_id=cliente_id, evento_id=evento_id, punti=punti, motivo=motivo)
-            # marca manuale se colonna esiste
-            if hasattr(Fedelta, "tipo"):
-                setattr(m, "tipo", "manuale")
-            db.add(m)
-            # aggiorna saldo cliente
-            cli = db.query(Cliente).get(cliente_id)
-            cli.punti_fedelta = (cli.punti_fedelta or 0) + int(punti or 0)
-            db.commit()
-            _update_cliente_level(db, cliente_id)
-            flash("Movimento fedeltà creato.", "success")
-            return redirect(url_for("fedelta.admin_list"))
-        return render_template("admin/fedelta_form.html", e=None, eventi=eventi, clienti=clienti)
-    finally:
-        db.close()
+    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
+
 
 @fedelta_bp.route("/admin/<int:mov_id>/edit", methods=["GET", "POST"])
 @require_admin
 def admin_edit(mov_id):
-    db = SessionLocal()
-    try:
-        m = db.query(Fedelta).get(mov_id)
-        if not m:
-            flash("Movimento non trovato.", "danger"); return redirect(url_for("fedelta.admin_list"))
-        if not _is_manual(m):
-            flash("Non è consentito modificare movimenti non manuali.", "warning")
-            return redirect(url_for("fedelta.admin_list"))
+    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
 
-        if request.method == "POST":
-            delta_old = int(m.punti or 0)
-            punti = request.form.get("punti", type=int)
-            motivo = (request.form.get("motivo") or "").strip()
-            if not motivo:
-                flash("Motivo obbligatorio.", "danger")
-                return redirect(url_for("fedelta.admin_edit", mov_id=mov_id))
-            m.punti = int(punti or 0)
-            m.motivo = motivo
-            # ribilancia saldo cliente
-            diff = int(punti or 0) - delta_old
-            cli = db.query(Cliente).get(m.cliente_id)
-            cli.punti_fedelta = (cli.punti_fedelta or 0) + diff
-            db.commit()
-            _update_cliente_level(db, m.cliente_id)
-            flash("Movimento aggiornato.", "success")
-            return redirect(url_for("fedelta.admin_list"))
-
-        return render_template("admin/fedelta_form.html", e=m, eventi=[], clienti=[])
-    finally:
-        db.close()
 
 @fedelta_bp.route("/admin/<int:mov_id>/delete", methods=["POST"])
 @require_admin
 def admin_delete(mov_id):
-    db = SessionLocal()
-    try:
-        m = db.query(Fedelta).get(mov_id)
-        if m:
-            if not _is_manual(m):
-                flash("Non è consentito eliminare movimenti non manuali.", "warning")
-                return redirect(url_for("fedelta.admin_list"))
-            cli = db.query(Cliente).get(m.cliente_id)
-            cli.punti_fedelta = (cli.punti_fedelta or 0) - int(m.punti or 0)
-            db.delete(m)
-            db.commit()
-            _update_cliente_level(db, cli.id_cliente)
-            flash("Movimento eliminato.", "warning")
-        return redirect(url_for("fedelta.admin_list"))
-    finally:
-        db.close()
+    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
 
 # =========================================
 # 👑 Admin — analytics (periodo)
