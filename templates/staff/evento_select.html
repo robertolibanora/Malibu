@@ -1,24 +1,31 @@
 {% extends "staff/base.html" %}
-{% block staff_title %}Seleziona evento{% endblock %}
+{% block staff_title %}Evento attivo{% endblock %}
 
 {% block staff_content %}
 <section class="card">
-  <h1 class="card__title">Seleziona evento attivo</h1>
-  <form class="form" method="post">
-    <div class="list">
-      {% for e in eventi %}
-        <label class="list__item" style="display:flex;gap:10px;align-items:center">
-          <input type="radio" name="evento_id" value="{{ e.id_evento }}" required>
-          <div>
-            <div><strong>{{ e.nome_evento }}</strong></div>
-            <div class="text--muted">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
-          </div>
-        </label>
-      {% endfor %}
+  <h1 class="card__title">Evento attivo per lo staff</h1>
+  {% if evento_attivo %}
+    <p class="card__meta">{{ evento_attivo.data_evento.strftime('%d/%m/%Y') }} — {{ evento_attivo.nome_evento }}</p>
+    <p class="text--muted">Evento impostato dagli amministratori. Tutte le operazioni operative puntano a questa serata.</p>
+  {% else %}
+    <div class="banner banner--warning" role="alert">
+      Nessun evento è stato ancora impostato come attivo. Contatta un amministratore per procedere.
     </div>
-    <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Imposta</button>
-    </div>
-  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2 class="card__title">Prossimi eventi</h2>
+  <div class="list">
+    {% for e in eventi %}
+      <div class="list__item">
+        <div><strong>{{ e.nome_evento }}</strong></div>
+        <div class="text--muted">{{ e.data_evento.strftime('%d/%m/%Y') }} • {{ e.tipo_musica or e.categoria }}</div>
+      </div>
+    {% else %}
+      <p class="text--muted">Nessun evento programmato.</p>
+    {% endfor %}
+  </div>
+  <p class="text--muted" style="margin-top:1rem;">Solo gli amministratori possono cambiare l'evento attivo.</p>
 </section>
 {% endblock %}

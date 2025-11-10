@@ -1,26 +1,29 @@
 {% extends "staff/base.html" %}
+{% from "staff/partials/qr_scanner.html" import render_qr_scanner %}
 {% block staff_title %}Listino{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/qr-scanner.css') }}">
+{% endblock %}
 
 {% block staff_content %}
 <section class="card">
-  <h1 class="card__title">Listino Prodotti</h1>
+  <h1 class="card__title">📋 Listino Prodotti</h1>
   <div class="card__meta">
-    <strong>Evento:</strong> {{ evento.data_evento }} — {{ evento.nome_evento }}
+    <strong>Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}
   </div>
 </section>
 
 <!-- Scanner QR -->
 <section class="card">
-  <h2 class="card__title">Scanner QR Cliente</h2>
-  <div id="reader" style="width:100%; max-width:420px; margin:auto;"></div>
-  <form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}" style="margin-top:1rem;">
-    <input type="hidden" name="qr" id="qr_hidden" required>
-    
-    <div class="form__group">
-      <label class="form__label">QR Code Cliente</label>
-      <input class="form__input" type="text" name="qr_manual" id="qr_manual" placeholder="Oppure inserisci manualmente il QR code">
-      <small>Scansiona il QR code o inseriscilo manualmente</small>
-    </div>
+  <h2 class="card__title">🔍 Scanner QR Cliente</h2>
+  <p class="text--muted" style="margin-bottom: 1.5rem;">
+    Scansiona il QR del cliente, poi seleziona i prodotti da addebitare.
+  </p>
+  
+  <form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}">
+    {{ render_qr_scanner(container_id='qr-reader', form_id='listinoForm', auto_submit=False, show_manual_input=True, result_input_id='qr_hidden', manual_input_id='qr_manual', manual_input_label='QR Code Cliente', manual_input_placeholder='Oppure inserisci manualmente il QR code') }}
 
     <!-- Listino prodotti per categoria -->
     {% if prodotti_per_categoria %}
@@ -34,7 +37,7 @@
           {% for p in prodotti_cat %}
           <div style="padding: 1rem; background: var(--black-soft); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.1);">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" style="width: 20px; height: 20px;">
+              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" style="width: 20px; height: 20px;" disabled>
               <div style="flex: 1;">
                 <strong style="display: block; color: var(--text-light);">{{ p.nome }}</strong>
                 <span style="color: var(--gold-primary); font-weight: 600;">€{{ "%.2f"|format(p.prezzo) }}</span>
@@ -42,7 +45,7 @@
             </label>
             <div style="margin-top: 0.5rem; display: none;" class="quantita-container">
               <label class="form__label" style="font-size: 0.75rem;">Quantità:</label>
-              <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="form__input" style="padding: 0.5rem; font-size: 0.875rem;">
+              <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="form__input" style="padding: 0.5rem; font-size: 0.875rem;" disabled>
             </div>
           </div>
           {% endfor %}
@@ -61,7 +64,7 @@
     <div class="grid grid--2" style="margin-top: 1.5rem;">
       <div class="form__group">
         <label class="form__label">Punto Vendita</label>
-        <select class="form__input" name="punto_vendita" required>
+        <select class="form__input" name="punto_vendita" required disabled>
           <option value="bar">Bar</option>
           <option value="tavolo">Tavolo</option>
           <option value="privè">Privè</option>
@@ -69,7 +72,7 @@
       </div>
       <div class="form__group">
         <label class="form__label">Note</label>
-        <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input">
+        <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input" disabled>
         <small>Obbligatorio per Tavolo/Privè</small>
       </div>
     </div>
@@ -88,7 +91,11 @@
   </form>
 </section>
 
-<script src="https://unpkg.com/html5-qrcode" defer></script>
+<!-- html5-qrcode da CDN -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- Modulo scanner QR -->
+<script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", function(){
   const form = document.getElementById('listinoForm');
@@ -100,26 +107,21 @@ document.addEventListener("DOMContentLoaded", function(){
   const totaleEl = document.getElementById('totale');
   const puntiEl = document.getElementById('punti');
   
-  // Sincronizza QR manuale con hidden
-  qrManual.addEventListener('input', function(){
-    qrHidden.value = this.value.trim();
+  // Blocca elementi fino allo scan
+  function setLockedUI(locked) {
+    document.querySelectorAll('.prodotto-checkbox').forEach(cb => cb.disabled = locked);
+    document.querySelectorAll('input[name^=\"quantita_\"]').forEach(inp => inp.disabled = locked);
+    if (puntoVendita) puntoVendita.disabled = locked;
+    if (noteInput) noteInput.disabled = locked;
+  }
+  setLockedUI(!qrHidden.value);
+
+  // Sblocca al primo scan
+  document.addEventListener('qr-scanned', function(){
+    setLockedUI(false);
     checkForm();
   });
-  
-  // QR Scanner
-  function handleDecoded(txt){
-    qrHidden.value = txt;
-    qrManual.value = txt;
-    checkForm();
-  }
-  
-  if (window.Html5Qrcode) {
-    const html5QrCode = new Html5Qrcode("reader");
-    const config = { fps: 10, qrbox: 250 };
-    html5QrCode.start({ facingMode: "environment" }, config, handleDecoded)
-      .catch(() => {/* fallback manuale */});
-  }
-  
+
   // Calcola totale e punti - costruisci dizionario prezzi da tutti i prodotti
   const prezzi = {};
   {% if prodotti %}

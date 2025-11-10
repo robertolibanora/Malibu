@@ -27,6 +27,7 @@ def create_app():
         f"mysql+mysqlconnector://{db_user}:{db_password or ''}@{db_host}:{db_port or '3306'}/{db_name}"
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config.setdefault("EVENTO_ATTIVO_ID", None)
     
     # Configurazione upload file
     app.config['UPLOAD_FOLDER'] = str(static_dir / 'uploads' / 'eventi')

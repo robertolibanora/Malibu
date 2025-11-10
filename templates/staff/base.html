@@ -27,9 +27,9 @@
       <li class="staff-nav__item">
         <a href="{{ url_for('eventi.staff_select_event') }}" 
            class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('eventi.staff') %}staff-nav__link--active{% endif %}"
-           aria-label="Gestione eventi">
+           aria-label="Evento attivo (solo admin può modificarlo)">
           <span class="staff-nav__icon">🎯</span>
-          <span class="staff-nav__text">Eventi</span>
+          <span class="staff-nav__text">Evento</span>
         </a>
       </li>
       <li class="staff-nav__item">

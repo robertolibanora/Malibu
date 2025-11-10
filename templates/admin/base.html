@@ -1,38 +1,39 @@
 {% extends "shared/base.html" %}
-{% block title %}{% block admin_title %}Admin{% endblock %} - Malibù{% endblock %}
+{% block title %}{% block admin_title %}Admin{% endblock %} · Malibù{% endblock %}
 
-{% block body_class %}admin-section{% endblock %}
+{% block body_class %}admin-section admin-minimal{% endblock %}
 
 {% block extra_head %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
   <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
 {% endblock %}
 
-{% block header_tagline %}
-  <span class="app__brand-tagline">Admin</span>
-{% endblock %}
-
 {% block header_nav %}
   {% set endpoint = request.endpoint or '' %}
-  {% set is_dashboard = endpoint == 'dashboard.admin_dashboard' %}
-  {% set is_statistics = endpoint == 'dashboard.admin_statistics' %}
-  {% set is_clienti = endpoint.startswith('clienti.admin_') and endpoint != 'clienti.admin_dashboard' %}
-  <nav class="admin-nav app__header-nav">
-    <a href="{{ url_for('dashboard.admin_dashboard') }}" class="admin-nav__logo {% if is_dashboard %}active{% endif %}">Dashboard</a>
-    <a href="{{ url_for('dashboard.admin_statistics') }}" class="{% if is_statistics %}active{% endif %}">Statistiche</a>
-    <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="{% if is_clienti %}active{% endif %}">Clienti</a>
-    <a href="{{ url_for('eventi.admin_menu') }}" class="{% if endpoint.startswith('eventi.admin_') %}active{% endif %}">Eventi</a>
-    <a href="{{ url_for('format.admin_list') }}" class="{% if endpoint.startswith('format.admin_') %}active{% endif %}">Format</a>
-    <a href="{{ url_for('fedelta.admin_list') }}" class="{% if endpoint.startswith('fedelta.admin_') %}active{% endif %}">Fedeltà</a>
-    <a href="{{ url_for('promozioni.admin_list') }}" class="{% if endpoint.startswith('promozioni.admin_') %}active{% endif %}">Promozioni</a>
-    <a href="{{ url_for('prodotti.admin_list') }}" class="{% if endpoint.startswith('prodotti.admin_') %}active{% endif %}">Listino</a>
-    <a href="{{ url_for('staff_admin.admin_list') }}" class="{% if endpoint.startswith('staff_admin.admin_') %}active{% endif %}">Staff</a>
-    <a href="{{ url_for('log.list') }}" class="{% if endpoint.startswith('log.') %}active{% endif %}">Log</a>
-    <a href="{{ url_for('auth.logout') }}" class="admin-nav__logout">Logout</a>
-  </nav>
+  <div class="admin-shell">
+    <nav class="admin-shell__bar" aria-label="Navigazione amministrazione">
+      <a href="{{ url_for('dashboard.admin_dashboard') }}" class="admin-shell__logo" aria-label="Home Admin">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù">
+      </a>
+      <div class="admin-shell__links">
+        <a href="{{ url_for('dashboard.admin_dashboard') }}" class="admin-shell__link {% if endpoint == 'dashboard.admin_dashboard' %}admin-shell__link--active{% endif %}">Dashboard</a>
+        <a href="{{ url_for('dashboard.admin_statistics') }}" class="admin-shell__link {% if endpoint == 'dashboard.admin_statistics' %}admin-shell__link--active{% endif %}">Statistiche</a>
+        <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="admin-shell__link {% if endpoint.startswith('clienti.admin_') and endpoint != 'clienti.admin_dashboard' %}admin-shell__link--active{% endif %}">Clienti</a>
+        <a href="{{ url_for('eventi.admin_menu') }}" class="admin-shell__link {% if endpoint.startswith('eventi.admin_') %}admin-shell__link--active{% endif %}">Eventi</a>
+        <a href="{{ url_for('fedelta.admin_list') }}" class="admin-shell__link {% if endpoint.startswith('fedelta.admin_') %}admin-shell__link--active{% endif %}">Fedeltà</a>
+        <a href="{{ url_for('promozioni.admin_list') }}" class="admin-shell__link {% if endpoint.startswith('promozioni.admin_') %}admin-shell__link--active{% endif %}">Promozioni</a>
+        <a href="{{ url_for('prodotti.admin_list') }}" class="admin-shell__link {% if endpoint.startswith('prodotti.admin_') %}admin-shell__link--active{% endif %}">Listino</a>
+        <a href="{{ url_for('staff_admin.admin_list') }}" class="admin-shell__link {% if endpoint.startswith('staff_admin.admin_') %}admin-shell__link--active{% endif %}">Staff</a>
+        <a href="{{ url_for('log.list') }}" class="admin-shell__link {% if endpoint.startswith('log.') %}admin-shell__link--active{% endif %}">Log</a>
+      </div>
+      <a href="{{ url_for('auth.logout') }}" class="admin-shell__logout">Logout</a>
+    </nav>
+  </div>
 {% endblock %}
 
 {% block content %}
-  {% block admin_content %}{% endblock %}
+  <div class="admin-shell__content">
+    {% block admin_content %}{% endblock %}
+  </div>
 {% endblock %}
 

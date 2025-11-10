@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Blueprint, render_template, session, redirect, url_for, flash, request
+from flask import Blueprint, render_template, session, redirect, url_for, flash, request, current_app
 from app.database import SessionLocal
 from app.utils.decorators import require_staff, require_admin
 from app.models.eventi import Evento
@@ -64,6 +64,7 @@ def set_active_post():
         ev.stato = "attivo"
 
         db.commit()
+        current_app.config["EVENTO_ATTIVO_ID"] = ev.id_evento
         flash(f"Evento attivo impostato: {ev.nome_evento} - {ev.data_evento}", "success")
         return redirect(url_for("staff_admin.set_active_form"))
     finally:
@@ -80,6 +81,7 @@ def close_active():
             return redirect(url_for("staff_admin.set_active_form"))
         ev.stato = "chiuso"
         db.commit()
+        current_app.config["EVENTO_ATTIVO_ID"] = None
         flash("Evento chiuso. La discoteca è ora chiusa.", "success")
         return redirect(url_for("staff_admin.set_active_form"))
     finally:

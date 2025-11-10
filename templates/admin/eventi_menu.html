@@ -2,179 +2,204 @@
 {% block admin_title %}Gestione Eventi{% endblock %}
 
 {% block admin_content %}
-<div class="dashboard">
-  <!-- Header con statistiche -->
-  <section class="card">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
+<div class="events-hub">
+  <header class="events-hub__header fade-in">
+    <div class="events-hub__intro">
+      <h1 class="events-hub__title">Control Center Eventi</h1>
+      <p class="events-hub__subtitle">Crea, monitora e ottimizza il calendario eventi in un unico pannello</p>
+    </div>
+    <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo Evento</a>
+  </header>
+
+  <section class="events-hub__status fade-in" style="animation-delay: 80ms;">
+    {% if evento_attivo %}
+    <article class="events-hub__banner events-hub__banner--active">
       <div>
-        <h1 class="card__title" style="margin: 0;">Gestione Eventi</h1>
-        <p class="text--muted" style="margin-top: var(--spacing-sm);">Menu principale per la gestione completa degli eventi</p>
+        <span class="events-hub__banner-label">Evento operativo staff</span>
+        <h2 class="events-hub__banner-title">{{ evento_attivo.nome_evento }}</h2>
+        <p class="events-hub__banner-meta">
+          {{ evento_attivo.data_evento.strftime('%d/%m/%Y') if evento_attivo.data_evento else 'Data da definire' }}
+          {% if evento_attivo.categoria %} • {{ evento_attivo.categoria|capitalize }}{% endif %}
+        </p>
       </div>
-      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">+ Nuovo Evento</a>
+      <div class="events-hub__banner-actions">
+        <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="btn btn--secondary btn--small">Gestisci evento</a>
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}">
+          <button class="btn btn--ghost btn--small" type="submit" name="evento_id" value="clear">Chiudi evento</button>
+        </form>
+      </div>
+    </article>
+    {% else %}
+    <article class="events-hub__banner events-hub__banner--warning">
+      <div>
+        <span class="events-hub__banner-label">Nessun evento operativo</span>
+        <p class="events-hub__banner-meta">Imposta l’evento attivo per lo staff per abilitare check-in e consumazioni.</p>
     </div>
-
-    <!-- Statistiche rapide -->
-    <div class="dashboard__stats" style="margin-top: var(--spacing-xl);">
-      <div class="stat-card">
-        <div class="stat-card__value">{{ tot_eventi }}</div>
-        <div class="stat-card__label">Eventi Totali</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__value">{{ eventi_attivi }}</div>
-        <div class="stat-card__label">Eventi Attivi</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__value">{{ eventi_programmati }}</div>
-        <div class="stat-card__label">Eventi Programmati</div>
-        <div class="stat-card__meta">Data >= {{ oggi.strftime('%d/%m/%Y') }}</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-card__value">{{ eventi_passati }}</div>
-        <div class="stat-card__label">Eventi Passati</div>
-      </div>
-    </div>
+      <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="btn btn--secondary btn--small">Imposta evento attivo</a>
+    </article>
+    {% endif %}
   </section>
 
-  <!-- Menu principale -->
-  <section class="card">
-    <h2 class="card__title">Menu Gestione</h2>
-    <div class="grid grid--2" style="margin-top: var(--spacing-lg);">
-      <!-- Creazione e Lista -->
-      <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
-        <h3 style="color: var(--gold-primary); font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); text-transform: uppercase; letter-spacing: 0.05em;">Creazione e Visualizzazione</h3>
-        <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">+</span>
+  <section class="events-hub__stats fade-in" style="animation-delay: 120ms;">
+    <article class="profile-metric">
+      <span class="profile-metric__label">Eventi totali</span>
+      <span class="profile-metric__value">{{ tot_eventi }}</span>
+    </article>
+    <article class="profile-metric">
+      <span class="profile-metric__label">Eventi attivi</span>
+      <span class="profile-metric__value">{{ eventi_attivi }}</span>
+    </article>
+    <article class="profile-metric">
+      <span class="profile-metric__label">Programmatti</span>
+      <span class="profile-metric__value">{{ eventi_programmati }}</span>
+      <span class="profile-metric__meta">>= {{ oggi.strftime('%d/%m/%Y') }}</span>
+    </article>
+    <article class="profile-metric">
+      <span class="profile-metric__label">Eventi passati</span>
+      <span class="profile-metric__value">{{ eventi_passati }}</span>
+    </article>
+  </section>
+
+  <section class="events-hub__grid fade-in" style="animation-delay: 160ms;">
+    <article class="events-card">
+      <h2 class="events-card__title">Creazione & Catalogo</h2>
+      <div class="events-card__links">
+        <a href="{{ url_for('eventi.admin_new') }}" class="action-link action-link--primary">
+          <span class="action-link__icon">＋</span>
           <div>
-            <div style="font-weight: 700;">Nuovo Evento</div>
-            <small style="opacity: 0.8; font-weight: 400;">Crea un nuovo evento con template</small>
+            <span class="action-link__title">Crea nuovo evento</span>
+            <span class="action-link__meta">Template precompilati e wizard guidato</span>
           </div>
         </a>
-        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📋</span>
+        <a href="{{ url_for('eventi.admin_list') }}" class="action-link">
+          <span class="action-link__icon">📋</span>
           <div>
-            <div style="font-weight: 700;">Lista Eventi</div>
-            <small style="opacity: 0.8; font-weight: 400;">Visualizza tutti gli eventi</small>
+            <span class="action-link__title">Lista completa</span>
+            <span class="action-link__meta">Filtri per stato, categoria e data</span>
           </div>
         </a>
-        <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📅</span>
+        <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="action-link">
+          <span class="action-link__icon">📅</span>
           <div>
-            <div style="font-weight: 700;">Eventi Programmati</div>
-            <small style="opacity: 0.8; font-weight: 400;">Solo eventi futuri</small>
+            <span class="action-link__title">Programmatti</span>
+            <span class="action-link__meta">Eventi futuri in preparazione</span>
           </div>
         </a>
-        <a href="{{ url_for('eventi.admin_list', periodo='passati') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">📜</span>
+        <a href="{{ url_for('eventi.admin_list', periodo='passati') }}" class="action-link">
+          <span class="action-link__icon">🗂️</span>
           <div>
-            <div style="font-weight: 700;">Eventi Passati</div>
-            <small style="opacity: 0.8; font-weight: 400;">Storico eventi</small>
+            <span class="action-link__title">Storico eventi</span>
+            <span class="action-link__meta">Archivio consultabile</span>
           </div>
         </a>
-        <a href="{{ url_for('format.admin_list') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">🎛️</span>
+        <a href="{{ url_for('format.admin_list') }}" class="action-link">
+          <span class="action-link__icon">🎛️</span>
           <div>
-            <div style="font-weight: 700;">Format</div>
-            <small style="opacity: 0.8; font-weight: 400;">Gestisci i format ricorrenti</small>
+            <span class="action-link__title">Usa format predefiniti</span>
+            <span class="action-link__meta">Duplica i template esistenti quando crei un evento</span>
           </div>
         </a>
       </div>
+    </article>
 
-      <!-- Azioni e Analytics -->
-      <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
-        <h3 style="color: var(--gold-primary); font-size: 1rem; font-weight: 600; margin-bottom: var(--spacing-sm); text-transform: uppercase; letter-spacing: 0.05em;">Azioni e Analytics</h3>
-        <a href="{{ url_for('eventi.admin_list', stato='attivo') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">✅</span>
+    <article class="events-card">
+      <h2 class="events-card__title">Operatività & Insights</h2>
+      <div class="events-card__links">
+        <a href="{{ url_for('eventi.admin_list', stato='attivo') }}" class="action-link">
+          <span class="action-link__icon">✅</span>
           <div>
-            <div style="font-weight: 700;">Eventi Attivi</div>
-            <small style="opacity: 0.8; font-weight: 400;">Solo eventi attivi</small>
+            <span class="action-link__title">Eventi attivi</span>
+            <span class="action-link__meta">Quelli in corso o imminenti</span>
           </div>
         </a>
-        <a href="{{ url_for('eventi.admin_list', stato='chiuso') }}" class="btn btn--secondary" style="justify-content: flex-start; text-align: left;">
-          <span style="font-size: 1.25rem; margin-right: var(--spacing-sm);">🔒</span>
+        <a href="{{ url_for('eventi.admin_list', stato='chiuso') }}" class="action-link">
+          <span class="action-link__icon">🔒</span>
           <div>
-            <div style="font-weight: 700;">Eventi Chiusi</div>
-            <small style="opacity: 0.8; font-weight: 400;">Eventi chiusi</small>
+            <span class="action-link__title">Eventi chiusi</span>
+            <span class="action-link__meta">Conclusi e archiviati</span>
           </div>
         </a>
-        <div style="padding: var(--spacing-md); background: rgba(212, 175, 55, 0.05); border-radius: var(--radius-md); border: 1px solid rgba(212, 175, 55, 0.1);">
-          <div style="color: var(--gold-primary); font-weight: 600; margin-bottom: var(--spacing-xs);">💡 Suggerimento</div>
-          <small style="color: var(--text-muted); line-height: 1.5;">
-            Definisci i tuoi format ricorrenti e usali quando crei nuovi eventi per mantenere i nomi coerenti nelle statistiche.
-          </small>
+        <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="action-link">
+          <span class="action-link__icon">🎯</span>
+          <div>
+            <span class="action-link__title">Evento operativo staff</span>
+            <span class="action-link__meta">Punto di accesso rapido per lo staff</span>
+          </div>
+        </a>
+        <a href="{{ url_for('dashboard.admin_statistics') }}" class="action-link">
+          <span class="action-link__icon">📈</span>
+          <div>
+            <span class="action-link__title">Analytics eventi</span>
+            <span class="action-link__meta">Ingressi, consumi e feedback globali</span>
+          </div>
+        </a>
+        <div class="events-card__callout">
+          <span class="events-card__callout-title">💡 Suggerimento</span>
+          <p class="events-card__callout-text">
+            Mantieni coerenti nomi e format: semplifica l’analisi comparativa e la comunicazione con il team.
+          </p>
         </div>
       </div>
-    </div>
+    </article>
   </section>
 
-  <!-- Prossimi eventi -->
   {% if prossimi_eventi %}
-  <section class="card">
-    <h2 class="card__title">Prossimi Eventi</h2>
-    <div class="list">
+  <section class="events-hub__timeline fade-in" style="animation-delay: 200ms;">
+    <div class="profile-card__header">
+      <h2 class="profile-card__title">Eventi in arrivo</h2>
+      <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="btn btn--ghost btn--small">Calendario completo →</a>
+    </div>
+    <ul class="timeline-list">
       {% for evento in prossimi_eventi %}
-      <article class="list__item">
-        <div class="list__item-header">
-          <div style="flex: 1;">
-            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none;">
-              <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
-                {{ evento.nome_evento }}
-              </strong>
-            </a>
-            <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
-              <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
-                {{ evento.stato|capitalize }}
-              </span>
+      <li class="timeline-item">
+        <div class="timeline-item__header">
+          <strong>{{ evento.nome_evento }}</strong>
+          <div class="timeline-item__badges">
+            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
               <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
-              <span style="color: var(--text-muted); font-size: 0.875rem;">{{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: var(--spacing-sm);">
-            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
-            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Analytics</a>
           </div>
         </div>
-      </article>
+        <div class="timeline-item__meta">
+          {{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}
+          {% if evento.dj_artista %} • {{ evento.dj_artista }}{% endif %}
+        </div>
+        <div class="timeline-item__actions">
+          <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
+          <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
+        </div>
+      </li>
       {% endfor %}
-    </div>
-    <div style="margin-top: var(--spacing-lg); text-align: center;">
-      <a href="{{ url_for('eventi.admin_list', periodo='programmati') }}" class="btn btn--ghost">Vedi tutti gli eventi programmati →</a>
-    </div>
+    </ul>
   </section>
   {% endif %}
 
-  <!-- Ultimi eventi -->
   {% if ultimi_eventi %}
-  <section class="card">
-    <h2 class="card__title">Eventi Recenti</h2>
-    <div class="list">
+  <section class="events-hub__timeline fade-in" style="animation-delay: 240ms;">
+    <div class="profile-card__header">
+      <h2 class="profile-card__title">Eventi recenti</h2>
+      <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost btn--small">Vedi elenco completo →</a>
+    </div>
+    <ul class="timeline-list">
       {% for evento in ultimi_eventi %}
-      <article class="list__item">
-        <div class="list__item-header">
-          <div style="flex: 1;">
-            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none;">
-              <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
-                {{ evento.nome_evento }}
-              </strong>
-            </a>
-            <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
-              <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
-                {{ evento.stato|capitalize }}
-              </span>
+      <li class="timeline-item">
+        <div class="timeline-item__header">
+          <strong>{{ evento.nome_evento }}</strong>
+          <div class="timeline-item__badges">
+            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
               <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
-              <span style="color: var(--text-muted); font-size: 0.875rem;">{{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
-            </div>
-          </div>
-          <div style="display: flex; gap: var(--spacing-sm);">
-            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
-            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Analytics</a>
           </div>
         </div>
-      </article>
+        <div class="timeline-item__meta">
+          {{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}
+          {% if evento.dj_artista %} • {{ evento.dj_artista }}{% endif %}
+        </div>
+        <div class="timeline-item__actions">
+          <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">Dettaglio</a>
+          <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
+        </div>
+      </li>
       {% endfor %}
-    </div>
-    <div style="margin-top: var(--spacing-lg); text-align: center;">
-      <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost">Vedi tutti gli eventi →</a>
-    </div>
+    </ul>
   </section>
   {% endif %}
 </div>

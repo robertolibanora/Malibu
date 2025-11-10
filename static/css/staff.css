@@ -24,6 +24,7 @@ body.staff-section {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-family: var(--font-family-base);
 }
 
 /* Header Staff */
@@ -60,6 +61,7 @@ body.staff-section {
 }
 
 .staff-nav__logo {
+  font-family: var(--font-family-display);
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
   letter-spacing: var(--letter-spacing-wider);
@@ -120,6 +122,7 @@ body.staff-section {
 }
 
 .staff-nav__text {
+  font-family: var(--font-family-soft);
   white-space: nowrap;
   text-transform: uppercase;
 }
@@ -301,6 +304,12 @@ body.staff-section {
   border-color: var(--gold-primary);
   color: var(--gold-primary);
   background-color: rgba(212, 175, 55, 0.05);
+}
+
+.staff-section .btn--disabled {
+  pointer-events: none;
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* Forms Staff */

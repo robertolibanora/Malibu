@@ -22,6 +22,20 @@ eventi_bp = Blueprint("eventi", __name__, url_prefix="/eventi")
 
 CATEGORIES_PUBLIC = ["reggaeton", "techno", "altro"]  # no 'privato' come da tua scelta
 
+
+def _get_evento_attivo(db):
+    evento = (
+        db.query(Evento)
+        .filter(Evento.stato == "attivo")
+        .order_by(Evento.data_evento.desc())
+        .first()
+    )
+    if evento:
+        return evento
+
+    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
+    return db.query(Evento).get(evento_id) if evento_id else None
+
 # --------------------------
 # CLIENTE — LISTA EVENTI PUBBLICI (no login)
 # --------------------------
@@ -56,8 +70,14 @@ def lista_pubblica():
         eventi_prossimi = q_next.order_by(Evento.data_evento.asc(), Evento.id_evento.asc()).all()
 
         # Eventi passati (ultimi 10, più “grigi” a UI)
+        show_all = request.args.get("show_all")
+        show_all_past = (show_all == "past")
+
         q_past = apply_common_filters(db.query(Evento).filter(Evento.data_evento < oggi))
-        eventi_passati = q_past.order_by(Evento.data_evento.desc(), Evento.id_evento.desc()).limit(10).all()
+        q_past = q_past.order_by(Evento.data_evento.desc(), Evento.id_evento.desc())
+        if not show_all_past:
+            q_past = q_past.limit(20)
+        eventi_passati = q_past.all()
 
         prenotati_ids = set()
         cid = session.get("cliente_id")
@@ -77,7 +97,8 @@ def lista_pubblica():
                                eventi_passati=eventi_passati,
                                eventi_prenotati=prenotati_ids,
                                CATEGORIES_PUBLIC=CATEGORIES_PUBLIC,
-                               filtri={"categoria": cat, "dal": dal, "al": al})
+                               filtri={"categoria": cat, "dal": dal, "al": al},
+                               show_all_past=show_all_past)
     finally:
         db.close()
 
@@ -109,42 +130,29 @@ def dettaglio_pubblico(evento_id):
 # STAFF — seleziona evento attivo + dashboard live
 # (per ora protetti da require_admin finché non c'è login staff)
 # ------------------------------------------------
-@eventi_bp.route("/staff/select", methods=["GET", "POST"])
+@eventi_bp.route("/staff/select", methods=["GET"])
 @require_staff
 def staff_select_event():
     db = SessionLocal()
     try:
-        if request.method == "POST":
-            evento_id = request.form.get("evento_id", type=int)
-            ev = db.query(Evento).get(evento_id)
-            if not ev:
-                flash("Evento non valido.", "danger")
-            else:
-                session["evento_attivo_id"] = evento_id
-                flash(f"Evento attivo impostato: {ev.nome_evento}", "success")
-                return redirect(url_for("eventi.staff_dashboard"))
-        # mostriamo eventi futuri + di oggi
+        evento_attivo = _get_evento_attivo(db)
         eventi = db.query(Evento).filter(Evento.data_evento >= date.today()) \
                      .order_by(Evento.data_evento.asc()).all()
-        return render_template("staff/evento_select.html", eventi=eventi)
+        return render_template("staff/evento_select.html", evento_attivo=evento_attivo, eventi=eventi)
     finally:
         db.close()
 
 @eventi_bp.route("/staff/dashboard", methods=["GET"])
 @require_staff
 def staff_dashboard():
-    evento_id = session.get("evento_attivo_id")
-    if not evento_id:
-        flash("Seleziona prima un evento attivo.", "warning")
-        return redirect(url_for("eventi.staff_select_event"))
-
     db = SessionLocal()
     try:
-        e = db.query(Evento).get(evento_id)
+        e = _get_evento_attivo(db)
         if not e:
-            flash("Evento non trovato.", "danger")
+            flash("Nessun evento attivo impostato dagli amministratori.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
 
+        evento_id = e.id_evento
         ingressi_tot = db.query(func.count(Ingresso.id_ingresso)) \
                          .filter(Ingresso.evento_id == evento_id).scalar() or 0
         capienza = e.capienza_max or 0
@@ -164,6 +172,51 @@ def staff_dashboard():
                                capienza=capienza,
                                residua=residua,
                                ritmo_15m=ritmo_15m)
+    finally:
+        db.close()
+
+
+@eventi_bp.route("/admin/evento-attivo", methods=["GET", "POST"])
+@require_admin
+def admin_evento_attivo():
+    db = SessionLocal()
+    try:
+        eventi = db.query(Evento).filter(Evento.data_evento >= date.today()) \
+                     .order_by(Evento.data_evento.asc()).all()
+        evento_attivo = _get_evento_attivo(db)
+
+        if request.method == "POST":
+            scelta = request.form.get("evento_id")
+            if scelta == "clear":
+                attivi = db.query(Evento).filter(Evento.stato == "attivo").all()
+                for ev in attivi:
+                    ev.stato = "chiuso"
+                db.commit()
+                current_app.config["EVENTO_ATTIVO_ID"] = None
+                flash("Evento attivo azzerato.", "info")
+            else:
+                try:
+                    evento_id = int(scelta)
+                except (TypeError, ValueError):
+                    flash("Selezione non valida.", "danger")
+                    return redirect(url_for("eventi.admin_evento_attivo"))
+
+                ev = db.query(Evento).get(evento_id)
+                if not ev:
+                    flash("Evento non valido.", "danger")
+                else:
+                    attivi = db.query(Evento).filter(Evento.stato == "attivo").all()
+                    for other in attivi:
+                        other.stato = "chiuso"
+                    ev.stato = "attivo"
+                    db.commit()
+                    current_app.config["EVENTO_ATTIVO_ID"] = ev.id_evento
+                    flash(f"Evento attivo impostato su {ev.nome_evento}.", "success")
+            return redirect(url_for("eventi.admin_evento_attivo"))
+
+        return render_template("admin/evento_attivo.html",
+                               eventi=eventi,
+                               evento_attivo=evento_attivo)
     finally:
         db.close()
 
@@ -190,6 +243,8 @@ def admin_menu():
         
         # Ultimi 3 eventi
         ultimi_eventi = db.query(Evento).order_by(Evento.data_evento.desc()).limit(3).all()
+
+        evento_attivo = _get_evento_attivo(db)
         
         return render_template("admin/eventi_menu.html",
                              tot_eventi=tot_eventi,
@@ -198,7 +253,8 @@ def admin_menu():
                              eventi_passati=eventi_passati,
                              prossimi_eventi=prossimi_eventi,
                              ultimi_eventi=ultimi_eventi,
-                             oggi=oggi)
+                             oggi=oggi,
+                             evento_attivo=evento_attivo)
     finally:
         db.close()
 

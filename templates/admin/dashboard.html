@@ -1,79 +1,288 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Dashboard Admin{% endblock %}
+{% block admin_title %}Centro di controllo{% endblock %}
+
+{% set has_trend_data = (ingressi_trend_values|sum > 0) or (consumi_trend_values|sum > 0) %}
 
 {% block admin_content %}
 <div class="dashboard">
-  <!-- Statistiche principali -->
-  <div class="dashboard__stats">
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 0ms;">
-      <div class="stat-card__value">{{ tot_clienti }}</div>
-      <div class="stat-card__label">Clienti Totali</div>
-      <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
+  <div class="dashboard__header fade-in" style="animation-delay: 0ms;">
+    <div class="dashboard__intro">
+      <h1 class="dashboard__title">Centro di Controllo</h1>
+      <p class="dashboard__subtitle">
+        Panoramica ultimi {{ range_days }} giorni · Aggiornato il {{ ultimo_aggiornamento.strftime("%d/%m/%Y %H:%M") }}
+      </p>
     </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 100ms;">
-      <div class="stat-card__value">{{ tot_eventi }}</div>
-      <div class="stat-card__label">Eventi Totali</div>
-      <div class="stat-card__meta">{{ eventi_attivi }} attivi</div>
-    </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 200ms;">
-      <div class="stat-card__value">{{ ingressi_recenti }}</div>
-      <div class="stat-card__label">Ingressi (30gg)</div>
-    </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 300ms;">
-      <div class="stat-card__value">€{{ "%.2f"|format(consumi_recenti) }}</div>
-      <div class="stat-card__label">Consumi (30gg)</div>
+    <form class="dashboard__range" method="get" aria-label="Filtra periodo di analisi">
+      <label for="dashboard-range" class="dashboard__range-label">Periodo</label>
+      <div class="dashboard__range-select">
+        <select id="dashboard-range" name="range" class="form__select form__select--dense" onchange="this.form.submit()">
+          {% for option in range_options %}
+          <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>
+            Ultimi {{ option }} giorni
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </form>
+  </div>
+
+  <div class="dashboard__quick-actions fade-in hover-elevate" style="animation-delay: 80ms;">
+    <span class="dashboard__quick-label">Azioni rapide</span>
+    <div class="dashboard__quick-buttons">
+      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary btn--small">Nuovo evento</a>
+      <a href="{{ url_for('promozioni.admin_new') }}" class="btn btn--secondary btn--small">Nuova promozione</a>
+      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">Gestisci clienti</a>
     </div>
   </div>
 
-  <!-- Prossimo evento -->
+  <div class="dashboard__stats">
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 120ms;">
+      <div class="stat-card__label">Clienti totali</div>
+      <div class="stat-card__value">{{ tot_clienti }}</div>
+      <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
+    </div>
+    
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 180ms;">
+      <div class="stat-card__label">Nuovi clienti ({{ range_days }} gg)</div>
+      <div class="stat-card__value">{{ nuovi_clienti }}</div>
+      {% set nuovi_trend_class = 'stat-card__trend--neutral' %}
+      {% if nuovi_clienti_delta_abs > 0 %}
+        {% set nuovi_trend_class = 'stat-card__trend--up' %}
+      {% elif nuovi_clienti_delta_abs < 0 %}
+        {% set nuovi_trend_class = 'stat-card__trend--down' %}
+      {% endif %}
+      <div class="stat-card__trend {{ nuovi_trend_class }}">
+        <span class="stat-card__trend-value">
+          {% if nuovi_clienti_delta_abs > 0 %}+{% elif nuovi_clienti_delta_abs < 0 %}-{% endif %}
+          {{ nuovi_clienti_delta_abs|abs }}
+        </span>
+        {% if nuovi_clienti_delta_pct is not none %}
+        <span class="stat-card__trend-pct">
+          {% if nuovi_clienti_delta_pct > 0 %}+{% elif nuovi_clienti_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(nuovi_clienti_delta_pct|abs) }}%
+        </span>
+        <span class="stat-card__trend-label">vs periodo precedente</span>
+        {% else %}
+        <span class="stat-card__trend-label">
+          {% if nuovi_clienti_delta_abs > 0 %}Nuovo picco{% elif nuovi_clienti_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 220ms;">
+      <div class="stat-card__label">Ingressi ({{ range_days }} gg)</div>
+      <div class="stat-card__value">{{ ingressi_recenti }}</div>
+      {% set ingressi_trend_class = 'stat-card__trend--neutral' %}
+      {% if ingressi_delta_abs > 0 %}
+        {% set ingressi_trend_class = 'stat-card__trend--up' %}
+      {% elif ingressi_delta_abs < 0 %}
+        {% set ingressi_trend_class = 'stat-card__trend--down' %}
+      {% endif %}
+      <div class="stat-card__trend {{ ingressi_trend_class }}">
+        <span class="stat-card__trend-value">
+          {% if ingressi_delta_abs > 0 %}+{% elif ingressi_delta_abs < 0 %}-{% endif %}
+          {{ ingressi_delta_abs|abs }}
+        </span>
+        {% if ingressi_delta_pct is not none %}
+        <span class="stat-card__trend-pct">
+          {% if ingressi_delta_pct > 0 %}+{% elif ingressi_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(ingressi_delta_pct|abs) }}%
+        </span>
+        <span class="stat-card__trend-label">vs periodo precedente</span>
+        {% else %}
+        <span class="stat-card__trend-label">
+          {% if ingressi_delta_abs > 0 %}Nuovo picco{% elif ingressi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 260ms;">
+      <div class="stat-card__label">Consumi ({{ range_days }} gg)</div>
+      <div class="stat-card__value">€{{ "%.2f"|format(consumi_recenti) }}</div>
+      {% set consumi_trend_class = 'stat-card__trend--neutral' %}
+      {% if consumi_delta_abs > 0 %}
+        {% set consumi_trend_class = 'stat-card__trend--up' %}
+      {% elif consumi_delta_abs < 0 %}
+        {% set consumi_trend_class = 'stat-card__trend--down' %}
+      {% endif %}
+      <div class="stat-card__trend {{ consumi_trend_class }}">
+        <span class="stat-card__trend-value">
+          {% if consumi_delta_abs > 0 %}+{% elif consumi_delta_abs < 0 %}-{% endif %}
+          €{{ "%.2f"|format(consumi_delta_abs|abs) }}
+        </span>
+        {% if consumi_delta_pct is not none %}
+        <span class="stat-card__trend-pct">
+          {% if consumi_delta_pct > 0 %}+{% elif consumi_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(consumi_delta_pct|abs) }}%
+        </span>
+        <span class="stat-card__trend-label">vs periodo precedente</span>
+        {% else %}
+        <span class="stat-card__trend-label">
+          {% if consumi_delta_abs > 0 %}Nuovo picco{% elif consumi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 300ms;">
+      <div class="stat-card__label">Eventi attivi</div>
+      <div class="stat-card__value">{{ eventi_attivi }}</div>
+      <div class="stat-card__meta">{{ tot_eventi }} totali</div>
+    </div>
+
+    <div class="stat-card fade-in hover-elevate" style="animation-delay: 340ms;">
+      <div class="stat-card__label">Prenotazioni attive</div>
+      <div class="stat-card__value">{{ prenotazioni_attive }}</div>
+      <div class="stat-card__meta">Stato "attiva"</div>
+    </div>
+  </div>
+
   {% if prossimo_evento %}
-  <section class="card fade-in" style="animation-delay: 400ms;">
-    <h2 class="card__title">Prossimo Evento</h2>
+  <section class="card card--highlight fade-in" style="animation-delay: 420ms;">
+    <div class="card__header">
+      <h2 class="card__title">Prossimo evento</h2>
+      {% if giorni_al_prossimo_evento is not none %}
+      <span class="badge badge--primary">
+        {% if giorni_al_prossimo_evento <= 0 %}
+          In corso
+        {% elif giorni_al_prossimo_evento == 1 %}
+          Domani
+        {% else %}
+          Tra {{ giorni_al_prossimo_evento }} giorni
+        {% endif %}
+      </span>
+      {% endif %}
+    </div>
     <div class="evento-preview">
       <h3>{{ prossimo_evento.nome_evento }}</h3>
-      <p class="card__meta">{{ prossimo_evento.data_evento }}</p>
-      <p class="card__meta">{{ prossimo_evento.dj_artista or '—' }}</p>
-      <div class="form__actions">
+      <p class="card__meta">
+        {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
+        {% if prossimo_evento.dj_artista %}
+          · {{ prossimo_evento.dj_artista }}
+        {% endif %}
+      </p>
+      {% if prossimo_evento.categoria %}
+      <p class="badge badge--secondary">{{ prossimo_evento.categoria|capitalize }}</p>
+      {% endif %}
+      <div class="evento-preview__meta">
+        {% if prossimo_evento.capienza_max %}
+        <span class="pill pill--outline">Capienza {{ prossimo_evento.capienza_max }}</span>
+        {% endif %}
+        <span class="pill pill--ghost">Stato {{ prossimo_evento.stato }}</span>
+      </div>
+      <div class="form__actions form__actions--space-between">
         <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--primary">Gestisci</a>
-        <a href="{{ url_for('eventi.admin_analytics', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary">Analytics</a>
+        <a href="{{ url_for('eventi.admin_analytics', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost">Analytics</a>
       </div>
     </div>
   </section>
   {% endif %}
 
-  <!-- Grid con statistiche dettagliate -->
-  <div class="grid grid--2">
-    <!-- Distribuzione livelli -->
-    <section class="card fade-in" style="animation-delay: 500ms;">
-      <h2 class="card__title">Distribuzione Livelli</h2>
-      <ul class="list">
+  <div class="grid grid--2 dashboard__insights">
+    <section class="card fade-in card--with-chart" style="animation-delay: 520ms;">
+      <div class="card__header">
+        <h2 class="card__title">Trend attività</h2>
+        <span class="card__meta">Ingressi e consumi giornalieri ({{ range_days }} gg)</span>
+      </div>
+      {% if has_trend_data %}
+      <div class="chart-container">
+        <canvas id="dashboard-trend-chart" role="img" aria-label="Grafico ingressi e consumi degli ultimi {{ range_days }} giorni"></canvas>
+      </div>
+      {% else %}
+      <p class="empty-state">Nessun dato disponibile nel periodo selezionato.</p>
+      {% endif %}
+    </section>
+
+    <section class="card fade-in" style="animation-delay: 540ms;">
+      <div class="card__header">
+        <h2 class="card__title">Distribuzione livelli</h2>
+        <span class="card__meta">Ripartizione clienti per tier fedeltà</span>
+      </div>
+      {% set totale_livelli = livelli_dist.values()|sum %}
+      {% if totale_livelli %}
+      <ul class="list list--progress">
         {% for livello, count in livelli_dist.items() %}
+        {% set percent = (count / totale_livelli * 100) %}
         <li class="list__item">
-          <strong>{{ livello|capitalize }}</strong>: {{ count }} clienti
+          <div class="list__item-header">
+            <span class="list__item-title">{{ livello|capitalize }}</span>
+            <span class="badge badge--secondary">{{ "%.1f"|format(percent) }}%</span>
+          </div>
+          <div class="progress-bar">
+            <span class="progress-bar__value" style="width: {{ percent }}%;"></span>
+          </div>
+          <div class="list__item-meta">{{ count }} clienti</div>
         </li>
         {% endfor %}
       </ul>
-    </section>
-
-    <!-- Media Feedback -->
-    <section class="card fade-in" style="animation-delay: 600ms;">
-      <h2 class="card__title">Media Feedback</h2>
-      <ul class="list">
-        <li class="list__item"><strong>Musica:</strong> {{ avg_musica }}/10</li>
-        <li class="list__item"><strong>Ingresso:</strong> {{ avg_ingresso }}/10</li>
-        <li class="list__item"><strong>Ambiente:</strong> {{ avg_ambiente }}/10</li>
-      </ul>
+      {% else %}
+      <p class="empty-state">Ancora nessun cliente con livelli assegnati.</p>
+      {% endif %}
     </section>
   </div>
 
-  <!-- Top clienti -->
-  <section class="card fade-in" style="animation-delay: 700ms;">
-    <h2 class="card__title">Top 5 Clienti per Punti</h2>
+  <div class="grid grid--2 dashboard__insights">
+    <section class="card fade-in" style="animation-delay: 560ms;">
+      <div class="card__header">
+        <h2 class="card__title">Media feedback</h2>
+        <span class="card__meta">Valutazione media su scala 1-10</span>
+      </div>
+      <div class="score-grid">
+        <div class="score-pill">
+          <span class="score-pill__label">Musica</span>
+          <span class="score-pill__value">{{ avg_musica }}</span>
+        </div>
+        <div class="score-pill">
+          <span class="score-pill__label">Ingresso</span>
+          <span class="score-pill__value">{{ avg_ingresso }}</span>
+        </div>
+        <div class="score-pill">
+          <span class="score-pill__label">Ambiente</span>
+          <span class="score-pill__value">{{ avg_ambiente }}</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card fade-in" style="animation-delay: 580ms;">
+      <div class="card__header">
+        <h2 class="card__title">Eventi recenti</h2>
+        <span class="card__meta">Ultimi 5 eventi pubblicati</span>
+      </div>
+      <div class="list">
+        {% for evento in eventi_recenti %}
+        <article class="list__item">
+          <div class="list__item-header">
+            <strong>{{ evento.nome_evento }}</strong>
+            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
+          </div>
+          <div class="list__item-meta">
+            {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}
+            {% if evento.categoria %} · {{ evento.categoria|capitalize }}{% endif %}
+          </div>
+          <div class="form__actions">
+            <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Modifica</a>
+            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
+          </div>
+        </article>
+        {% else %}
+        <p class="empty-state">Nessun evento registrato di recente.</p>
+        {% endfor %}
+      </div>
+      <div class="card__footer">
+        <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--ghost btn--small">Vedi tutti gli eventi</a>
+      </div>
+    </section>
+  </div>
+
+  <section class="card fade-in" style="animation-delay: 600ms;">
+    <div class="card__header">
+      <h2 class="card__title">Top 5 clienti per punti</h2>
+      <span class="card__meta">Vista rapida sui clienti più fidelizzati</span>
+    </div>
     <div class="table-responsive">
-      <table class="table">
+      <table class="table table--compact">
         <thead>
           <tr>
             <th>Cliente</th>
@@ -89,34 +298,116 @@
             <td>{{ punti or 0 }}</td>
             <td>{{ cliente.livello|capitalize }}</td>
             <td>
-              <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ cliente.id_cliente }}" class="btn btn--ghost btn--small">Vedi</a>
+              <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ cliente.id_cliente }}" class="btn btn--ghost btn--small">Vedi scheda</a>
             </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="empty-state">Non sono presenti clienti con punti registrati.</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </section>
-
-  <!-- Eventi recenti -->
-  <section class="card fade-in" style="animation-delay: 800ms;">
-    <h2 class="card__title">Eventi Recenti</h2>
-    <div class="list">
-      {% for evento in eventi_recenti %}
-      <article class="list__item">
-        <div class="list__item-header">
-          <strong>{{ evento.nome_evento }}</strong>
-          <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
-        </div>
-        <div class="text--muted">{{ evento.data_evento }}</div>
-        <div class="form__actions">
-          <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Modifica</a>
-          <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
-        </div>
-      </article>
-      {% endfor %}
-    </div>
-  </section>
 </div>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  {% if has_trend_data %}
+  <script>
+    (function() {
+      const canvas = document.getElementById('dashboard-trend-chart');
+      if (!canvas || typeof Chart === 'undefined') return;
+      const ctx = canvas.getContext('2d');
+      const labels = {{ trend_labels|tojson }};
+      const ingressiData = {{ ingressi_trend_values|tojson }};
+      const consumiData = {{ consumi_trend_values|tojson }};
+      const gradient = ctx.createLinearGradient(0, 0, 0, 280);
+      gradient.addColorStop(0, 'rgba(212, 175, 55, 0.35)');
+      gradient.addColorStop(1, 'rgba(212, 175, 55, 0)');
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Ingressi',
+              data: ingressiData,
+              borderColor: 'rgba(142, 197, 255, 0.95)',
+              backgroundColor: 'rgba(142, 197, 255, 0.12)',
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: true
+            },
+            {
+              label: 'Consumi (€)',
+              data: consumiData,
+              borderColor: 'rgba(212, 175, 55, 0.95)',
+              backgroundColor: gradient,
+              tension: 0.35,
+              borderWidth: 2,
+              pointRadius: 0,
+              fill: true,
+              yAxisID: 'y1'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              labels: {
+                color: 'rgba(255, 255, 255, 0.85)',
+                usePointStyle: true,
+                padding: 20
+              }
+            },
+            tooltip: {
+              backgroundColor: '#141414',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              borderWidth: 1,
+              padding: 12,
+              callbacks: {
+                label: function(context) {
+                  if (context.datasetIndex === 1) {
+                    return `${context.dataset.label}: €${context.parsed.y.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                  }
+                  return `${context.dataset.label}: ${context.parsed.y}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: 'rgba(255, 255, 255, 0.6)', maxRotation: 0 }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255, 255, 255, 0.06)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.7)' }
+            },
+            y1: {
+              beginAtZero: true,
+              position: 'right',
+              grid: { drawOnChartArea: false },
+              ticks: {
+                color: 'rgba(255, 255, 255, 0.7)',
+                callback: function(value) {
+                  return '€' + value.toLocaleString('it-IT', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                }
+              }
+            }
+          }
+        }
+      });
+    })();
+  </script>
+  {% endif %}
 {% endblock %}
 

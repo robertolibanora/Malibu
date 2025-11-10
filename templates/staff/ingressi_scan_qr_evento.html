@@ -1,49 +1,141 @@
 {% extends "staff/base.html" %}
+{% from "staff/partials/qr_scanner.html" import render_qr_scanner %}
 {% block staff_title %}Scan ingressi{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/qr-scanner.css') }}">
+{% endblock %}
 
 {% block staff_content %}
 <section class="card">
-  <h1 class="card__title">Evento attivo</h1>
-  <div class="card__meta">{{ evento.data_evento }} — {{ evento.nome_evento }}</div>
-  <div class="text--muted">
-    Ingressi: <strong>{{ ingressi_totali }}</strong>
-    {% if residua is not none %} • Capienza residua: <strong>{{ residua }}</strong>{% endif %}
+  <h1 class="card__title">📍 Evento attivo</h1>
+  <div class="card__meta">{{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}</div>
+  <div class="text--muted" style="margin-top: 0.75rem;">
+    <strong>Ingressi registrati:</strong> {{ ingressi_totali }}
+    {% if residua is not none %}
+    <br><strong>Capienza residua:</strong> 
+    <span class="{% if residua <= 10 %}text--danger{% elif residua <= 50 %}text--warning{% else %}text--success{% endif %}">
+      {{ residua }} / {{ evento.capienza_max }}
+    </span>
+    {% endif %}
   </div>
 </section>
 
 <section class="card">
-  <h2 class="card__title">Scanner QR</h2>
-  <div id="reader" style="width:100%; max-width:420px; margin:auto;"></div>
-  <form id="scanForm" class="form" method="post" style="margin-top:1rem;">
-    <div class="form__group">
-      <label class="form__label">Oppure inserisci codice manualmente</label>
-      <input class="form__input" type="text" name="qr" id="qr_manual" placeholder="QR / codice cliente">
-    </div>
-    <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Registra ingresso</button>
+  <h2 class="card__title">🔍 Scanner QR Cliente</h2>
+  <p class="text--muted" style="margin-bottom: 1.5rem;">
+    Inquadra il QR code del cliente per registrare l'ingresso automaticamente.
+  </p>
+  
+  <form id="scanForm" class="form" method="post" action="{{ url_for('ingressi.staff_scan') }}">
+    {{ render_qr_scanner(container_id='qr-reader',
+                         form_id='scanForm',
+                         auto_submit=False,
+                         show_manual_input=True,
+                         manual_input_label='Oppure inserisci codice manualmente',
+                         manual_input_placeholder='QR / codice cliente',
+                         precheck_url=url_for('ingressi.staff_scan_check')) }}
+    
+    <div class="form__actions" style="margin-top: 1.5rem;">
+      <button class="btn btn--primary" type="submit" id="btn_conferma" disabled>
+        ✅ Fai entrare
+      </button>
+      <button class="btn btn--ghost" type="button" id="btn_nega" disabled>⛔ Nega ingresso</button>
+      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">
+        ← Dashboard
+      </a>
     </div>
   </form>
+
+  <div id="preview" class="card" style="margin-top:1rem; display:none;">
+    <h3 class="card__title">Dettagli cliente</h3>
+    <ul class="list" id="preview_list" style="margin-top:0.5rem;"></ul>
+    <div class="banner banner--warning" id="already_banner" style="display:none; margin-top:0.75rem;">
+      ⚠️ Già registrato per questo evento
+    </div>
+  </div>
 </section>
+
+{% if residua is not none and residua <= 10 %}
+<section class="card card--warning">
+  <div class="banner banner--warning" role="alert">
+    ⚠️ <strong>Attenzione:</strong> Capienza quasi esaurita ({{ residua }} posti rimasti)
+  </div>
+</section>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <!-- html5-qrcode da CDN -->
-<script src="https://unpkg.com/html5-qrcode" defer></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- Modulo scanner QR -->
+<script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
 <script>
-document.addEventListener("DOMContentLoaded", function(){
-  if (window.Html5Qrcode) {
-    const qrRegionId = "reader";
-    const html5QrCode = new Html5Qrcode(qrRegionId);
-    const config = { fps: 10, qrbox: 250 };
-    function onScanSuccess(decodedText) {
-      const form = document.getElementById('scanForm');
-      const input = document.getElementById('qr_manual');
-      input.value = decodedText;
-      form.submit();
-    }
-    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
-      .catch(() => { /* fallback: solo input manuale */ });
+document.addEventListener('DOMContentLoaded', function(){
+  const preview = document.getElementById('preview');
+  const list = document.getElementById('preview_list');
+  const banner = document.getElementById('already_banner');
+  const btnConferma = document.getElementById('btn_conferma');
+  const btnNega = document.getElementById('btn_nega');
+  const qrHidden = document.getElementById('qr-result') || document.getElementById('qr_manual') || document.getElementById('qr_hidden') || document.getElementById('qr_manual');
+
+  async function fetchPreview(qr) {
+    const res = await fetch('{{ url_for("ingressi.staff_scan_preview") }}', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ qr })
+    });
+    return await res.json();
   }
+
+  document.addEventListener('qr-scanned', async function(e){
+    const code = e.detail.code;
+    try {
+      const data = await fetchPreview(code);
+      if (!data.ok) {
+        preview.style.display = 'none';
+        btnConferma.disabled = true;
+        btnNega.disabled = true;
+        return;
+      }
+      // Popola UI
+      list.innerHTML = '';
+      const c = data.cliente || {};
+      const items = [
+        ['Nome', (c.nome || '-') + ' ' + (c.cognome || '-')],
+        ['Data di nascita', c.data_nascita || '-'],
+        ['Provenienza', c.citta || '-'],
+        ['Registrato', data.already ? 'Sì' : 'No']
+      ];
+      items.forEach(([k,v]) => {
+        const li = document.createElement('li');
+        li.className = 'list__item';
+        li.innerHTML = '<strong>'+k+':</strong> '+v;
+        list.appendChild(li);
+      });
+      banner.style.display = data.already ? 'block' : 'none';
+      preview.style.display = 'block';
+      // Abilita pulsanti
+      btnNega.disabled = false;
+      btnConferma.disabled = !!data.already; // blocca se già entrato
+    } catch(err) {
+      console.warn('preview error', err);
+    }
+  });
+
+  btnNega?.addEventListener('click', function(){
+    // Reset anteprima e disabilita pulsanti
+    preview.style.display = 'none';
+    btnConferma.disabled = true;
+    btnNega.disabled = true;
+    // Pulisci input QR manuale/hidden
+    const manual = document.getElementById('qr_manual');
+    const hidden = document.getElementById('qr-result') || document.getElementById('qr_hidden');
+    if (manual) manual.value = '';
+    if (hidden) hidden.value = '';
+  });
 });
 </script>
 {% endblock %}

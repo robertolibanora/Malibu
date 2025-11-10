@@ -1,35 +1,51 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Format{% endblock %}
-{% block admin_content %}
-<section class="card">
-  <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h1 class="card__title" style="margin:0;">Format</h1>
-    <a href="{{ url_for('format.admin_new') }}" class="btn btn--primary">Nuovo Format</a>
-  </div>
-</section>
+{% block admin_title %}Format Eventi{% endblock %}
 
-<section class="list">
+{% block admin_content %}
+<div class="formats-hub">
+  <header class="formats-hub__header fade-in">
+    <div class="formats-hub__intro">
+      <h1 class="formats-hub__title">Libreria Format Eventi</h1>
+      <p class="formats-hub__subtitle">Gestisci i template pronti all’uso per velocizzare la creazione dei prossimi eventi.</p>
+  </div>
+    <a href="{{ url_for('format.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo Format</a>
+  </header>
+
+  <section class="formats-hub__body fade-in" style="animation-delay: 120ms;">
+    {% if formats %}
+    <div class="formats-grid">
   {% for f in formats %}
-  <article class="card list__item">
-    <div class="list__item-header">
+      <article class="format-card">
+        <header class="format-card__header">
       <div>
-        <strong style="font-size:1.1rem;">{{ f.nome }}</strong>
-        <div style="margin-top:.5rem;">
-          <span class="badge badge--warning">{{ f.categoria|capitalize }}</span>
+            <h2 class="format-card__title">{{ f.nome }}</h2>
+            <div class="format-card__tags">
+              {% if f.categoria %}<span class="badge badge--warning">{{ f.categoria|capitalize }}</span>{% endif %}
           {% if f.tipo_musica %}<span class="badge">{{ f.tipo_musica }}</span>{% endif %}
           {% if f.capienza %}<span class="badge">Capienza {{ f.capienza }}</span>{% endif %}
         </div>
       </div>
-      <div style="display:flex; gap:.5rem;">
+        </header>
+
+        {% if f.descrizione %}
+        <p class="format-card__description">{{ f.descrizione }}</p>
+        {% endif %}
+
+        <footer class="format-card__footer">
+          <div class="format-card__actions">
         <a href="{{ url_for('format.admin_edit', template_id=f.id_template) }}" class="btn btn--primary btn--small">Modifica</a>
-        <form method="post" action="{{ url_for('format.admin_delete', template_id=f.id_template) }}" onsubmit="return confirm('Eliminare questo format?');">
+            <form method="post" action="{{ url_for('format.admin_delete', template_id=f.id_template) }}" onsubmit="return confirm('Eliminare questo format? Questa azione non può essere annullata.');">
           <button class="btn btn--ghost btn--small" type="submit">Elimina</button>
         </form>
       </div>
+          <small class="format-card__hint">Duplica questo format quando crei un nuovo evento per mantenere coerenza nelle informazioni.</small>
+        </footer>
+      </article>
+      {% endfor %}
     </div>
-  </article>
   {% else %}
-  <div class="card"><p class="text--muted" style="text-align:center; padding:2rem;">Nessun format definito.</p></div>
-  {% endfor %}
+    <div class="empty-state">Non hai ancora definito nessun format. Creane uno per accelerare la creazione dei prossimi eventi.</div>
+    {% endif %}
 </section>
+</div>
 {% endblock %}

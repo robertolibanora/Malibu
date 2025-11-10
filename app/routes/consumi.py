@@ -1,5 +1,5 @@
 # app/routes/consumi.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
@@ -26,7 +26,16 @@ PUNTI = ("tavolo", "privè")
 # Helpers comuni
 # --------------------------------
 def _get_evento_attivo(db):
-    evento_id = session.get("evento_attivo_id")
+    evento = (
+        db.query(Evento)
+        .filter(Evento.stato == "attivo")
+        .order_by(Evento.data_evento.desc())
+        .first()
+    )
+    if evento:
+        return evento
+
+    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
     return db.query(Evento).get(evento_id) if evento_id else None
 
 def _get_staff_id():
@@ -78,7 +87,7 @@ def staff_listino():
     try:
         e = _get_evento_attivo(db)
         if not e:
-            flash("Seleziona prima un evento attivo.", "warning")
+            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
         
         # Carica prodotti attivi raggruppati per categoria
@@ -110,7 +119,7 @@ def staff_listino_addebito():
     try:
         e = _get_evento_attivo(db)
         if not e:
-            flash("Seleziona prima un evento attivo.", "warning")
+            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
         
         qr = (request.form.get("qr") or "").strip()
@@ -197,7 +206,7 @@ def staff_new():
     try:
         e = _get_evento_attivo(db)
         if not e:
-            flash("Seleziona prima un evento attivo.", "warning")
+            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
 
         prodotti = []

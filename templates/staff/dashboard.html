@@ -5,21 +5,32 @@
 <section class="card">
   <h1 class="card__title">Dashboard Staff</h1>
   {% if evento_attivo %}
-    <div class="badge">Evento attivo: {{ evento_attivo.nome_evento }} — {{ evento_attivo.data_evento }}</div>
+    <div class="badge">Evento attivo: {{ evento_attivo.nome_evento }} — {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}</div>
   {% else %}
-    <div class="badge badge--warning">Nessun evento attivo</div>
+    <div class="banner banner--warning" role="alert">
+      Nessun evento attivo impostato dagli amministratori.
+      <a class="link" href="{{ url_for('eventi.staff_select_event') }}">Dettagli</a>
+    </div>
   {% endif %}
 </section>
 
 <section class="card">
   <div class="grid grid--2">
-    <a class="btn btn--primary" href="{{ url_for('ingressi.staff_scan') }}">Scanner Ingressi</a>
-    <a class="btn btn--primary" href="{{ url_for('consumi.staff_listino') }}">Listino</a>
-    <a class="btn btn--secondary" href="{{ url_for('consumi.staff_new') }}">Nuovo Consumo</a>
-    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Seleziona Evento</a>
+    {% if evento_attivo %}
+      <a class="btn btn--primary" href="{{ url_for('ingressi.staff_scan') }}">Scanner ingressi</a>
+      <a class="btn btn--primary" href="{{ url_for('consumi.staff_listino') }}">Listino</a>
+      <a class="btn btn--secondary" href="{{ url_for('consumi.staff_new') }}">Nuovo consumo</a>
+    {% else %}
+      <span class="btn btn--primary btn--disabled" aria-disabled="true">Scanner ingressi</span>
+      <span class="btn btn--primary btn--disabled" aria-disabled="true">Listino</span>
+      <span class="btn btn--secondary btn--disabled" aria-disabled="true">Nuovo consumo</span>
+    {% endif %}
+    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Evento attivo</a>
   </div>
-  <p class="text--muted" style="margin-top:1rem;">
-    Suggerimento: imposta l'evento attivo prima di registrare ingressi o consumi.
-  </p>
+  {% if not evento_attivo %}
+    <p class="text--muted" style="margin-top:1rem;">
+      Per abilitare le operazioni operative richiedi agli amministratori di impostare l’evento attivo.
+    </p>
+  {% endif %}
 </section>
 {% endblock %}

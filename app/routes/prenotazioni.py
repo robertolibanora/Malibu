@@ -82,6 +82,9 @@ def nuova():
 
             # Vincoli: tavolo -> num_persone obbligatorio + note con nome tavolo obbligatorie
             if tipo == "tavolo":
+                if not num_persone or num_persone < 1:
+                    flash("Per il tavolo è obbligatorio indicare il numero di persone.", "danger")
+                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
                 if not note:
                     flash("Per il tavolo è obbligatorio indicare il nome del tavolo.", "danger")
                     return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
@@ -90,7 +93,7 @@ def nuova():
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
                 tipo=tipo,
-                num_persone=None,
+                num_persone=num_persone if tipo == "tavolo" else None,
                 orario_previsto=orario_previsto or None,
                 note=note or None,
                 stato="attiva"
@@ -123,6 +126,9 @@ def mie():
             ) \
             .order_by(Evento.data_evento.desc(), Prenotazione.id_prenotazione.desc()) \
             .all()
+        show_all = request.args.get("show_all")
+        show_all_usate = (show_all == "usate")
+
         pren_attive = [p for p in pren if p.stato == "attiva"]
 
         feedbacks = {
@@ -151,7 +157,8 @@ def mie():
             prenotazioni_no_show=pren_no_show,
             punti_per_no_show=punti_per_no_show,
             punti_persi_no_show=punti_persi,
-            punti_evento=fedelta_map
+            punti_evento=fedelta_map,
+            show_all_usate=show_all_usate
         )
     finally:
         db.close()
@@ -182,10 +189,16 @@ def mia_prenotazione_detail(pren_id):
             .all()
         )
 
+        feedback_esistente = db.query(Feedback).filter(
+            Feedback.cliente_id == cli.id_cliente,
+            Feedback.evento_id == pren.evento_id
+        ).first()
+
         return render_template(
             "clienti/prenotazione_detail.html",
             prenotazione=pren,
-            consumi=consumi
+            consumi=consumi,
+            feedback_esistente=feedback_esistente
         )
     finally:
         db.close()

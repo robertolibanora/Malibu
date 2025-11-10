@@ -2,76 +2,68 @@
 {% block admin_title %}Listino Prodotti{% endblock %}
 
 {% block admin_content %}
-<section class="card">
-  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-lg); flex-wrap: wrap; gap: var(--spacing-md);">
-    <div>
-      <h1 class="card__title" style="margin: 0;">Listino Prodotti</h1>
-      <p class="text--muted" style="margin-top: var(--spacing-sm);">Gestisci i prodotti disponibili per lo staff</p>
+<div class="products-hub">
+  <header class="products-hub__header fade-in">
+    <div class="products-hub__intro">
+      <h1 class="products-hub__title">Listino Prodotti</h1>
+      <p class="products-hub__subtitle">Gestisci disponibilità, prezzi e categorie per lo staff operativo.</p>
     </div>
-    <a href="{{ url_for('prodotti.admin_new') }}" class="btn btn--primary">Nuovo Prodotto</a>
-  </div>
-
-  <!-- Filtri -->
-  <form method="get" class="form">
-    <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Categoria</label>
-        <input type="text" name="categoria" placeholder="Cerca categoria..." class="form__input" value="{{ filtro.categoria }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Stato</label>
-        <select class="form__input" name="attivo">
-          <option value="">Tutti</option>
+    <div class="products-hub__actions">
+      <form method="get" class="products-hub__filters">
+        <label class="products-hub__filter-field">
+          <span>Categoria</span>
+          <input type="text" name="categoria" value="{{ filtro.categoria }}" placeholder="Es. Drink, Privé" class="form__input">
+        </label>
+        <label class="products-hub__filter-field">
+          <span>Stato</span>
+          <select name="attivo" class="form__select form__select--dense" onchange="this.form.submit()">
+            <option value="" {% if not filtro.attivo %}selected{% endif %}>Tutti</option>
           <option value="si" {% if filtro.attivo=='si' %}selected{% endif %}>Attivi</option>
           <option value="no" {% if filtro.attivo=='no' %}selected{% endif %}>Disattivi</option>
         </select>
-      </div>
-    </div>
-    <div class="form__actions">
-      <button type="submit" class="btn btn--secondary">Filtra</button>
+        </label>
       {% if filtro.categoria or filtro.attivo %}
-      <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost">Reset</a>
+        <a class="btn btn--ghost btn--small" href="{{ url_for('prodotti.admin_list') }}">Reset</a>
       {% endif %}
+      </form>
+      <a href="{{ url_for('prodotti.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo prodotto</a>
     </div>
-  </form>
-</section>
+  </header>
 
-<!-- Lista prodotti -->
+  <section class="products-grid fade-in" style="animation-delay: 120ms;">
 {% if prodotti %}
-<section class="list">
   {% for p in prodotti %}
-  <article class="card list__item">
-    <div class="list__item-header">
-      <div style="flex: 1;">
-        <div style="display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap;">
-          <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
-            {{ p.nome }}
-          </strong>
-          <span class="badge badge--{{ 'success' if p.attivo else 'secondary' }}">
-            {{ 'Attivo' if p.attivo else 'Disattivo' }}
-          </span>
-          {% if p.categoria %}
-          <span class="badge badge--warning">{{ p.categoria }}</span>
-          {% endif %}
+      <article class="product-card">
+        <div class="product-card__header">
+          <div>
+            <h2 class="product-card__title">{{ p.nome }}</h2>
+            <div class="product-card__tags">
+              <span class="badge badge--{{ 'success' if p.attivo else 'secondary' }}">{{ 'Attivo' if p.attivo else 'Disattivo' }}</span>
+              {% if p.categoria %}<span class="badge badge--warning">{{ p.categoria }}</span>{% endif %}
+            </div>
         </div>
-        <div style="margin-top: var(--spacing-sm); display: flex; gap: var(--spacing-lg); flex-wrap: wrap;">
-          <span style="color: var(--gold-primary); font-weight: 600; font-size: 1.125rem;">€{{ "%.2f"|format(p.prezzo) }}</span>
+          <div class="product-card__price">€{{ "%.2f"|format(p.prezzo) }}</div>
         </div>
-      </div>
-      <div style="display: flex; gap: var(--spacing-sm);">
+
+        {% if p.descrizione %}
+        <p class="product-card__description">{{ p.descrizione }}</p>
+        {% endif %}
+
+        <footer class="product-card__footer">
+          <div class="product-card__actions">
         <a href="{{ url_for('prodotti.admin_edit', prodotto_id=p.id_prodotto) }}" class="btn btn--primary btn--small">Modifica</a>
-        <form method="post" action="{{ url_for('prodotti.admin_delete', prodotto_id=p.id_prodotto) }}" style="display:inline" onsubmit="return confirm('Eliminare questo prodotto?');">
-          <button class="btn btn--danger btn--small">Elimina</button>
+            <form method="post" action="{{ url_for('prodotti.admin_delete', prodotto_id=p.id_prodotto) }}" onsubmit="return confirm('Eliminare questo prodotto?');">
+              <button class="btn btn--ghost btn--small">Elimina</button>
         </form>
       </div>
-    </div>
+          <small class="product-card__hint">Ricordati di aggiornare i prezzi quando pubblichi nuove promozioni.</small>
+        </footer>
   </article>
   {% endfor %}
-</section>
 {% else %}
-<section class="card">
-  <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun prodotto trovato.</p>
+      <div class="empty-state">Il listino è vuoto. Aggiungi i primi prodotti per renderli disponibili allo staff.</div>
+    {% endif %}
 </section>
-{% endif %}
+</div>
 {% endblock %}
 

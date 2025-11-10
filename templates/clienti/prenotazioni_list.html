@@ -2,14 +2,7 @@
 {% block title %}Le mie prenotazioni{% endblock %}
 
 {% block cliente_content %}
-<div class="section-heading">
-  <span class="section-heading__icon">🎫</span>
-  <div class="section-heading__meta">
-    <span class="section-heading__eyebrow">Area personale</span>
-    <h1 class="section-heading__title">Le mie prenotazioni</h1>
-  </div>
-</div>
-
+{% set show_all_usate = show_all_usate|default(false) %}
 {% set stato_label = {
   'attiva': 'Prenotazione attiva',
   'usata': 'Prenotazione usata',
@@ -63,6 +56,7 @@
 {% endif %}
 
 {% if prenotazioni_usate %}
+{% set prenotazioni_usate_preview = prenotazioni_usate if show_all_usate else prenotazioni_usate[:3] %}
 <div class="section-heading">
   <span class="section-heading__icon">⭐</span>
   <div class="section-heading__meta">
@@ -71,7 +65,7 @@
   </div>
 </div>
 <section class="event-list">
-  {% for pren, feedback in prenotazioni_usate %}
+  {% for pren, feedback in prenotazioni_usate_preview %}
   <article class="event-card">
     <div class="event-card__media">
       {% if pren.evento.cover_url %}
@@ -120,6 +114,14 @@
     </div>
   </article>
   {% endfor %}
+  {% if not show_all_usate and prenotazioni_usate|length > 3 %}
+  <div class="form__actions">
+    <form method="get" action="{{ url_for('prenotazioni.mie') }}">
+      <input type="hidden" name="show_all" value="usate">
+      <button class="btn btn--ghost" type="submit">Vedi altre prenotazioni usate</button>
+    </form>
+  </div>
+  {% endif %}
 </section>
 {% endif %}
 

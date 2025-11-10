@@ -1,211 +1,191 @@
 {% extends "admin/base.html" %}
 
-{% block admin_title %}Statistiche{% endblock %}
-
-{% block extra_head %}
-  {{ super() }}
-  <style>
-    .analytics-wrapper {
-      display: grid;
-      gap: 2rem;
-    }
-
-    .analytics-summary {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 1rem;
-    }
-
-    .summary-card {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 1.25rem;
-      border-radius: 18px;
-      background: linear-gradient(145deg, rgba(26, 26, 26, 0.8), rgba(0, 0, 0, 0.6));
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(10px);
-    }
-
-    .summary-card__label {
-      font-size: 0.85rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-muted, rgba(255,255,255,0.7));
-    }
-
-    .summary-card__value {
-      font-size: 2rem;
-      font-weight: 600;
-    }
-
-    .summary-card__meta {
-      font-size: 0.85rem;
-      color: var(--text-muted, rgba(255,255,255,0.7));
-    }
-
-    .chart-grid {
-      display: grid;
-      gap: 1.5rem;
-    }
-
-    .chart-card {
-      padding: 1.25rem;
-      border-radius: 18px;
-      background: rgba(17, 24, 39, 0.65);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      backdrop-filter: blur(12px);
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .chart-card__header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: 1rem;
-    }
-
-    .chart-card__title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0;
-    }
-
-    .chart-controls {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-
-    .chart-select,
-    .chart-range,
-    .chart-option {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      border-radius: 999px;
-      color: #ffffff;
-      padding: 0.4rem 0.9rem;
-      font-size: 0.85rem;
-      appearance: none;
-    }
-
-    .chart-select:focus,
-    .chart-range:focus {
-      outline: 2px solid rgba(212, 175, 55, 0.6);
-      outline-offset: 2px;
-    }
-
-    .chart-label {
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: var(--text-muted, rgba(255,255,255,0.65));
-    }
-
-    .chart-checkbox {
-      display: flex;
-      align-items: center;
-      gap: 0.35rem;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 999px;
-      padding: 0.25rem 0.75rem;
-      font-size: 0.8rem;
-      color: #ffffff;
-    }
-
-    .chart-checkbox input {
-      accent-color: #d4af37;
-    }
-
-    .chart-range-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .chart-range-output {
-      font-size: 0.85rem;
-      color: var(--text-muted, rgba(255,255,255,0.7));
-      min-width: 2ch;
-      text-align: right;
-    }
-
-    .chart-card__empty {
-      display: none;
-      margin-top: 1rem;
-      text-align: center;
-      color: var(--text-muted, rgba(255,255,255,0.6));
-    }
-
-    .chart-card canvas {
-      width: 100%;
-      max-height: 360px;
-    }
-
-    @media (min-width: 1024px) {
-      .chart-grid {
-        grid-template-columns: repeat(12, 1fr);
-      }
-
-      .chart-card--full {
-        grid-column: span 12;
-      }
-
-      .chart-card--wide {
-        grid-column: span 8;
-      }
-
-      .chart-card--tall {
-        grid-column: span 4;
-      }
-    }
-  </style>
-{% endblock %}
+{% block admin_title %}Intelligence operativa{% endblock %}
 
 {% block admin_content %}
-<section class="analytics-wrapper">
-  <header class="card" style="padding: 1.5rem;">
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <div>
-        <h1 class="card__title" style="margin-bottom: 0.25rem;">Statistiche generali</h1>
-        <p class="text--muted">Overview complessiva delle performance. Periodo temporale ingressi: ultimi {{ range_days }} giorni.</p>
-      </div>
-
-      <div class="analytics-summary">
-        <article class="summary-card">
-          <span class="summary-card__label">Ingressi totali</span>
-          <span class="summary-card__value">{{ tot_ingressi }}</span>
-        </article>
-
-        <article class="summary-card">
-          <span class="summary-card__label">Prenotazioni</span>
-          <span class="summary-card__value">{{ tot_prenotazioni }}</span>
-        </article>
-
-        <article class="summary-card">
-          <span class="summary-card__label">Consumi</span>
-          <span class="summary-card__value">€ {{ '%.2f'|format(tot_consumi) }}</span>
-        </article>
-
-        <article class="summary-card">
-          <span class="summary-card__label">Valutazione media</span>
-          {% if feedback_global %}
-            <span class="summary-card__value">{{ '%.1f'|format(feedback_global.average) }}</span>
-            <span class="summary-card__meta">{{ feedback_global.samples }} feedback analizzati</span>
-          {% else %}
-            <span class="summary-card__value">—</span>
-            <span class="summary-card__meta">Nessun feedback disponibile</span>
-          {% endif %}
-        </article>
+<div class="analytics">
+  <div class="analytics__header fade-in">
+    <div class="analytics__intro">
+      <h1 class="analytics__title">Intelligence Operativa</h1>
+      <p class="analytics__subtitle">
+        Analisi ultimi {{ range_days }} giorni · aggiornato il {{ analytics_generated_at.strftime("%d/%m/%Y %H:%M") }}
+      </p>
+      <div class="analytics__meta">
+        <span>Ingressi storici: <strong>{{ tot_ingressi }}</strong></span>
+        <span>Consumi storici: <strong>€{{ "%.2f"|format(tot_consumi) }}</strong></span>
+        <span>Prenotazioni gestite: <strong>{{ tot_prenotazioni }}</strong></span>
       </div>
     </div>
-  </header>
+    <form class="analytics__range" method="get" aria-label="Filtra periodo di analisi">
+      <label for="analytics-range" class="analytics__range-label">Periodo</label>
+      <select id="analytics-range" name="range" class="form__select form__select--dense" onchange="this.form.submit()">
+        {% for option in range_options %}
+        <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>
+          Ultimi {{ option }} giorni
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+      </div>
 
-  <section class="chart-grid">
+  <div class="analytics__summary">
+    <article class="insight-card fade-in">
+      <span class="insight-card__label">Ingressi periodo</span>
+      <span class="insight-card__value">{{ ingressi_range }}</span>
+      {% set ingressi_trend_class = 'insight-card__trend--neutral' %}
+      {% if ingressi_delta_abs > 0 %}
+        {% set ingressi_trend_class = 'insight-card__trend--up' %}
+      {% elif ingressi_delta_abs < 0 %}
+        {% set ingressi_trend_class = 'insight-card__trend--down' %}
+      {% endif %}
+      <div class="insight-card__trend {{ ingressi_trend_class }}">
+        <span class="insight-card__trend-abs">
+          {% if ingressi_delta_abs > 0 %}+{% elif ingressi_delta_abs < 0 %}-{% endif %}
+          {{ ingressi_delta_abs|abs }}
+        </span>
+        {% if ingressi_delta_pct is not none %}
+        <span class="insight-card__trend-pct">
+          {% if ingressi_delta_pct > 0 %}+{% elif ingressi_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(ingressi_delta_pct|abs) }}%
+        </span>
+        <span class="insight-card__trend-note">vs periodo precedente</span>
+        {% else %}
+        <span class="insight-card__trend-note">
+          {% if ingressi_delta_abs > 0 %}Nuovo picco{% elif ingressi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+        </article>
+
+    <article class="insight-card fade-in" style="animation-delay: 80ms;">
+      <span class="insight-card__label">Ricavi periodo</span>
+      <span class="insight-card__value">€{{ "%.2f"|format(consumi_range) }}</span>
+      {% set consumi_trend_class = 'insight-card__trend--neutral' %}
+      {% if consumi_delta_abs > 0 %}
+        {% set consumi_trend_class = 'insight-card__trend--up' %}
+      {% elif consumi_delta_abs < 0 %}
+        {% set consumi_trend_class = 'insight-card__trend--down' %}
+      {% endif %}
+      <div class="insight-card__trend {{ consumi_trend_class }}">
+        <span class="insight-card__trend-abs">
+          {% if consumi_delta_abs > 0 %}+{% elif consumi_delta_abs < 0 %}-{% endif %}
+          €{{ "%.2f"|format(consumi_delta_abs|abs) }}
+        </span>
+        {% if consumi_delta_pct is not none %}
+        <span class="insight-card__trend-pct">
+          {% if consumi_delta_pct > 0 %}+{% elif consumi_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(consumi_delta_pct|abs) }}%
+        </span>
+        <span class="insight-card__trend-note">vs periodo precedente</span>
+        {% else %}
+        <span class="insight-card__trend-note">
+          {% if consumi_delta_abs > 0 %}Nuovo picco{% elif consumi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+        </article>
+
+    <article class="insight-card fade-in" style="animation-delay: 160ms;">
+      <span class="insight-card__label">Feedback raccolti</span>
+      <span class="insight-card__value">{{ feedback_range_count }}</span>
+      <span class="insight-card__meta">
+        Media complessiva: {{ feedback_range_avg if feedback_range_avg is not none else "—" }}
+      </span>
+      {% set feedback_trend_class = 'insight-card__trend--neutral' %}
+      {% if feedback_delta_abs > 0 %}
+        {% set feedback_trend_class = 'insight-card__trend--up' %}
+      {% elif feedback_delta_abs < 0 %}
+        {% set feedback_trend_class = 'insight-card__trend--down' %}
+      {% endif %}
+      <div class="insight-card__trend {{ feedback_trend_class }}">
+        <span class="insight-card__trend-abs">
+          {% if feedback_delta_abs > 0 %}+{% elif feedback_delta_abs < 0 %}-{% endif %}
+          {{ feedback_delta_abs|abs }}
+        </span>
+        {% if feedback_delta_pct is not none %}
+        <span class="insight-card__trend-pct">
+          {% if feedback_delta_pct > 0 %}+{% elif feedback_delta_pct < 0 %}-{% endif %}
+          {{ "%.1f"|format(feedback_delta_pct|abs) }}%
+        </span>
+        <span class="insight-card__trend-note">vs periodo precedente</span>
+        {% else %}
+        <span class="insight-card__trend-note">
+          {% if feedback_delta_abs > 0 %}Maggiore coinvolgimento{% elif feedback_delta_abs < 0 %}Da attenzionare{% else %}Stabile{% endif %}
+        </span>
+        {% endif %}
+      </div>
+        </article>
+
+    <article class="insight-card fade-in" style="animation-delay: 240ms;">
+      <span class="insight-card__label">Valutazione storica</span>
+          {% if feedback_global %}
+      <span class="insight-card__value">{{ "%.1f"|format(feedback_global.average) }}</span>
+      <span class="insight-card__meta">{{ feedback_global.samples }} feedback complessivi</span>
+          {% else %}
+      <span class="insight-card__value">—</span>
+      <span class="insight-card__meta">In attesa di feedback</span>
+          {% endif %}
+        </article>
+  </div>
+
+  {% if top_ingressi_event or top_ricavi_event or top_feedback_event or top_prodotto %}
+  <section class="analytics__highlights fade-in" style="animation-delay: 320ms;">
+    {% if top_ingressi_event %}
+    <article class="highlight-card">
+      <span class="highlight-card__label">Evento più partecipato</span>
+      <h3 class="highlight-card__title">{{ top_ingressi_event.label }}</h3>
+      <div class="highlight-card__metrics">
+        <span class="highlight-card__value">{{ top_ingressi_event.count }}</span>
+        <span class="highlight-card__meta">Ingressi registrati</span>
+      </div>
+      <span class="pill pill--ghost">Categoria {{ top_ingressi_event.categoria|capitalize }}</span>
+    </article>
+    {% endif %}
+
+    {% if top_ricavi_event %}
+    <article class="highlight-card">
+      <span class="highlight-card__label">Evento con più ricavi</span>
+      <h3 class="highlight-card__title">{{ top_ricavi_event.label }}</h3>
+      <div class="highlight-card__metrics">
+        <span class="highlight-card__value">€{{ "%.2f"|format(top_ricavi_event.value) }}</span>
+        <span class="highlight-card__meta">Ricavi generati</span>
+      </div>
+      <span class="pill pill--outline">Categoria {{ top_ricavi_event.categoria|capitalize }}</span>
+    </article>
+    {% endif %}
+
+    {% if top_feedback_event %}
+    <article class="highlight-card">
+      <span class="highlight-card__label">Miglior feedback</span>
+      <h3 class="highlight-card__title">{{ top_feedback_event.label }}</h3>
+      <div class="highlight-card__metrics">
+        <span class="highlight-card__value">{{ "%.2f"|format(top_feedback_event.overall) }}/10</span>
+        <span class="highlight-card__meta">{{ top_feedback_event.samples }} feedback</span>
+      </div>
+      <span class="pill pill--ghost">Categoria {{ top_feedback_event.categoria|capitalize }}</span>
+    </article>
+    {% endif %}
+
+    {% if top_prodotto %}
+    <article class="highlight-card">
+      <span class="highlight-card__label">Prodotto top</span>
+      <h3 class="highlight-card__title">{{ top_prodotto.label }}</h3>
+      <div class="highlight-card__metrics highlight-card__metrics--split">
+        <div>
+          <span class="highlight-card__value">{{ top_prodotto.count }}</span>
+          <span class="highlight-card__meta">Vendite</span>
+        </div>
+        <div>
+          <span class="highlight-card__value">€{{ "%.2f"|format(top_prodotto.revenue) }}</span>
+          <span class="highlight-card__meta">Ricavi</span>
+      </div>
+    </div>
+    </article>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="analytics__grid">
     <article class="chart-card chart-card--full">
       <div class="chart-card__header">
         <h2 class="chart-card__title">Ingressi per evento (top <span id="labelIngressiLimite">10</span>)</h2>
@@ -336,7 +316,7 @@
       <p class="chart-card__empty">Non risultano ricavi associati agli eventi.</p>
     </article>
   </section>
-</section>
+</div>
 {% endblock %}
 
 {% block scripts %}

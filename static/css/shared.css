@@ -56,7 +56,9 @@
   --admin-border-light: var(--color-gray-light);
   
   /* === Typography System - Scala Modulare Perfetta 1.250 (Major Third) === */
-  --font-family-base: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-family-base: 'Qanelas Soft', 'Questrial', 'Comfortaa', 'Eurostile Rounded Extended', 'Eurostile Extended', 'Exensa Grotesk Rounded', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-display: 'Eurostile Rounded Extended', 'Eurostile Extended', 'Exensa Grotesk Rounded', 'Qanelas Soft', 'Questrial', 'Comfortaa', 'Helvetica Neue', Arial, sans-serif;
+  --font-family-soft: 'Qanelas Soft', 'Questrial', 'Comfortaa', 'Helvetica Neue', Arial, sans-serif;
   --font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
   
   /* Font Sizes - Scala armoniosa 1.250 (base 16px = 1rem) */
@@ -198,6 +200,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 /* ============================================
@@ -247,6 +250,7 @@ body {
   box-shadow: 0 8px 20px -8px rgba(212, 175, 55, 0.28);
   text-decoration: none;
   transition: transform var(--transition-base), box-shadow var(--transition-base);
+  display: none;
 }
 
 .app__brand-logo img {
@@ -316,6 +320,7 @@ body {
    ============================================ */
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-display);
   font-weight: var(--font-weight-semibold);
   line-height: var(--line-height-snug);
   margin-bottom: var(--spacing-4);
@@ -732,21 +737,20 @@ body.auth-page {
 }
 
 .auth {
-  width: 100%;
-  max-width: 410px;
+  width: min(420px, 92vw);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-6);
+  gap: var(--spacing-5);
   text-align: center;
   z-index: 5;
 }
 @media (max-width: 400px) {
   .auth {
     min-width: 0;
-    width: 98vw;
-    max-width: 98vw;
+    width: 94vw;
+    max-width: 94vw;
     padding: 0 var(--spacing-1);
   }
 }
@@ -757,20 +761,14 @@ body.auth-page {
   align-items: center;
   gap: var(--spacing-2);
 }
-.auth__brand-title {
-  font-size: clamp(2rem, 8vw, 2.55rem);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-  background: linear-gradient(81deg, #ffe8a6 4%, #d4af37 50%, #a78b48 97%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-  text-shadow: 0 2px 16px rgba(212,175,55,0.09);
-  padding-bottom: 5px;
-  min-width: 120px;
+
+.auth__brand-logo {
+  height: clamp(68px, 20vw, 102px);
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 12px 24px rgba(212, 175, 55, 0.28));
 }
+
 .auth__brand-subtitle {
   font-size: var(--font-size-sm);
   color: #cab87d;
@@ -787,14 +785,15 @@ body.auth-page {
 }
 .auth-card {
   width: 100%;
+  max-width: 100%;
   background: rgba(8, 8, 8, 0.98);
-  border: 1.5px solid rgba(212, 175, 55, 0.20);
+  border: 1.5px solid rgba(212, 175, 55, 0.18);
   border-radius: var(--radius-xl);
-  padding: var(--spacing-8) var(--spacing-6) var(--spacing-5);
+  padding: clamp(1.8rem, 6vw, 2.6rem) clamp(1.4rem, 5vw, 2.1rem) clamp(1.5rem, 5vw, 2.2rem);
   box-shadow: 0 14px 44px -14px #222820, 0 2px 18px -8px var(--color-gold-primary, #d4af37);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-5);
+  gap: clamp(1rem, 4vw, 1.6rem);
   align-items: stretch;
   justify-content: center;
 }
@@ -806,7 +805,7 @@ body.auth-page {
 }
 @media (max-width: 400px) {
   .auth-card {
-    padding: var(--spacing-4) var(--spacing-1) var(--spacing-3);
+    padding: var(--spacing-4) var(--spacing-2) var(--spacing-3);
     border-radius: var(--radius-md);
   }
 }

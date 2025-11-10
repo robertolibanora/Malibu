@@ -1,135 +1,178 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Fedeltà{% endblock %}
+{% block admin_title %}Fedeltà Clienti{% endblock %}
+
 {% block admin_content %}
-<section class="card">
-  <h1 class="card__title">Movimenti fedeltà</h1>
-  <form class="form" method="get">
-    <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Evento</label>
-        <select class="form__input" name="evento_id">
-          <option value="">Tutti</option>
-          {% for ev in eventi %}
-          <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
-            {{ ev.data_evento }} — {{ ev.nome_evento }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Cliente (nome/cognome/tel)</label>
-        <input class="form__input" type="text" name="q" value="{{ filtro.q or '' }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Dal</label>
-        <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Al</label>
-        <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
-      </div>
+<div class="loyalty-hub">
+  <header class="loyalty-hub__header fade-in">
+    <div class="loyalty-hub__intro">
+      <h1 class="loyalty-hub__title">Programma Fedeltà</h1>
+      <p class="loyalty-hub__subtitle">Monitora punti, soglie di livello e le attività più recenti dei clienti fidelizzati.</p>
     </div>
-    <div class="form__actions">
-      <button class="btn btn--primary">Filtra</button>
-      {% if filtro.evento_id or filtro.q or filtro.dal or filtro.al %}
-      <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost">Reset</a>
-      {% endif %}
-      <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_soglie') }}">Soglie livelli</a>
-      <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_analytics') }}">Analytics</a>
+    <div class="loyalty-hub__actions">
+      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Movimenti completi</a>
+      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_analytics') }}">Analytics fedeltà</a>
+      <a class="btn btn--primary" href="{{ url_for('fedelta.admin_movimenti') }}">Gestisci movimenti</a>
     </div>
-  </form>
-</section>
+  </header>
 
-<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem; background: rgba(17, 24, 39, 0.4);">
-  <strong>Automazione punti:</strong> i movimenti vengono creati dal sistema (ingressi, consumi, no-show). Gli admin non possono più aggiungere o modificare manualmente i punti.
-</section>
-
-<!-- Info paginazione -->
-{% if total > 0 %}
-<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} movimenti</strong>
-    </div>
-    <div style="display: flex; gap: 0.75rem; align-items: center;">
-      <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
-      <select class="form__input" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
-        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
-      </select>
-    </div>
-  </div>
-  <script>
-    function updatePerPage(value) {
-      const url = new URL(window.location.href);
-      url.searchParams.set('per_page', value);
-      url.searchParams.set('page', '1');
-      window.location.href = url.toString();
-    }
-  </script>
-</section>
-{% endif %}
-
-<section class="list">
-  {% for m, c, ev in rows %}
-  <article class="card list__item">
-    <div class="card__title">{{ ev.data_evento }} — {{ ev.nome_evento }}</div>
-    <div class="card__meta">{{ m.data_assegnazione }} • {{ c.cognome }} {{ c.nome }}</div>
-    <div>{{ m.motivo }}</div>
-    <div><strong>{{ m.punti }} pt</strong></div>
+  <section class="loyalty-hub__stats fade-in" style="animation-delay: 80ms;">
+    <article class="profile-metric">
+      <span class="profile-metric__label">Clienti nel programma</span>
+      <span class="profile-metric__value">{{ stats.totale_clienti }}</span>
+      <span class="profile-metric__meta">Clienti con profilo fedeltà attivo</span>
   </article>
-  {% else %}
-    <div class="card"><p class="text--muted">Nessun movimento.</p></div>
-  {% endfor %}
+    <article class="profile-metric">
+      <span class="profile-metric__label">Punti complessivi</span>
+      <span class="profile-metric__value">{{ stats.punti_totali }}</span>
+      <span class="profile-metric__meta">Somma dei punti attualmente assegnati</span>
+  </article>
+    <article class="profile-metric">
+      <span class="profile-metric__label">Media punti per cliente</span>
+      <span class="profile-metric__value">{{ stats.punti_medi }}</span>
+      <span class="profile-metric__meta">Valore medio arrotondato</span>
+  </article>
 </section>
 
-<!-- Paginazione -->
-{% if total_pages > 1 %}
-<section class="card" style="padding: 1.5rem; margin-top: 2rem;">
-  <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-    {% if page > 1 %}
-    <a href="{{ url_for('fedelta.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">« Prima</a>
-    <a href="{{ url_for('fedelta.admin_list', page=page-1, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
-    {% endif %}
-    
-    <div style="display: flex; gap: 0.25rem; align-items: center; margin: 0 1rem;">
-      {% set start_page = pages_list[0] if pages_list else 1 %}
-      {% set end_page = pages_list[-1] if pages_list else total_pages %}
-      
-      {% if start_page > 1 %}
-      <a href="{{ url_for('fedelta.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">1</a>
-      {% if start_page > 2 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      {% endif %}
-      
-      {% for p in pages_list %}
-      {% if p == page %}
-      <span class="btn btn--primary btn--small" style="pointer-events: none;">{{ p }}</span>
+  <section class="loyalty-grid fade-in" style="animation-delay: 140ms;">
+    <article class="loyalty-card loyalty-card--wide">
+      <div class="loyalty-card__header">
+        <h2 class="loyalty-card__title">Top clienti per punti</h2>
+        <span class="loyalty-card__meta">Prime {{ top_clienti|length }} posizioni</span>
+  </div>
+      {% if top_clienti %}
+      <div class="table-responsive loyalty-table">
+        <table class="table table--compact">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Cliente</th>
+          <th>Contatto</th>
+          <th>Punti</th>
+          <th>Livello</th>
+          <th>Prossimo livello</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in top_clienti %}
+        <tr>
+          <td>{{ loop.index }}</td>
+              <td>
+                <strong>{{ item.cliente.cognome }} {{ item.cliente.nome }}</strong>
+              </td>
+          <td>
+            {% if item.cliente.telefono %}
+              <a href="tel:{{ item.cliente.telefono }}">{{ item.cliente.telefono }}</a>
+            {% else %}
+              <span class="text--muted">n/d</span>
+            {% endif %}
+          </td>
+          <td><strong>{{ item.points }}</strong></td>
+          <td>{{ item.level|capitalize }}</td>
+          <td>
+            {% if item.next_level %}
+              {{ item.next_level|capitalize }} tra {{ item.points_to_next }} pt
+            {% else %}
+              <span class="text--muted">Livello massimo</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
       {% else %}
-      <a href="{{ url_for('fedelta.admin_list', page=p, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">{{ p }}</a>
+      <div class="empty-state">Non ci sono ancora clienti con punti da mostrare.</div>
       {% endif %}
-      {% endfor %}
-      
-      {% if end_page < total_pages %}
-      {% if end_page < total_pages - 1 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      <a href="{{ url_for('fedelta.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">{{ total_pages }}</a>
+    </article>
+
+    <article class="loyalty-card">
+      <div class="loyalty-card__header">
+        <h2 class="loyalty-card__title">Soglie di livello</h2>
+      {% if not can_edit_thresholds %}
+      <span class="badge badge--warning">Sola lettura</span>
       {% endif %}
     </div>
-    
-    {% if page < total_pages %}
-    <a href="{{ url_for('fedelta.admin_list', page=page+1, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Successiva ›</a>
-    <a href="{{ url_for('fedelta.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, q=filtro.q, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Ultima »</a>
+    {% if can_edit_thresholds %}
+      <form class="profile-form" method="post">
+        <div class="loyalty-thresholds">
+          <label>
+            <span>Base</span>
+            <input class="form__input" type="number" min="0" value="{{ thresholds.base }}" readonly>
+          </label>
+          <label>
+            <span>Loyal</span>
+          <input class="form__input" type="number" name="loyal" min="0" value="{{ thresholds.loyal }}" required>
+          </label>
+          <label>
+            <span>Premium</span>
+          <input class="form__input" type="number" name="premium" min="0" value="{{ thresholds.premium }}" required>
+          </label>
+          <label>
+            <span>VIP</span>
+            <input class="form__input" type="number" name="vip" min="0" value="{{ thresholds.vip }}" required>
+          </label>
+        </div>
+        <div class="profile-form__actions">
+          <button class="btn btn--primary btn--small" type="submit">Aggiorna soglie</button>
+          <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_list') }}">Annulla</a>
+      </div>
+    </form>
+    {% else %}
+      <ul class="loyalty-list">
+      {% for lvl, pts in thresholds_sorted %}
+      <li><strong>{{ lvl|capitalize }}</strong>: {{ pts }} pt</li>
+      {% endfor %}
+    </ul>
+      <small class="profile-form__hint">Attiva la tabella <code>soglie_fedelta</code> per rendere le soglie modificabili.</small>
     {% endif %}
+  </article>
+
+    <article class="loyalty-card">
+      <div class="loyalty-card__header">
+        <h2 class="loyalty-card__title">Distribuzione livelli</h2>
+        <span class="loyalty-card__meta">Aggiornata automaticamente</span>
+    </div>
+      {% if distribuzione %}
+      <ul class="loyalty-list">
+      {% for lvl, count in distribuzione %}
+      <li><strong>{{ lvl|capitalize }}</strong>: {{ count }} clienti</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state">Nessun dato disponibile per i livelli.</div>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="loyalty-card loyalty-card--timeline fade-in" style="animation-delay: 200ms;">
+    <div class="loyalty-card__header">
+      <h2 class="loyalty-card__title">Ultimi movimenti registrati</h2>
+      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Vai all’elenco →</a>
+    </div>
+    {% if recent_movimenti %}
+    <ul class="timeline-list">
+      {% for mov in recent_movimenti %}
+      {% set movimento = mov.movimento %}
+      {% set cliente = mov.cliente %}
+      {% set evento = mov.evento %}
+      <li class="timeline-item">
+        <div class="timeline-item__header">
+          <strong>{{ cliente.cognome }} {{ cliente.nome }}</strong>
+          <span class="badge">{{ movimento.punti }} pt</span>
+        </div>
+        <div class="timeline-item__meta">
+          {{ movimento.data_assegnazione.strftime('%d/%m/%Y %H:%M') if movimento.data_assegnazione else 'Data n/d' }}
+          {% if evento %}• {{ evento.nome_evento }}{% endif %}
+        </div>
+        {% if movimento.motivo %}
+        <p class="timeline-item__note">{{ movimento.motivo }}</p>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty-state">Ancora nessun movimento registrato di recente.</div>
+    {% endif %}
+  </section>
   </div>
-  
-  <div style="text-align: center; margin-top: 1rem;">
-    <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
-  </div>
-</section>
-{% endif %}
 {% endblock %}

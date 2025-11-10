@@ -4,7 +4,7 @@
 {% block staff_content %}
 <section class="card">
   <h1 class="card__title">{{ e.nome_evento }}</h1>
-  <div class="card__meta">{{ e.data_evento }} • Capienza: {{ capienza }}</div>
+  <div class="card__meta">{{ e.data_evento.strftime('%d/%m/%Y') }} • Capienza: {{ capienza }}</div>
 
   <ul class="list">
     <li class="list__item">Ingressi totali: <strong>{{ ingressi_tot }}</strong></li>
@@ -13,7 +13,7 @@
   </ul>
 
   <div class="form__actions">
-    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Cambia evento</a>
+    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Dettagli evento attivo</a>
   </div>
 </section>
 {% endblock %}

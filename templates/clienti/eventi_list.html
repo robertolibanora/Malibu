@@ -2,6 +2,7 @@
 {% block title %}Eventi - Malibù{% endblock %}
 
 {% block cliente_content %}
+{% set show_all_past = show_all_past|default(false) %}
 
 <div class="section-heading">
   <span class="section-heading__icon">🎟️</span>
@@ -53,6 +54,7 @@
 </section>
 
 {% if eventi_passati %}
+{% set eventi_passati_preview = eventi_passati if show_all_past else eventi_passati[:3] %}
 <div class="section-heading section-heading--muted">
   <span class="section-heading__icon">🕰️</span>
   <div class="section-heading__meta">
@@ -62,7 +64,7 @@
 </div>
 
 <section class="event-list event-list--past">
-  {% for e in eventi_passati %}
+  {% for e in eventi_passati_preview %}
   <article class="event-card event-card--past">
     <div class="event-card__media">
       {% if e.cover_url %}
@@ -93,8 +95,25 @@
     </div>
   </article>
   {% endfor %}
+{% if not show_all_past and eventi_passati|length > 3 %}
+<div class="form__actions">
+  <form method="get" action="{{ url_for('eventi.lista_pubblica') }}">
+    <input type="hidden" name="show_all" value="past">
+    {% if filtri.categoria %}
+      <input type="hidden" name="categoria" value="{{ filtri.categoria }}">
+    {% endif %}
+    {% if filtri.dal %}
+      <input type="hidden" name="dal" value="{{ filtri.dal }}">
+    {% endif %}
+    {% if filtri.al %}
+      <input type="hidden" name="al" value="{{ filtri.al }}">
+    {% endif %}
+    <button class="btn btn--ghost" type="submit">Vedi altri eventi passati</button>
+  </form>
+</div>
 {% endif %}
 </section>
+{% endif %}
 
 <section class="card" style="margin-top: 1rem;">
   <h1 class="card__title">Filtra eventi</h1>

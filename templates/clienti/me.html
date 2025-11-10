@@ -51,4 +51,12 @@
     </div>
   </div>
 </section>
+
+<section class="card card--logout">
+  <h2 class="card__title">Hai finito?</h2>
+  <p class="text--muted">Effettua il logout in qualsiasi momento per proteggere i tuoi dati.</p>
+  <div class="form__actions">
+    <a class="btn btn--logout" href="{{ url_for('auth.logout') }}">Esci dall'account</a>
+  </div>
+</section>
 {% endblock %}

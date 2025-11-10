@@ -1,0 +1,113 @@
+{#
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🎯 QR Scanner Macro - Malibu Staff
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Macro riutilizzabile per renderizzare il componente scanner QR.
+
+  Parametri macro:
+    render_qr_scanner(
+      container_id='qr-reader',
+      form_id=None,
+      result_input_id='qr-result',
+      manual_input_id='qr-manual',
+      auto_submit=False,
+      show_manual_input=True,
+      manual_input_label='Oppure inserisci codice manualmente',
+      manual_input_placeholder='QR / codice cliente'
+    )
+#}
+
+{% macro render_qr_scanner(container_id='qr-reader', form_id=None,
+                            result_input_id='qr-result', manual_input_id='qr-manual',
+                            auto_submit=False, show_manual_input=True,
+                            manual_input_label='Oppure inserisci codice manualmente',
+                            manual_input_placeholder='QR / codice cliente',
+                            precheck_url=None) %}
+
+  <div id="{{ container_id }}" class="qr-container">
+    <div class="qr-status qr-status--loading">⏳ Inizializzazione scanner...</div>
+  </div>
+
+  <input type="hidden" id="{{ result_input_id }}" name="qr">
+
+  {% if show_manual_input %}
+  <div class="form__group" style="margin-top: 1rem;">
+    <label class="form__label" for="{{ manual_input_id }}">{{ manual_input_label }}</label>
+    <input
+      class="form__input"
+      type="text"
+      id="{{ manual_input_id }}"
+      name="qr_manual"
+      placeholder="{{ manual_input_placeholder }}"
+      autocomplete="off"
+      aria-label="Codice QR manuale">
+    <small class="form__help text--muted">
+      Se lo scanner non funziona, inserisci il codice manualmente
+    </small>
+  </div>
+  {% endif %}
+
+  <script>
+  (function() {
+    'use strict';
+
+    function waitForLibrary(callback, maxAttempts) {
+      maxAttempts = maxAttempts || 50;
+      let attempts = 0;
+      const interval = setInterval(function() {
+        attempts++;
+        if (typeof Html5Qrcode !== 'undefined') {
+          clearInterval(interval);
+          callback();
+        } else if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          console.error('❌ Libreria html5-qrcode non caricata dopo', maxAttempts * 100, 'ms');
+          const container = document.getElementById('{{ container_id }}');
+          if (container) {
+            container.innerHTML = '\n              <div class="qr-error">\n                <p><strong>⚠️ Errore caricamento scanner</strong></p>\n                <p class="text--muted">Usa l\'input manuale qui sotto.</p>\n              </div>\n            ';
+          }
+        }
+      }, 100);
+    }
+
+    function initScanner() {
+      if (typeof initQrScanner === 'undefined') {
+        console.error('❌ Modulo qr-scanner.js non caricato');
+        return;
+      }
+
+      const options = {
+        autoSubmit: {{ 'true' if auto_submit else 'false' }},
+        resultInputId: '{{ result_input_id }}',
+        manualInputId: '{{ manual_input_id }}',
+        allowDuplicates: false
+      };
+      {% if form_id %}
+      options.formId = '{{ form_id }}';
+      {% endif %}
+      {% if precheck_url %}
+      options.precheckUrl = '{{ precheck_url }}';
+      {% endif %}
+
+      const onSuccess = function(decodedText, result) {
+        const event = new CustomEvent('qr-scanned', {
+          detail: { code: decodedText, result: result }
+        });
+        document.dispatchEvent(event);
+      };
+
+      const scanner = initQrScanner('{{ container_id }}', onSuccess, options);
+      window.qrScannerInstance = scanner;
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        waitForLibrary(initScanner);
+      });
+    } else {
+      waitForLibrary(initScanner);
+    }
+  })();
+  </script>
+{% endmacro %}

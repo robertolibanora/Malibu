@@ -5,7 +5,7 @@
 {% block content %}
 <section class="auth">
   <div class="auth__brand">
-    <span class="auth__brand-title">Malibù</span>
+    <img class="auth__brand-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù">
     <span class="auth__brand-subtitle">Crea il tuo accesso personale</span>
     <span class="auth__divider"></span>
   </div>
@@ -24,12 +24,12 @@
       <input class="form__input" id="telefono" name="telefono" inputmode="tel" required autocomplete="tel" aria-label="Telefono">
     </div>
     <div class="form__group">
-      <label class="form__label" for="data_nascita">Data di nascita (opzionale)</label>
-      <input class="form__input" id="data_nascita" type="date" name="data_nascita" autocomplete="bday" aria-label="Data di nascita">
+      <label class="form__label" for="data_nascita">Data di nascita</label>
+      <input class="form__input" id="data_nascita" type="date" name="data_nascita" autocomplete="bday" aria-label="Data di nascita" required>
     </div>
     <div class="form__group">
-      <label class="form__label" for="citta">Città (opzionale)</label>
-      <input class="form__input" id="citta" name="citta" autocomplete="address-level2" aria-label="Città">
+      <label class="form__label" for="citta">Città</label>
+      <input class="form__input" id="citta" name="citta" autocomplete="address-level2" aria-label="Città" required>
     </div>
     <div class="form__group">
       <label class="form__label" for="password_reg">Password</label>

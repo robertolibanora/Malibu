@@ -18,7 +18,10 @@
       </select>
     </div>
 
-  
+    <div class="form__group" id="grp_num" style="display:none;">
+      <label class="form__label">Numero persone (obbligatorio)</label>
+      <input class="form__input" type="number" name="num_persone" id="num_persone" min="1" placeholder="Es: 6">
+    </div>
 
     <div class="form__group" id="grp_note" style="display:none;">
       <label class="form__label">Nome tavolo (obbligatorio)</label>
@@ -38,14 +41,20 @@
 const tipo = document.getElementById('tipo');
 const grpNote = document.getElementById('grp_note');
 const note = document.getElementById('note');
+const grpNum = document.getElementById('grp_num');
+const num = document.getElementById('num_persone');
 
 function toggleFields(){
   if (tipo.value === 'tavolo'){
     grpNote.style.display = '';
     note.setAttribute('required','required');
+    grpNum.style.display = '';
+    num.setAttribute('required','required');
   } else {
     grpNote.style.display = 'none';
     note.removeAttribute('required');
+    grpNum.style.display = 'none';
+    num.removeAttribute('required');
   }
 }
 tipo.addEventListener('change', toggleFields);

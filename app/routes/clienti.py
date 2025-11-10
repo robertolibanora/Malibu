@@ -9,6 +9,7 @@ from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
 from app.models.consumi import Consumo
 from app.utils.qr import generate_short_code, qr_data_url
+from app.utils.auth import hash_password
 from app.routes.fedelta import get_thresholds, compute_level, next_threshold_info
 from app.utils.decorators import require_cliente, require_admin
 from datetime import datetime, date, timedelta
@@ -44,7 +45,7 @@ def register_submit():
     citta = request.form.get("citta", "").strip()
     password = request.form.get("password", "").strip()
 
-    if not all([nome, cognome, telefono, password]):
+    if not all([nome, cognome, telefono, password, data_nascita, citta]):
         flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
         return redirect(url_for("clienti.register_form"))
 
@@ -57,9 +58,9 @@ def register_submit():
             nome=nome,
             cognome=cognome,
             telefono=telefono,
-            data_nascita=data_nascita if data_nascita else None,
-            citta=citta if citta else None,
-            password_hash=password,  # TODO: placeholder - implementare hash_password in futuro
+            data_nascita=data_nascita,
+            citta=citta,
+            password_hash=hash_password(password),
             qr_code=qr,
             livello="base",
             punti_fedelta=0,
@@ -234,7 +235,7 @@ def me_edit():
         # opzionale: cambio password
         new_pass = request.form.get("nuova_password", "").strip()
         if new_pass:
-            cli.password_hash = new_pass  # TODO: placeholder - implementare hash_password in futuro
+            cli.password_hash = hash_password(new_pass)
 
         try:
             db.commit()
@@ -262,25 +263,97 @@ def admin_dashboard():
         from app.models.prenotazioni import Prenotazione
         from app.models.feedback import Feedback
         
+        valid_ranges = (7, 30, 90)
+        range_days = request.args.get("range", default=30, type=int)
+        if range_days not in valid_ranges:
+            range_days = 30
+
+        now = datetime.now()
+        start_period = now - timedelta(days=range_days)
+        prev_period_start = start_period - timedelta(days=range_days)
+        prev_period_end = start_period
+
         # Statistiche generali
         tot_clienti = db.query(func.count(Cliente.id_cliente)).scalar() or 0
-        clienti_attivi = db.query(func.count(Cliente.id_cliente)).filter(Cliente.stato_account == "attivo").scalar() or 0
+        clienti_attivi = (
+            db.query(func.count(Cliente.id_cliente))
+            .filter(Cliente.stato_account == "attivo")
+            .scalar()
+            or 0
+        )
+
+        # Nuovi clienti (range selezionato)
+        nuovi_clienti = (
+            db.query(func.count(Cliente.id_cliente))
+            .filter(Cliente.data_registrazione >= start_period)
+            .scalar()
+            or 0
+        )
+        nuovi_clienti_prev = (
+            db.query(func.count(Cliente.id_cliente))
+            .filter(Cliente.data_registrazione >= prev_period_start)
+            .filter(Cliente.data_registrazione < prev_period_end)
+            .scalar()
+            or 0
+        )
         
         # Eventi
         tot_eventi = db.query(func.count(Evento.id_evento)).scalar() or 0
-        eventi_attivi = db.query(func.count(Evento.id_evento)).filter(Evento.stato == "attivo").scalar() or 0
-        prossimo_evento = db.query(Evento).filter(Evento.data_evento >= datetime.now().date()).order_by(Evento.data_evento.asc()).first()
+        eventi_attivi = (
+            db.query(func.count(Evento.id_evento))
+            .filter(Evento.stato == "attivo")
+            .scalar()
+            or 0
+        )
+        prossimo_evento = (
+            db.query(Evento)
+            .filter(Evento.data_evento >= now.date())
+            .order_by(Evento.data_evento.asc())
+            .first()
+        )
+        giorni_al_prossimo_evento = None
+        if prossimo_evento and prossimo_evento.data_evento:
+            giorni_al_prossimo_evento = (prossimo_evento.data_evento - now.date()).days
+
+        # Ingressi (range selezionato)
+        ingressi_recenti = (
+            db.query(func.count(Ingresso.id_ingresso))
+            .filter(Ingresso.orario_ingresso >= start_period)
+            .scalar()
+            or 0
+        )
+        ingressi_prev = (
+            db.query(func.count(Ingresso.id_ingresso))
+            .filter(Ingresso.orario_ingresso >= prev_period_start)
+            .filter(Ingresso.orario_ingresso < prev_period_end)
+            .scalar()
+            or 0
+        )
         
-        # Ingressi (ultimi 30 giorni)
-        trenta_giorni_fa = datetime.now() - timedelta(days=30)
-        ingressi_recenti = db.query(func.count(Ingresso.id_ingresso)).filter(Ingresso.orario_ingresso >= trenta_giorni_fa).scalar() or 0
-        
-        # Consumi (ultimi 30 giorni)
-        consumi_recenti = db.query(func.sum(Consumo.importo)).filter(Consumo.data_consumo >= trenta_giorni_fa).scalar() or 0
-        consumi_recenti = float(consumi_recenti) if consumi_recenti else 0
-        
-        # Prenotazioni (ultimi 30 giorni)
-        prenotazioni_recenti = db.query(func.count(Prenotazione.id_prenotazione)).filter(Prenotazione.stato == "attiva").scalar() or 0
+        # Consumi (range selezionato)
+        consumi_recenti = (
+            db.query(func.sum(Consumo.importo))
+            .filter(Consumo.data_consumo >= start_period)
+            .scalar()
+            or 0
+        )
+        consumi_recenti = float(consumi_recenti) if consumi_recenti else 0.0
+        consumi_prev = (
+            db.query(func.sum(Consumo.importo))
+            .filter(Consumo.data_consumo >= prev_period_start)
+            .filter(Consumo.data_consumo < prev_period_end)
+            .scalar()
+            or 0
+        )
+        consumi_prev = float(consumi_prev) if consumi_prev else 0.0
+
+        # Prenotazioni attive
+        prenotazioni_attive = (
+            db.query(func.count(Prenotazione.id_prenotazione))
+            .filter(Prenotazione.stato == "attiva")
+            .scalar()
+            or 0
+        )
         
         # Feedback (media generale)
         avg_feedback = db.query(
@@ -306,6 +379,71 @@ def admin_dashboard():
                           .order_by(Evento.data_evento.desc())\
                           .limit(5).all()
         
+        # Trend temporali per grafici
+        date_expr_ingressi = func.date(Ingresso.orario_ingresso)
+        ingressi_trend_rows = (
+            db.query(
+                date_expr_ingressi.label("giorno"),
+                func.count(Ingresso.id_ingresso).label("totale")
+            )
+            .filter(Ingresso.orario_ingresso >= start_period)
+            .group_by(date_expr_ingressi)
+            .order_by(date_expr_ingressi)
+            .all()
+        )
+
+        date_expr_consumi = func.date(Consumo.data_consumo)
+        consumi_trend_rows = (
+            db.query(
+                date_expr_consumi.label("giorno"),
+                func.coalesce(func.sum(Consumo.importo), 0).label("totale")
+            )
+            .filter(Consumo.data_consumo >= start_period)
+            .group_by(date_expr_consumi)
+            .order_by(date_expr_consumi)
+            .all()
+        )
+
+        start_date = start_period.date()
+        end_date = now.date()
+        ingressi_trend_map = {}
+        for row in ingressi_trend_rows:
+            giorno = row.giorno if hasattr(row.giorno, "isoformat") else row[0]
+            if hasattr(giorno, "date"):
+                giorno = giorno.date()
+            ingressi_trend_map[giorno] = int(row.totale or 0)
+
+        consumi_trend_map = {}
+        for row in consumi_trend_rows:
+            giorno = row.giorno if hasattr(row.giorno, "isoformat") else row[0]
+            if hasattr(giorno, "date"):
+                giorno = giorno.date()
+            consumi_trend_map[giorno] = float(row.totale or 0)
+
+        trend_labels = []
+        ingressi_trend_values = []
+        consumi_trend_values = []
+        cursor = start_date
+        while cursor <= end_date:
+            trend_labels.append(cursor.strftime("%d/%m"))
+            ingressi_trend_values.append(ingressi_trend_map.get(cursor, 0))
+            consumi_trend_values.append(round(consumi_trend_map.get(cursor, 0.0), 2))
+            cursor += timedelta(days=1)
+
+        def compute_delta(current, previous):
+            diff = current - previous
+            if previous:
+                pct = round((diff / previous) * 100, 1)
+            elif current:
+                pct = None
+            else:
+                pct = 0
+            return diff, pct
+
+        ingressi_delta_abs, ingressi_delta_pct = compute_delta(ingressi_recenti, ingressi_prev)
+        consumi_delta_abs, consumi_delta_pct = compute_delta(consumi_recenti, consumi_prev)
+        nuovi_clienti_delta_abs, nuovi_clienti_delta_pct = compute_delta(nuovi_clienti, nuovi_clienti_prev)
+
         return render_template(
             "admin/dashboard.html",
             tot_clienti=tot_clienti,
@@ -313,16 +451,30 @@ def admin_dashboard():
             tot_eventi=tot_eventi,
             eventi_attivi=eventi_attivi,
             prossimo_evento=prossimo_evento,
+            giorni_al_prossimo_evento=giorni_al_prossimo_evento,
             ingressi_recenti=ingressi_recenti,
             consumi_recenti=consumi_recenti,
-            prenotazioni_recenti=prenotazioni_recenti,
+            prenotazioni_attive=prenotazioni_attive,
+            nuovi_clienti=nuovi_clienti,
+            range_days=range_days,
+            range_options=valid_ranges,
             avg_musica=avg_musica,
             avg_ingresso=avg_ingresso,
             avg_ambiente=avg_ambiente,
             livelli_dist=livelli_dist,
             top_clienti=top_clienti,
             eventi_recenti=eventi_recenti,
-            oggi=datetime.now().date()
+            oggi=now.date(),
+            ultimo_aggiornamento=now,
+            ingressi_delta_abs=ingressi_delta_abs,
+            ingressi_delta_pct=ingressi_delta_pct,
+            consumi_delta_abs=consumi_delta_abs,
+            consumi_delta_pct=consumi_delta_pct,
+            nuovi_clienti_delta_abs=nuovi_clienti_delta_abs,
+            nuovi_clienti_delta_pct=nuovi_clienti_delta_pct,
+            trend_labels=trend_labels,
+            ingressi_trend_values=ingressi_trend_values,
+            consumi_trend_values=consumi_trend_values
         )
     finally:
         db.close()
@@ -339,9 +491,60 @@ def admin_statistics():
         from app.models.prenotazioni import Prenotazione
         from app.models.feedback import Feedback
 
+        valid_ranges = (30, 60, 90, 120)
+        range_days = request.args.get("range", default=30, type=int)
+        if range_days not in valid_ranges:
+            range_days = 30
+
+        now = datetime.utcnow()
+        start_period = now - timedelta(days=range_days)
+        prev_period_start = start_period - timedelta(days=range_days)
+        prev_period_end = start_period
+
+        def compute_delta(current, previous):
+            diff = current - previous
+            if previous:
+                pct = round((diff / previous) * 100, 1)
+            elif current:
+                pct = None
+            else:
+                pct = 0
+            return diff, pct
+
         tot_ingressi = db.query(func.count(Ingresso.id_ingresso)).scalar() or 0
+        ingressi_range = (
+            db.query(func.count(Ingresso.id_ingresso))
+            .filter(Ingresso.orario_ingresso >= start_period)
+            .scalar()
+            or 0
+        )
+        ingressi_prev = (
+            db.query(func.count(Ingresso.id_ingresso))
+            .filter(Ingresso.orario_ingresso >= prev_period_start)
+            .filter(Ingresso.orario_ingresso < prev_period_end)
+            .scalar()
+            or 0
+        )
+        ingressi_delta_abs, ingressi_delta_pct = compute_delta(ingressi_range, ingressi_prev)
+
         tot_prenotazioni = db.query(func.count(Prenotazione.id_prenotazione)).scalar() or 0
         tot_consumi = db.query(func.coalesce(func.sum(Consumo.importo), 0)).scalar() or 0
+        consumi_range = (
+            db.query(func.coalesce(func.sum(Consumo.importo), 0))
+            .filter(Consumo.data_consumo >= start_period)
+            .scalar()
+            or 0
+        )
+        consumi_range = float(consumi_range or 0)
+        consumi_prev = (
+            db.query(func.coalesce(func.sum(Consumo.importo), 0))
+            .filter(Consumo.data_consumo >= prev_period_start)
+            .filter(Consumo.data_consumo < prev_period_end)
+            .scalar()
+            or 0
+        )
+        consumi_prev = float(consumi_prev or 0)
+        consumi_delta_abs, consumi_delta_pct = compute_delta(consumi_range, consumi_prev)
 
         feedback_global = db.query(
             func.avg(Feedback.voto_musica),
@@ -362,6 +565,30 @@ def admin_statistics():
                 "average": sum(componenti) / len(componenti) if componenti else 0.0,
                 "samples": int(feedback_global[3]),
             }
+
+        feedback_recent = db.query(
+            func.count(Feedback.id_feedback),
+            func.avg(Feedback.voto_musica),
+            func.avg(Feedback.voto_ingresso),
+            func.avg(Feedback.voto_ambiente),
+        ).filter(Feedback.data_feedback >= start_period).one()
+        feedback_range_count = int(feedback_recent[0] or 0)
+        feedback_range_avg = None
+        if feedback_range_count:
+            avg_components = [
+                float(feedback_recent[1] or 0),
+                float(feedback_recent[2] or 0),
+                float(feedback_recent[3] or 0),
+            ]
+            feedback_range_avg = round(sum(avg_components) / len(avg_components), 1)
+        feedback_prev_count = (
+            db.query(func.count(Feedback.id_feedback))
+            .filter(Feedback.data_feedback >= prev_period_start)
+            .filter(Feedback.data_feedback < prev_period_end)
+            .scalar()
+            or 0
+        )
+        feedback_delta_abs, feedback_delta_pct = compute_delta(feedback_range_count, feedback_prev_count)
 
         ingressi_per_evento_rows = (
             db.query(
@@ -428,16 +655,15 @@ def admin_statistics():
             "max_samples": max_feedback_samples,
         }
 
-        default_range_days = 30
-        max_range_days = 120
-        start_period = datetime.utcnow() - timedelta(days=max_range_days)
+        max_range_days = max(valid_ranges)
+        temporal_start = now - timedelta(days=max_range_days)
         date_expr = func.date(Ingresso.orario_ingresso)
         ingressi_temporali_rows = (
             db.query(
                 date_expr.label("giorno"),
                 func.count(Ingresso.id_ingresso).label("tot_slot")
             )
-            .filter(Ingresso.orario_ingresso >= start_period)
+            .filter(Ingresso.orario_ingresso >= temporal_start)
             .group_by(date_expr)
             .order_by(date_expr)
             .all()
@@ -453,7 +679,7 @@ def admin_statistics():
             })
         ingressi_temporali = {
             "points": ingressi_temporali_points,
-            "default_range_days": default_range_days,
+            "default_range_days": range_days,
         }
 
         prodotti_top_rows = (
@@ -526,6 +752,13 @@ def admin_statistics():
         event_categories = db.query(Evento.categoria).distinct().all()
         event_categories = sorted({row[0] or "non specificato" for row in event_categories})
 
+        top_ingressi_event = ingressi_per_evento_items[0] if ingressi_per_evento_items else None
+        top_feedback_event = None
+        if feedback_per_evento_items:
+            top_feedback_event = max(feedback_per_evento_items, key=lambda item: item["overall"])
+        top_ricavi_event = ricavi_per_evento_items[0] if ricavi_per_evento_items else None
+        top_prodotto = prodotti_top_items[0] if prodotti_top_items else None
+
         return render_template(
             "admin/analytics/overview.html",
             tot_ingressi=tot_ingressi,
@@ -538,8 +771,24 @@ def admin_statistics():
             prodotti_top=prodotti_top,
             ricavi_per_evento=ricavi_per_evento,
             prenotazioni_per_tipo=prenotazioni_per_tipo,
-            range_days=default_range_days,
+            range_days=range_days,
             event_categories=event_categories,
+            range_options=valid_ranges,
+            ingressi_range=ingressi_range,
+            ingressi_delta_abs=ingressi_delta_abs,
+            ingressi_delta_pct=ingressi_delta_pct,
+            consumi_range=consumi_range,
+            consumi_delta_abs=consumi_delta_abs,
+            consumi_delta_pct=consumi_delta_pct,
+            feedback_range_count=feedback_range_count,
+            feedback_range_avg=feedback_range_avg,
+            feedback_delta_abs=feedback_delta_abs,
+            feedback_delta_pct=feedback_delta_pct,
+            top_ingressi_event=top_ingressi_event,
+            top_feedback_event=top_feedback_event,
+            top_ricavi_event=top_ricavi_event,
+            top_prodotto=top_prodotto,
+            analytics_generated_at=now,
         )
     finally:
         db.close()
@@ -603,6 +852,17 @@ def admin_lista_clienti():
                 'disattivati': db.query(func.count(Cliente.id_cliente)).filter(Cliente.stato_account == 'disattivato').scalar() or 0,
             }
         
+        cliente_ids = [c.id_cliente for c in clienti]
+        ultimo_ingressi = {}
+        if cliente_ids:
+            ultime_date = (
+                db.query(Ingresso.cliente_id, func.max(Ingresso.orario_ingresso))
+                .filter(Ingresso.cliente_id.in_(cliente_ids))
+                .group_by(Ingresso.cliente_id)
+                .all()
+            )
+            ultimo_ingressi = {cid: data for cid, data in ultime_date}
+        
         # Calcola numero di pagine
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
         
@@ -621,7 +881,8 @@ def admin_lista_clienti():
                              total=total,
                              total_pages=total_pages,
                              pages_list=pages_list,
-                             stats=stats)
+                             stats=stats,
+                             ultimo_ingressi=ultimo_ingressi)
     finally:
         db.close()
 
@@ -652,23 +913,32 @@ def admin_cliente_detail(cliente_id):
         tot_punti = db.query(func.sum(Fedelta.punti)).filter(Fedelta.cliente_id == cliente_id).scalar() or 0
         
         # Ultime attività
-        ultime_prenotazioni = db.query(Prenotazione, Evento)\
-                               .join(Evento, Evento.id_evento == Prenotazione.evento_id)\
-                               .filter(Prenotazione.cliente_id == cliente_id)\
-                               .order_by(Prenotazione.id_prenotazione.desc())\
-                               .limit(5).all()
+        ultime_prenotazioni = (
+            db.query(Prenotazione, Evento)
+            .join(Evento, Evento.id_evento == Prenotazione.evento_id)
+            .filter(Prenotazione.cliente_id == cliente_id)
+            .order_by(Prenotazione.id_prenotazione.desc())
+            .limit(5)
+            .all()
+        )
         
-        ultimi_ingressi = db.query(Ingresso, Evento)\
-                           .join(Evento, Evento.id_evento == Ingresso.evento_id)\
-                           .filter(Ingresso.cliente_id == cliente_id)\
-                           .order_by(Ingresso.orario_ingresso.desc())\
-                           .limit(5).all()
+        ultimi_ingressi = (
+            db.query(Ingresso, Evento)
+            .join(Evento, Evento.id_evento == Ingresso.evento_id)
+            .filter(Ingresso.cliente_id == cliente_id)
+            .order_by(Ingresso.orario_ingresso.desc())
+            .limit(5)
+            .all()
+        )
         
-        ultimi_consumi = db.query(Consumo, Evento)\
-                          .join(Evento, Evento.id_evento == Consumo.evento_id)\
-                          .filter(Consumo.cliente_id == cliente_id)\
-                          .order_by(Consumo.data_consumo.desc())\
-                          .limit(5).all()
+        ultimi_consumi = (
+            db.query(Consumo, Evento)
+            .join(Evento, Evento.id_evento == Consumo.evento_id)
+            .filter(Consumo.cliente_id == cliente_id)
+            .order_by(Consumo.data_consumo.desc())
+            .limit(5)
+            .all()
+        )
         
         movimenti_fedelta = db.query(Fedelta, Evento)\
                              .join(Evento, Evento.id_evento == Fedelta.evento_id)\
@@ -701,7 +971,23 @@ def admin_cliente_detail(cliente_id):
         promozioni_assegnate_ids = [cp.promozione_id for cp, _ in promozioni_cliente]
         promozioni_disponibili = [p for p in promozioni_disponibili if p.id_promozione not in promozioni_assegnate_ids]
         
-        return render_template("admin/cliente_detail.html",
+        ultimo_ingresso = None
+        if ultimi_ingressi:
+            ingresso, evento = ultimi_ingressi[0]
+            ultimo_ingresso = {"ingresso": ingresso, "evento": evento}
+
+        ultima_prenotazione = None
+        if ultime_prenotazioni:
+            prenotazione, evento = ultime_prenotazioni[0]
+            ultima_prenotazione = {"prenotazione": prenotazione, "evento": evento}
+
+        ultimo_consumo = None
+        if ultimi_consumi:
+            consumo, evento = ultimi_consumi[0]
+            ultimo_consumo = {"consumo": consumo, "evento": evento}
+        
+        return render_template(
+            "admin/cliente_detail.html",
                              cliente=cli,
                              tot_prenotazioni=tot_prenotazioni,
                              tot_ingressi=tot_ingressi,
@@ -714,7 +1000,11 @@ def admin_cliente_detail(cliente_id):
                              feedback_list=feedback_list,
                              promozioni_cliente=promozioni_cliente,
                              promozioni_disponibili=promozioni_disponibili,
-                             oggi=date.today())
+            oggi=date.today(),
+            ultimo_ingresso=ultimo_ingresso,
+            ultima_prenotazione=ultima_prenotazione,
+            ultimo_consumo=ultimo_consumo,
+        )
     finally:
         db.close()
 

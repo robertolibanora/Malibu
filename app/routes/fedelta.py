@@ -21,7 +21,8 @@ fedelta_bp = Blueprint("fedelta", __name__, url_prefix="/fedelta")
 # -----------------------------
 # Regole punteggi (helper)
 # -----------------------------
-PUNTI_INGRESSO = 10
+PUNTI_INGRESSO_PRENOTAZIONE = 10
+PUNTI_INGRESSO_LIBERO = 5
 PUNTI_NO_SHOW = -5
 
 def _default_thresholds():
@@ -76,14 +77,19 @@ def _update_cliente_level(db, cliente_id):
 # ----------------------------------------
 # API “servizio” da riusare in altre route
 # ----------------------------------------
-def award_on_ingresso(db, cliente_id, evento_id):
-    # +10 punti
+def award_on_ingresso(db, cliente_id, evento_id, has_prenotazione=False):
+    punti = PUNTI_INGRESSO_PRENOTAZIONE if has_prenotazione else PUNTI_INGRESSO_LIBERO
+    motivo = (
+        f"Ingresso evento #{evento_id} (prenotazione)"
+        if has_prenotazione else
+        f"Ingresso evento #{evento_id} (walk-in)"
+    )
     m = Fedelta(cliente_id=cliente_id, evento_id=evento_id,
-                punti=PUNTI_INGRESSO, motivo=f"Ingresso evento #{evento_id}")
+                punti=punti, motivo=motivo)
     db.add(m)
     # aggiorna saldo cliente
     cli = db.query(Cliente).get(cliente_id)
-    cli.punti_fedelta = (cli.punti_fedelta or 0) + PUNTI_INGRESSO
+    cli.punti_fedelta = (cli.punti_fedelta or 0) + punti
     db.commit()
     _update_cliente_level(db, cliente_id)
 
@@ -148,67 +154,181 @@ def staff_quick():
 # =========================================
 # 👑 Admin — lista & filtri
 # =========================================
-@fedelta_bp.route("/admin", methods=["GET"])
+@fedelta_bp.route("/admin", methods=["GET", "POST"])
 @require_admin
 def admin_list():
     db = SessionLocal()
     try:
+        if request.method == "POST":
+            if SogliaFedelta is None:
+                flash("Per modificare le soglie è necessaria la tabella 'soglie_fedelta'.", "warning")
+                return redirect(url_for("fedelta.admin_list"))
+
+            try:
+                loyal = request.form.get("loyal", type=int)
+                premium = request.form.get("premium", type=int)
+                vip = request.form.get("vip", type=int)
+            except ValueError:
+                loyal = premium = vip = None
+
+            if None in (loyal, premium, vip):
+                flash("Inserisci valori numerici validi per le soglie.", "danger")
+                return redirect(url_for("fedelta.admin_list"))
+
+            if min(loyal, premium, vip) < 0:
+                flash("Le soglie non possono essere negative.", "danger")
+                return redirect(url_for("fedelta.admin_list"))
+
+            if not (0 <= loyal <= premium <= vip):
+                flash("Le soglie devono essere crescenti (Base 0 ≤ Loyal ≤ Premium ≤ VIP).", "warning")
+                return redirect(url_for("fedelta.admin_list"))
+
+            data = {
+                "base": 0,
+                "loyal": loyal,
+                "premium": premium,
+                "vip": vip,
+            }
+
+            for lvl, pts in data.items():
+                row = db.query(SogliaFedelta).filter(SogliaFedelta.livello == lvl).first()
+                if not row:
+                    row = SogliaFedelta(livello=lvl, punti_min=pts)
+                    db.add(row)
+                else:
+                    row.punti_min = pts
+            db.commit()
+            flash("Soglie aggiornate correttamente.", "success")
+            return redirect(url_for("fedelta.admin_list"))
+
+        thresholds = get_thresholds(db)
+        thresholds_sorted = sorted(thresholds.items(), key=lambda x: x[1])
+
+        totale_clienti = db.query(func.count(Cliente.id_cliente)).scalar() or 0
+        punti_totali = db.query(func.coalesce(func.sum(Cliente.punti_fedelta), 0)).scalar() or 0
+        punti_medi = int(round(punti_totali / totale_clienti)) if totale_clienti else 0
+
+        top_raw = (db.query(Cliente)
+                     .order_by(Cliente.punti_fedelta.is_(None).asc(),
+                               Cliente.punti_fedelta.desc())
+                     .limit(12)
+                     .all())
+        top_clienti = []
+        for cli in top_raw:
+            points = int(cli.punti_fedelta or 0)
+            level = compute_level(points, thresholds)
+            nxt, to_go = next_threshold_info(points, thresholds)
+            top_clienti.append({
+                "cliente": cli,
+                "points": points,
+                "level": level,
+                "next_level": nxt,
+                "points_to_next": to_go
+            })
+
+        distribuzione_raw = db.query(Cliente.livello, func.count(Cliente.id_cliente))\
+                              .group_by(Cliente.livello).all()
+        distribuzione_map = {lvl or "base": count for lvl, count in distribuzione_raw}
+        distribuzione = [(lvl, distribuzione_map.get(lvl, 0)) for lvl, _ in thresholds_sorted]
+
+        recent = (db.query(Fedelta, Cliente, Evento)
+                    .join(Cliente, Cliente.id_cliente == Fedelta.cliente_id)
+                    .join(Evento, Evento.id_evento == Fedelta.evento_id)
+                    .order_by(Fedelta.data_assegnazione.desc())
+                    .limit(6)
+                    .all())
+        recent_movimenti = [
+            {"movimento": mov, "cliente": cli, "evento": ev}
+            for mov, cli, ev in recent
+        ]
+
+        stats = {
+            "totale_clienti": totale_clienti,
+            "punti_totali": int(punti_totali),
+            "punti_medi": punti_medi
+        }
+
+        return render_template(
+            "admin/fedelta_list.html",
+            stats=stats,
+            top_clienti=top_clienti,
+            thresholds=thresholds,
+            thresholds_sorted=thresholds_sorted,
+            can_edit_thresholds=SogliaFedelta is not None,
+            distribuzione=distribuzione,
+            recent_movimenti=recent_movimenti
+        )
+    finally:
+        db.close()
+
+# =========================================
+# 👑 Admin — elenco movimenti dettagliati
+# =========================================
+@fedelta_bp.route("/admin/movimenti", methods=["GET"])
+@require_admin
+def admin_movimenti():
+    db = SessionLocal()
+    try:
         from sqlalchemy import func
-        
-        # Parametri paginazione
+
         page = request.args.get("page", 1, type=int)
         per_page = request.args.get("per_page", 50, type=int)
         per_page = min(max(per_page, 10), 200)
-        
-        # Filtri
+
         evento_id = request.args.get("evento_id", type=int)
         cliente_q = (request.args.get("q") or "").strip()
         dal = request.args.get("dal")
-        al  = request.args.get("al")
+        al = request.args.get("al")
 
-        q = db.query(Fedelta, Cliente, Evento).join(Cliente, Cliente.id_cliente == Fedelta.cliente_id)\
-                                              .join(Evento, Evento.id_evento == Fedelta.evento_id)
+        q = db.query(Fedelta, Cliente, Evento)\
+              .join(Cliente, Cliente.id_cliente == Fedelta.cliente_id)\
+              .join(Evento, Evento.id_evento == Fedelta.evento_id)
+
         if evento_id:
             q = q.filter(Fedelta.evento_id == evento_id)
         if cliente_q:
             like = f"%{cliente_q}%"
-            q = q.filter((Cliente.nome.ilike(like)) | (Cliente.cognome.ilike(like)) | (Cliente.telefono.ilike(like)))
+            q = q.filter((Cliente.nome.ilike(like)) |
+                         (Cliente.cognome.ilike(like)) |
+                         (Cliente.telefono.ilike(like)))
         if dal:
             try:
                 d = datetime.strptime(dal, "%Y-%m-%d")
                 q = q.filter(Fedelta.data_assegnazione >= d)
-            except ValueError: pass
+            except ValueError:
+                pass
         if al:
             try:
                 d2 = datetime.strptime(al, "%Y-%m-%d") + timedelta(days=1)
                 q = q.filter(Fedelta.data_assegnazione < d2)
-            except ValueError: pass
+            except ValueError:
+                pass
 
-        # Conta totale
         total = q.count()
-        
-        # Applica paginazione
-        rows = q.order_by(Fedelta.data_assegnazione.desc())\
-                .offset((page - 1) * per_page)\
-                .limit(per_page)\
-                .all()
-        
-        # Calcola pagine
+
+        rows = (q.order_by(Fedelta.data_assegnazione.desc())
+                  .offset((page - 1) * per_page)
+                  .limit(per_page)
+                  .all())
+
         total_pages = (total + per_page - 1) // per_page if total > 0 else 1
         start_page = max(1, page - 2)
         end_page = min(total_pages, page + 2)
         pages_list = list(range(start_page, end_page + 1))
-        
+
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
-        return render_template("admin/fedelta_list.html", 
-                             rows=rows, 
-                             eventi=eventi,
-                             filtro={"evento_id": evento_id, "q": cliente_q, "dal": dal, "al": al},
-                             page=page,
-                             per_page=per_page,
-                             total=total,
-                             total_pages=total_pages,
-                             pages_list=pages_list)
+
+        return render_template(
+            "admin/fedelta_movimenti.html",
+            rows=rows,
+            eventi=eventi,
+            filtro={"evento_id": evento_id, "q": cliente_q, "dal": dal, "al": al},
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=total_pages,
+            pages_list=pages_list
+        )
     finally:
         db.close()
 

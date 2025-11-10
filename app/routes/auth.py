@@ -6,6 +6,7 @@ from app.models.clienti import Cliente
 from app.models.staff import Staff
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.qr import generate_short_code
+from app.utils.auth import hash_password
 import os
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -25,6 +26,39 @@ def _clear_identities():
     session.pop("staff_id", None)
     session.pop("staff_role", None)
     session.pop("admin_user", None)
+
+
+def _looks_like_hash(value: str) -> bool:
+    if not value:
+        return False
+    prefixes = (
+        "pbkdf2:",
+        "scrypt:",
+        "bcrypt:",
+        "$2b$",
+        "$2a$",
+        "$argon2",
+    )
+    return value.startswith(prefixes)
+
+
+def _verify_and_upgrade_password(db, instance, field_name: str, password: str) -> bool:
+    stored = getattr(instance, field_name, "") or ""
+    if not stored:
+        return False
+    try:
+        if _looks_like_hash(stored):
+            return check_password_hash(stored, password)
+    except ValueError:
+        # continua con fallback legacy
+        pass
+
+    if stored == password:
+        setattr(instance, field_name, hash_password(password))
+        db.commit()
+        return True
+
+    return False
 
 # -----------------------
 # CLIENT — Register
@@ -94,7 +128,7 @@ def auth_login_submit():
     try:
         # Prova prima come CLIENTE (cerca per telefono)
         cli = db.query(Cliente).filter(Cliente.telefono == identifier).first()
-        if cli and cli.password_hash and check_password_hash(cli.password_hash, password):
+        if cli and _verify_and_upgrade_password(db, cli, "password_hash", password):
             if cli.stato_account == "disattivato":
                 flash("Il tuo account risulta temporaneamente disattivato. Per assistenza, contattaci.", "danger")
                 return redirect(url_for("auth.auth_login_form"))
@@ -111,7 +145,7 @@ def auth_login_submit():
                 flash("Il tuo account staff risulta disattivato. Contatta l'amministratore per assistenza.", "danger")
                 return redirect(url_for("auth.auth_login_form"))
 
-            if staff.password_hash and check_password_hash(staff.password_hash, password):
+            if _verify_and_upgrade_password(db, staff, "password_hash", password):
                 _clear_identities()
                 session["staff_id"] = staff.id_staff
                 session["staff_role"] = staff.ruolo

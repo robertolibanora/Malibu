@@ -1,0 +1,263 @@
+/**
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 🎨 QR Scanner Styles - Malibu Staff
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * 
+ * Stili dedicati al componente scanner QR
+ * Palette: nero (#0b0b0b) + oro (#d4af37)
+ * Mobile-first, PWA-ready
+ */
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 📦 CONTAINER SCANNER */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.qr-container {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  background: #0b0b0b;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.15);
+  border: 2px solid rgba(212, 175, 55, 0.2);
+}
+
+/* Video scanner */
+.qr-container #qr-reader {
+  width: 100%;
+  border: none;
+  background: #000;
+}
+
+.qr-container video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 🏷️ BADGE STATUS */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.qr-status {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  animation: fadeInDown 0.4s ease;
+}
+
+.qr-status--loading {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.qr-status--ready {
+  background: rgba(212, 175, 55, 0.95);
+  color: #0b0b0b;
+  border: 1px solid rgba(212, 175, 55, 1);
+}
+
+.qr-status--success {
+  background: rgba(34, 197, 94, 0.95);
+  color: #fff;
+  border: 1px solid rgba(34, 197, 94, 1);
+}
+
+.qr-status--error {
+  background: rgba(239, 68, 68, 0.95);
+  color: #fff;
+  border: 1px solid rgba(239, 68, 68, 1);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 🎉 TOAST SUCCESSO */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.qr-toast {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  transition: all 0.3s ease;
+  max-width: 90%;
+}
+
+.qr-toast--visible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.qr-toast--success {
+  background: rgba(34, 197, 94, 0.95);
+  color: #fff;
+  border: 2px solid rgba(34, 197, 94, 1);
+}
+.qr-toast--error {
+  background: rgba(239, 68, 68, 0.95);
+  color: #fff;
+  border: 2px solid rgba(239, 68, 68, 1);
+}
+
+.qr-toast__icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.qr-toast__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.qr-toast__content strong {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.qr-toast__code {
+  font-size: 0.75rem;
+  font-family: 'Courier New', monospace;
+  opacity: 0.9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ⚠️ MESSAGGIO ERRORE */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+.qr-error {
+  padding: 1.5rem;
+  margin-top: 1rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.qr-error p {
+  margin: 0.5rem 0;
+  color: #fff;
+}
+
+.qr-error strong {
+  color: #ef4444;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 🎬 ANIMAZIONI */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.qr-status--loading {
+  animation: fadeInDown 0.4s ease, pulse 1.5s ease infinite;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 📱 RESPONSIVE */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+@media (max-width: 480px) {
+  .qr-container {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  .qr-status {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.8rem;
+  }
+
+  .qr-toast {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  .qr-toast__icon {
+    font-size: 1.25rem;
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 🌙 DARK MODE (già nero, ma per coerenza) */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+@media (prefers-color-scheme: dark) {
+  .qr-container {
+    background: #000;
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ♿ ACCESSIBILITÀ */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-status,
+  .qr-toast {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* 🎯 OVERRIDE HTML5-QRCODE DEFAULT STYLES */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+#qr-reader__dashboard_section_csr {
+  display: none !important; /* Nascondi controlli default */
+}
+
+#qr-reader__scan_region {
+  border: 3px solid #d4af37 !important;
+  border-radius: 8px !important;
+}
+
+#qr-reader__scan_region img {
+  opacity: 0.8 !important;
+}
+

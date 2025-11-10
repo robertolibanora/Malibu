@@ -1,5 +1,5 @@
 # app/routes/ingressi.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app, jsonify
 from sqlalchemy import func, and_
 from datetime import datetime, timedelta
 from app.database import SessionLocal
@@ -22,7 +22,16 @@ TIPI = ("lista", "tavolo", "omaggio", "prevendita")
 # Helpers
 # ---------------------------
 def _get_evento_attivo(db):
-    evento_id = session.get("evento_attivo_id")
+    evento = (
+        db.query(Evento)
+        .filter(Evento.stato == "attivo")
+        .order_by(Evento.data_evento.desc())
+        .first()
+    )
+    if evento:
+        return evento
+
+    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
     return db.query(Evento).get(evento_id) if evento_id else None
 
 def _get_staff_id(db):
@@ -77,8 +86,7 @@ def staff_scan():
     try:
         e = _get_evento_attivo(db)
         if not e:
-            flash("Seleziona prima un evento attivo.", "warning")
-            # questa route deve esistere nel blueprint eventi
+            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
 
         if request.method == "POST":
@@ -125,7 +133,12 @@ def staff_scan():
             db.flush()
             log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=_get_staff_id(db), azione="insert")
             db.commit()
-            award_on_ingresso(db, cliente_id=cli.id_cliente, evento_id=e.id_evento)
+            award_on_ingresso(
+                db,
+                cliente_id=cli.id_cliente,
+                evento_id=e.id_evento,
+                has_prenotazione=pren is not None
+            )
             return redirect(url_for("ingressi.staff_esito", ingresso_id=ingresso.id_ingresso))
 
         # GET
@@ -140,6 +153,76 @@ def staff_scan():
     finally:
         db.close()
 
+
+@ingressi_bp.route("/staff/scan/check", methods=["POST"])
+@require_staff
+def staff_scan_check():
+    """
+    Endpoint JSON di pre-verifica:
+    - verifica che esista un evento attivo
+    - verifica che il QR corrisponda a un cliente
+    - verifica che non sia già stato registrato l'ingresso per l'evento
+    Ritorna:
+      { ok: true }                            -> consentire submit
+      { ok: false, reason: 'not_found' }      -> QR non valido
+      { ok: false, reason: 'already' }        -> già entrato
+      { ok: false, reason: 'no_event' }       -> nessun evento attivo
+    """
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            return jsonify({"ok": False, "reason": "no_event"}), 200
+        data = request.get_json(silent=True) or {}
+        qr = (data.get("qr") or request.form.get("qr") or "").strip()
+        if not qr:
+            return jsonify({"ok": False, "reason": "not_found"}), 200
+        cli = db.query(Cliente).filter(Cliente.qr_code == qr).first()
+        if not cli:
+            return jsonify({"ok": False, "reason": "not_found"}), 200
+        if _already_checked_in(db, cli.id_cliente, e.id_evento):
+            return jsonify({"ok": False, "reason": "already"}), 200
+        return jsonify({"ok": True}), 200
+    finally:
+        db.close()
+
+
+@ingressi_bp.route("/staff/scan/preview", methods=["POST"])
+@require_staff
+def staff_scan_preview():
+    """
+    Ritorna i dettagli del cliente per conferma prima del check-in.
+    Input JSON: { qr: "..." }
+    Output:
+      { ok: true,
+        cliente: { nome, cognome, data_nascita, citta, id },
+        already: bool
+      }
+      Oppure { ok: false, reason: 'no_event'|'not_found' }
+    """
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            return jsonify({"ok": False, "reason": "no_event"}), 200
+        data = request.get_json(silent=True) or {}
+        qr = (data.get("qr") or "").strip()
+        if not qr:
+            return jsonify({"ok": False, "reason": "not_found"}), 200
+        cli = db.query(Cliente).filter(Cliente.qr_code == qr).first()
+        if not cli:
+            return jsonify({"ok": False, "reason": "not_found"}), 200
+        already = _already_checked_in(db, cli.id_cliente, e.id_evento)
+        cliente_payload = {
+            "id": cli.id_cliente,
+            "nome": cli.nome,
+            "cognome": cli.cognome,
+            "data_nascita": str(cli.data_nascita) if getattr(cli, "data_nascita", None) else None,
+            "citta": getattr(cli, "citta", None)
+        }
+        return jsonify({"ok": True, "cliente": cliente_payload, "already": already}), 200
+    finally:
+        db.close()
 
 @ingressi_bp.route("/staff/esito/<int:ingresso_id>", methods=["GET"])
 @require_staff
@@ -275,7 +358,12 @@ def admin_new():
             db.flush()
             log_action(db, tabella="ingressi", record_id=ing.id_ingresso, staff_id=staff_id, azione="insert")
             db.commit()
-            award_on_ingresso(db, cliente_id=cliente_id, evento_id=evento_id)
+            award_on_ingresso(
+                db,
+                cliente_id=cliente_id,
+                evento_id=evento_id,
+                has_prenotazione=pren_id is not None
+            )
             flash("Ingresso creato.", "success")
             return redirect(url_for("ingressi.admin_ingresso_detail", ingresso_id=ing.id_ingresso))
 
