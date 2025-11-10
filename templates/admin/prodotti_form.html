@@ -28,13 +28,6 @@
       </div>
     </div>
 
-    <div class="form__group">
-      <label style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
-        <input type="checkbox" name="attivo" {% if prodotto and prodotto.attivo or not prodotto %}checked{% endif %}>
-        <span>Prodotto attivo (visibile nel listino staff)</span>
-      </label>
-    </div>
-
     <div class="form__actions">
       <button type="submit" class="btn btn--primary">{{ 'Aggiorna' if prodotto else 'Crea' }} Prodotto</button>
       <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost">Annulla</a>

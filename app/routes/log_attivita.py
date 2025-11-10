@@ -12,8 +12,8 @@ from app.models.clienti import Cliente
 log_bp = Blueprint("log", __name__, url_prefix="/admin/logs")
 
 # Utility importabile per registrare log ovunque
-def log_action(db, *, tabella: str, record_id: int, staff_id: int | None, azione: str):
-    entry = LogAttivita(tabella=tabella, record_id=record_id, staff_id=staff_id, azione=azione)
+def log_action(db, *, tabella: str, record_id: int, staff_id: int | None, azione: str, note: str | None = None):
+    entry = LogAttivita(tabella=tabella, record_id=record_id, staff_id=staff_id, azione=azione, note=note)
     db.add(entry)
     # commit delegato al chiamante per transazioni atomiche
 

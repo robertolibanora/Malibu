@@ -77,15 +77,15 @@
   <section class="management__list fade-in" style="animation-delay: 120ms;">
     {% if total > 0 %}
     {% for c in clienti %}
-      <article class="entity-card" id="cliente-{{ c.id_cliente }}">
+      {% set livello = (c.livello or 'base')|lower %}
+      <article class="entity-card entity-card--level-{{ livello }}" id="cliente-{{ c.id_cliente }}">
         <div class="entity-card__header">
         <div>
             <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="entity-card__title">
               {{ c.nome }} {{ c.cognome }}
             </a>
             <div class="entity-card__tags">
-              <span class="badge badge--secondary">{{ c.livello|capitalize or 'N/D' }}</span>
-              <span class="badge badge--{{ 'success' if c.stato_account == 'attivo' else 'warning' }}">{{ c.stato_account }}</span>
+              <span class="badge badge--level badge--level-{{ livello }}">{{ c.livello|capitalize or 'N/D' }}</span>
             </div>
           </div>
           <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="btn btn--primary btn--small">Dettagli</a>
@@ -102,6 +102,10 @@
           <div>
             <dt>Registrato</dt>
             <dd>{{ c.data_registrazione.strftime('%d/%m/%Y') if c.data_registrazione else '—' }}</dd>
+          </div>
+          <div>
+            <dt>Stato account</dt>
+            <dd>{{ c.stato_account|capitalize }}</dd>
           </div>
           <div>
             {% set last_ingresso = ultimo_ingressi.get(c.id_cliente) %}

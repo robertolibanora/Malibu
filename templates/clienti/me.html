@@ -11,6 +11,7 @@
     {% if qr_url %}
       <img class="qr__img" src="{{ qr_url }}" alt="QR personale">
       <a class="btn btn--secondary qr__action" download="qr_cliente_{{ cliente.id_cliente }}.png" href="{{ qr_url }}">Salva sul telefono</a>
+      <small class="text--muted" style="margin-top:0.75rem;">Suggerimento: salva lo screenshot nella galleria per averlo sempre a portata di mano.</small>
     {% else %}
       <p class="empty-state">QR non disponibile.</p>
     {% endif %}
@@ -47,6 +48,74 @@
         Ti mancano <strong>{{ to_go }}</strong> pt per raggiungere <strong>{{ next_level|capitalize }}</strong>.
       {% else %}
         Hai raggiunto il livello massimo. Continua a divertirti con Malibù!
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Le tue prenotazioni</h2>
+  <div class="grid" style="gap:1rem;">
+    <div>
+      <h3 class="text--muted" style="margin-bottom:0.5rem;">Future</h3>
+      {% if prenotazioni_future %}
+        <ul class="list">
+          {% for pren, evento in prenotazioni_future %}
+          <li class="list__item">
+            <strong>{{ evento.nome_evento }}</strong><br>
+            <small class="text--muted">{{ evento.data_evento }} • {{ pren.tipo|capitalize }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+        <a class="btn btn--ghost" href="{{ url_for('prenotazioni.mie') }}">Gestisci prenotazioni</a>
+      {% else %}
+        <p class="text--muted">Nessuna prenotazione in arrivo.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3 class="text--muted" style="margin-bottom:0.5rem;">Ultime prenotazioni chiuse</h3>
+      {% if prenotazioni_passate %}
+        <ul class="list">
+          {% for pren, evento in prenotazioni_passate %}
+          <li class="list__item">
+            <strong>{{ evento.nome_evento }}</strong><br>
+            <small class="text--muted">{{ evento.data_evento }} • Stato {{ pren.stato|replace('_',' ') }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text--muted">Ancora nessuna prenotazione conclusa.</p>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Attività recente</h2>
+  <div class="grid" style="gap:1rem;">
+    <div class="card card--muted" style="padding:1rem;">
+      <h3 class="card__title" style="font-size:1rem;">Ultimo ingresso</h3>
+      {% if ultimo_ingresso %}
+        <p style="margin:0;"><strong>{{ ultimo_ingresso.evento.nome_evento }}</strong></p>
+        <small class="text--muted">Registrato il {{ ultimo_ingresso.orario_ingresso.strftime('%d/%m/%Y %H:%M') }}</small>
+      {% else %}
+        <p class="text--muted" style="margin:0;">Ancora nessun ingresso registrato.</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3 class="text--muted" style="margin-bottom:0.5rem;">Consumi recenti</h3>
+      {% if consumi_recenti %}
+        <ul class="list">
+          {% for consumo, evento in consumi_recenti %}
+          <li class="list__item">
+            <strong>{{ consumo.prodotto }}</strong><br>
+            <small class="text--muted">{{ evento.nome_evento }} • {{ consumo.data_consumo.strftime('%d/%m/%Y %H:%M') }} • €{{ '%.2f'|format(consumo.importo) }}</small>
+          </li>
+          {% endfor %}
+        </ul>
+        <a class="btn btn--ghost" href="{{ url_for('consumi.miei') }}">Vedi tutti i consumi</a>
+      {% else %}
+        <p class="text--muted">Non ci sono consumi registrati.</p>
       {% endif %}
     </div>
   </div>

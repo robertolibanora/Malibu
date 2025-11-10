@@ -4,23 +4,36 @@
 {% block admin_content %}
 <div class="evento-detail">
   <!-- Header con info principali -->
-  <section class="card">
+  <section class="card" style="margin-bottom:1.5rem;">
     <div class="cliente-header">
       <div class="cliente-header__main">
         <h1 class="card__title">{{ evento.nome_evento }}</h1>
         <div class="cliente-header__meta">
-          <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">
-            {{ evento.stato|capitalize }}
+          <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">
+            {{ evento.stato_pubblico|capitalize }}
           </span>
           <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
           {% if evento.template %}
           <span class="badge">Format: {{ evento.template.nome }}</span>
           {% endif %}
+          {% if evento.is_staff_operativo %}
+          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+            Evento operativo staff
+          </span>
+          {% endif %}
         </div>
       </div>
       <div class="cliente-header__actions">
         <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--secondary">← Torna alla lista</a>
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display:inline;">
+          <button class="btn btn--primary" type="submit" name="evento_id" value="{{ evento.id_evento }}">Imposta operativo staff</button>
+        </form>
       </div>
+    </div>
+    <div style="margin-top: 1rem; padding: 1rem; background: rgba(212,175,55,0.06); border-radius: 12px;">
+      <p style="margin:0; font-size:0.95rem;">
+        <strong>Nota:</strong> chiudendo l'evento tutte le prenotazioni ancora attive saranno marcate come <em>no-show</em> e verranno scalati 5 punti fedeltà.
+      </p>
     </div>
   </section>
 
@@ -107,15 +120,19 @@
         <div class="form__group">
           <label class="form__label">Duplica Evento</label>
           <div class="form__inline">
-            <input class="form__input" type="date" name="data_evento" value="{{ evento.data_evento }}" required>
+            <input class="form__input" type="date" name="data_evento" value="" required>
+            <label style="display:flex;align-items:center;gap:8px;margin-left:0.5rem;">
+              <input type="checkbox" name="duplica_cover" value="1">
+              <span>Duplica copertina</span>
+            </label>
             <button type="submit" class="btn btn--secondary">Duplica</button>
           </div>
-          <small>Crea una copia dell'evento con una nuova data</small>
+          <small>La copia avrà stato <strong>programmato</strong> e potrai attivarla quando pronta.</small>
         </div>
       </form>
       <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
-        {% if evento.stato != 'chiuso' %}
-        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Chiudere questo evento?');">
+        {% if evento.stato_pubblico != 'chiuso' %}
+        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
           <button class="btn btn--secondary">Chiudi Evento</button>
         </form>
         {% endif %}
@@ -177,7 +194,11 @@
           <tr>
             <td>{{ cli.nome }} {{ cli.cognome }}</td>
             <td>{{ pren.tipo|capitalize }}</td>
-            <td><span class="badge badge--{{ 'success' if pren.stato == 'attiva' else 'secondary' }}">{{ pren.stato }}</span></td>
+            <td>
+              <span class="badge badge--{% if pren.stato == 'attiva' %}warning{% elif pren.stato == 'usata' %}success{% elif pren.stato == 'no-show' %}secondary{% else %}muted{% endif %}">
+                {{ pren.stato|replace('_',' ') }}
+              </span>
+            </td>
             <td>{{ pren.num_persone or '—' }}</td>
             <td>{{ pren.orario_previsto.strftime('%H:%M') if pren.orario_previsto else '—' }}</td>
             <td>{{ pren.note or '—' }}</td>

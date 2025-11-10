@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.log_attivita import log_action
+from app.utils.events import get_evento_operativo
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -26,17 +27,7 @@ PUNTI = ("tavolo", "privè")
 # Helpers comuni
 # --------------------------------
 def _get_evento_attivo(db):
-    evento = (
-        db.query(Evento)
-        .filter(Evento.stato == "attivo")
-        .order_by(Evento.data_evento.desc())
-        .first()
-    )
-    if evento:
-        return evento
-
-    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
-    return db.query(Evento).get(evento_id) if evento_id else None
+    return get_evento_operativo(db)
 
 def _get_staff_id():
     return session.get("staff_id")
@@ -89,6 +80,9 @@ def staff_listino():
         if not e:
             flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            flash("Evento non operativo o chiuso. Imposta un evento operativo prima di registrare consumi.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
         
         # Carica prodotti attivi raggruppati per categoria
         prodotti = []
@@ -120,6 +114,9 @@ def staff_listino_addebito():
         e = _get_evento_attivo(db)
         if not e:
             flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            flash("Evento non operativo o chiuso. Imposta un evento operativo prima di registrare consumi.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
         
         qr = (request.form.get("qr") or "").strip()

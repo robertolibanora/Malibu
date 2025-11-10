@@ -85,11 +85,36 @@
             {{ c.nome }} {{ c.cognome }}
           </strong>
         </a>
-        <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;">
+        <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.9rem;">
           {{ e.data_evento }} — {{ e.nome_evento }}
         </div>
+        <div style="margin-top: 0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <span class="badge badge--{{ 'success' if p.stato == 'usata' else 'warning' if p.stato == 'attiva' else 'secondary' if p.stato == 'no-show' else 'muted' }}">
+            {{ p.stato|replace('_',' ')|capitalize }}
+          </span>
+          <span class="badge badge--muted">{{ p.tipo|capitalize }}</span>
+          {% if p.num_persone %}
+          <span class="badge badge--muted">Persone {{ p.num_persone }}</span>
+          {% endif %}
+          {% if p.stato == 'usata' %}
+          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+            Via staff
+          </span>
+          {% elif p.stato == 'no-show' %}
+          <span class="badge badge--secondary">Penalità -5</span>
+          {% endif %}
+        </div>
       </div>
-      <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=p.id_prenotazione) }}" class="btn btn--primary btn--small">Visualizza</a>
+      <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
+        <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=p.id_prenotazione) }}" class="btn btn--primary btn--small">Dettagli</a>
+        {% if p.stato == 'attiva' %}
+        <small class="text--muted">Attiva • nessun ingresso registrato</small>
+        {% elif p.stato == 'usata' %}
+        <small class="text--muted">Ingressi collegati: 1</small>
+        {% elif p.stato == 'no-show' %}
+        <small class="text--muted">Chiusa come no-show</small>
+        {% endif %}
+      </div>
     </div>
   </article>
   {% else %}

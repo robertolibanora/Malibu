@@ -9,10 +9,17 @@
       <div class="cliente-header__main">
         <h1 class="card__title">Prenotazione</h1>
         <div class="cliente-header__meta">
-          <span class="badge badge--{{ 'success' if prenotazione.stato == 'attiva' else 'secondary' }}">
-            {{ prenotazione.stato|capitalize }}
+          <span class="badge badge--{% if prenotazione.stato == 'attiva' %}warning{% elif prenotazione.stato == 'usata' %}success{% elif prenotazione.stato == 'no-show' %}secondary{% else %}muted{% endif %}">
+            {{ prenotazione.stato|replace('_',' ')|capitalize }}
           </span>
           <span class="badge badge--warning">{{ prenotazione.tipo|capitalize }}</span>
+          {% if prenotazione.stato == 'usata' %}
+          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+            Ingresso registrato
+          </span>
+          {% elif prenotazione.stato == 'no-show' %}
+          <span class="badge badge--secondary">Penalità -5 punti</span>
+          {% endif %}
         </div>
       </div>
       <div class="cliente-header__actions">
@@ -53,8 +60,8 @@
         <div class="info-item">
           <span class="info-label">Stato:</span>
           <span class="info-value">
-            <span class="badge badge--{{ 'success' if prenotazione.stato == 'attiva' else 'secondary' }}">
-              {{ prenotazione.stato|capitalize }}
+            <span class="badge badge--{% if prenotazione.stato == 'attiva' %}warning{% elif prenotazione.stato == 'usata' %}success{% elif prenotazione.stato == 'no-show' %}secondary{% else %}muted{% endif %}">
+              {{ prenotazione.stato|replace('_',' ')|capitalize }}
             </span>
           </span>
         </div>
@@ -85,6 +92,17 @@
             </a>
           </span>
         </div>
+        {% else %}
+        <div class="info-item">
+          <span class="info-label">Ingresso Collegato:</span>
+          <span class="info-value text--muted">
+            {% if prenotazione.stato == 'usata' %}
+              (verificare: la prenotazione è marcata come usata ma non ha un ingresso abbinato)
+            {% else %}
+              Nessun ingresso registrato
+            {% endif %}
+          </span>
+        </div>
         {% endif %}
       </div>
     </section>
@@ -97,26 +115,9 @@
         <a href="{{ url_for('prenotazioni.admin_edit', pren_id=prenotazione.id_prenotazione) }}" class="btn btn--primary">Modifica Prenotazione</a>
       </div>
 
-      <form class="form" method="post" action="{{ url_for('prenotazioni.admin_edit', pren_id=prenotazione.id_prenotazione) }}">
-        <input type="hidden" name="cliente_id" value="{{ prenotazione.cliente_id }}">
-        <input type="hidden" name="evento_id" value="{{ prenotazione.evento_id }}">
-        <input type="hidden" name="tipo" value="{{ prenotazione.tipo }}">
-        <input type="hidden" name="num_persone" value="{{ prenotazione.num_persone or '' }}">
-        <input type="hidden" name="orario_previsto" value="{{ prenotazione.orario_previsto or '' }}">
-        <input type="hidden" name="note" value="{{ prenotazione.note or '' }}">
-        <div class="form__group">
-          <label class="form__label">Cambia Stato</label>
-          <div class="form__inline">
-            <select class="form__input" name="stato">
-              <option value="attiva" {% if prenotazione.stato=='attiva' %}selected{% endif %}>Attiva</option>
-              <option value="usata" {% if prenotazione.stato=='usata' %}selected{% endif %}>Usata</option>
-              <option value="no-show" {% if prenotazione.stato=='no-show' %}selected{% endif %}>No-show</option>
-              <option value="cancellata" {% if prenotazione.stato=='cancellata' %}selected{% endif %}>Cancellata</option>
-            </select>
-            <button type="submit" class="btn btn--secondary">Aggiorna Stato</button>
-          </div>
-        </div>
-      </form>
+      <p class="text--muted" style="margin-bottom:1rem;">
+        Lo stato <em>usata</em> viene impostato automaticamente quando lo staff registra l’ingresso. Il passaggio manuale è consigliato solo per correzioni straordinarie.
+      </p>
 
       <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
         <form method="post" action="{{ url_for('prenotazioni.admin_delete', pren_id=prenotazione.id_prenotazione) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente questa prenotazione? Questa azione non può essere annullata.');">

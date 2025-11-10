@@ -11,8 +11,12 @@
 {% block header_nav %}
   <nav class="staff-nav app__header-nav" role="navigation" aria-label="Navigazione principale staff">
     <div class="staff-nav__brand">
-      <span class="staff-nav__logo">Malibù</span>
-      <span class="staff-nav__role">Staff</span>
+      <span class="staff-nav__logo">
+        <img 
+          src="{{ url_for('static', filename='img/logo.png') }}" 
+          alt="Malibù" 
+          class="staff-nav__logo-img">
+      </span>
     </div>
     
     <ul class="staff-nav__menu">

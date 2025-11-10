@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -17,10 +17,18 @@ class Evento(Base):
         Enum("reggaeton", "techno", "privato", "altro", name="categoria_enum"),
         default="altro"
     )
+    # Colonna legacy (non più usata per la logica applicativa principale):
     stato = Column(
         Enum("attivo", "chiuso", name="stato_evento_enum"),
         default="attivo"
     )
+    # Nuovo modello di stato: visibilità pubblica/prenotabile e operatività staff
+    stato_pubblico = Column(
+        Enum("programmato", "attivo", "chiuso", name="stato_pubblico_evento_enum"),
+        default="programmato",
+        nullable=False
+    )
+    is_staff_operativo = Column(Boolean, default=False, nullable=False)
     cover_url = Column(String(255))  # opzionale: URL immagine di copertina
     template_id = Column(Integer, ForeignKey("template_eventi.id_template", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
 

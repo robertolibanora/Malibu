@@ -2,35 +2,44 @@
 {% block staff_title %}Dashboard{% endblock %}
 
 {% block staff_content %}
-<section class="card">
+<section class="card" style="margin-bottom:1.5rem;">
   <h1 class="card__title">Dashboard Staff</h1>
   {% if evento_attivo %}
-    <div class="badge">Evento attivo: {{ evento_attivo.nome_evento }} — {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}</div>
-  {% else %}
-    <div class="banner banner--warning" role="alert">
-      Nessun evento attivo impostato dagli amministratori.
-      <a class="link" href="{{ url_for('eventi.staff_select_event') }}">Dettagli</a>
+  <div class="banner banner--success" style="margin-top:1rem;">
+    <div style="display:flex;flex-direction:column;gap:0.3rem;">
+      <strong>Evento operativo</strong>
+      <span>{{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}</span>
+      <span class="text--muted">
+        Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}{% if evento_attivo.stato_pubblico != 'attivo' %} (attenzione: l’evento non è pubblico come “attivo”){% endif %}
+      </span>
     </div>
+  </div>
+  {% else %}
+  <div class="banner banner--warning" role="alert" style="margin-top:1rem;">
+    Nessun evento operativo impostato. Contatta l’amministratore per selezionare l’evento della serata.
+  </div>
   {% endif %}
 </section>
 
 <section class="card">
-  <div class="grid grid--2">
-    {% if evento_attivo %}
-      <a class="btn btn--primary" href="{{ url_for('ingressi.staff_scan') }}">Scanner ingressi</a>
-      <a class="btn btn--primary" href="{{ url_for('consumi.staff_listino') }}">Listino</a>
-      <a class="btn btn--secondary" href="{{ url_for('consumi.staff_new') }}">Nuovo consumo</a>
-    {% else %}
-      <span class="btn btn--primary btn--disabled" aria-disabled="true">Scanner ingressi</span>
-      <span class="btn btn--primary btn--disabled" aria-disabled="true">Listino</span>
-      <span class="btn btn--secondary btn--disabled" aria-disabled="true">Nuovo consumo</span>
-    {% endif %}
-    <a class="btn btn--secondary" href="{{ url_for('eventi.staff_select_event') }}">Evento attivo</a>
+  <div class="grid" style="gap:0.75rem;">
+    <a class="btn btn--primary btn--large{% if not evento_attivo %} btn--disabled{% endif %}" href="{{ url_for('ingressi.staff_scan') }}" {% if not evento_attivo %}aria-disabled="true"{% endif %}>
+      🔍 Scanner ingressi
+    </a>
+    <a class="btn btn--secondary btn--large{% if not evento_attivo %} btn--disabled{% endif %}" href="{{ url_for('consumi.staff_new') }}" {% if not evento_attivo %}aria-disabled="true"{% endif %}>
+      🧾 Nuovo consumo
+    </a>
+    <a class="btn btn--ghost btn--large" href="{{ url_for('consumi.staff_listino') }}">
+      📒 Listino prodotti
+    </a>
+    <a class="btn btn--ghost btn--large" href="{{ url_for('eventi.staff_select_event') }}">
+      🎯 Gestisci evento operativo
+    </a>
   </div>
   {% if not evento_attivo %}
-    <p class="text--muted" style="margin-top:1rem;">
-      Per abilitare le operazioni operative richiedi agli amministratori di impostare l’evento attivo.
-    </p>
+  <p class="text--muted" style="margin-top:1rem;">
+    Blocchiamo scanner e consumi finché non viene impostato un evento operativo.
+  </p>
   {% endif %}
 </section>
 {% endblock %}

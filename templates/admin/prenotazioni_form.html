@@ -4,6 +4,9 @@
 {% block content %}
 <section class="card">
   <h1 class="card__title">{{ 'Modifica' if e else 'Nuova' }} prenotazione</h1>
+  <p class="text--muted" style="margin-bottom:1.5rem;">
+    <strong>Nota:</strong> per ogni coppia cliente/evento è consentita una sola prenotazione <em>attiva</em>. Se il cliente ha già una prenotazione attiva, il salvataggio verrà bloccato automaticamente.
+  </p>
   <form class="form" method="post">
     <div class="grid grid--2">
       <div class="form__group">
@@ -60,6 +63,7 @@
           <option value="no-show" {% if e and e.stato=='no-show' %}selected{% endif %}>No-show</option>
           <option value="cancellata" {% if e and e.stato=='cancellata' %}selected{% endif %}>Cancellata</option>
         </select>
+        <small class="text--muted">Lo stato “usata” viene impostato automaticamente quando viene registrato l’ingresso.</small>
       </div>
     </div>
 

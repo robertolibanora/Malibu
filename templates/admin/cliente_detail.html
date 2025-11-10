@@ -38,15 +38,9 @@
       </div>
     </div>
     <div class="profile__actions">
-      {% if cliente.stato_account == 'attivo' %}
-      <form method="post" action="{{ url_for('clienti.admin_deactivate', cliente_id=cliente.id_cliente) }}" onsubmit="return confirm('Disattivare questo account?');">
-        <button class="btn btn--danger btn--small">Disattiva account</button>
+      <form method="post" action="{{ url_for('clienti.admin_delete', cliente_id=cliente.id_cliente) }}" onsubmit="return confirm('Eliminare definitivamente questo cliente? L’operazione non è reversibile.');">
+        <button class="btn btn--danger btn--small">Elimina cliente</button>
       </form>
-      {% else %}
-      <form method="post" action="{{ url_for('clienti.admin_activate', cliente_id=cliente.id_cliente) }}">
-        <button class="btn btn--primary btn--small">Riattiva account</button>
-      </form>
-      {% endif %}
     </div>
   </header>
 

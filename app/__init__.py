@@ -1,4 +1,5 @@
 from flask import Flask, redirect, url_for, render_template
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import sessionmaker
 from app.database import engine, Base
 from dotenv import load_dotenv
@@ -41,6 +42,25 @@ def create_app():
     # Inizializza database
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base.metadata.create_all(bind=engine)
+
+    inspector = inspect(engine)
+    try:
+        feedback_columns = {col["name"] for col in inspector.get_columns("feedback")}
+        if "voto_servizio" not in feedback_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE feedback "
+                    "ADD COLUMN voto_servizio SMALLINT NOT NULL DEFAULT 5"
+                ))
+                conn.execute(text(
+                    "ALTER TABLE feedback "
+                    "ADD CONSTRAINT chk_voto_servizio "
+                    "CHECK (voto_servizio BETWEEN 1 AND 10)"
+                ))
+    except Exception as exc:
+        # Evita di bloccare l'avvio dell'app: logga l'errore e prosegui.
+        if app.logger:
+            app.logger.error("Impossibile sincronizzare la colonna voto_servizio: %s", exc)
 
     # Route root: reindirizza al login
     @app.route("/")

@@ -5,6 +5,8 @@ from app.utils.decorators import require_staff, require_admin
 from app.models.eventi import Evento
 from app.models.staff import Staff
 from werkzeug.security import generate_password_hash
+from app.utils.events import get_evento_operativo, set_evento_operativo_id
+from app.routes.log_attivita import log_action
 
 staff_bp = Blueprint("staff", __name__, url_prefix="/staff")
 staff_admin_bp = Blueprint("staff_admin", __name__, url_prefix="/admin/staff")
@@ -15,7 +17,7 @@ staff_admin_bp = Blueprint("staff_admin", __name__, url_prefix="/admin/staff")
 def dashboard():
     db = SessionLocal()
     try:
-        evento_attivo = db.query(Evento).filter_by(stato="attivo").order_by(Evento.data_evento.desc()).first()
+        evento_attivo = get_evento_operativo(db)
         return render_template("staff/dashboard.html", evento_attivo=evento_attivo)
     finally:
         db.close()
@@ -25,7 +27,7 @@ def dashboard():
 def evento_attivo_view():
     db = SessionLocal()
     try:
-        evento_attivo = db.query(Evento).filter_by(stato="attivo").order_by(Evento.data_evento.desc()).first()
+        evento_attivo = get_evento_operativo(db)
         return render_template("staff/evento_attivo.html", evento_attivo=evento_attivo)
     finally:
         db.close()
@@ -36,8 +38,9 @@ def evento_attivo_view():
 def set_active_form():
     db = SessionLocal()
     try:
-        eventi = db.query(Evento).filter(Evento.data_evento >= date.today()).order_by(Evento.data_evento.asc()).all()
-        evento_attivo = db.query(Evento).filter_by(stato="attivo").first()
+        window_start = date.today() - date.resolution  # ieri incluso
+        eventi = db.query(Evento).filter(Evento.data_evento >= window_start).order_by(Evento.data_evento.asc()).all()
+        evento_attivo = get_evento_operativo(db)
         return render_template("admin/evento_attivo.html", eventi=eventi, evento_attivo=evento_attivo)
     finally:
         db.close()
@@ -52,20 +55,19 @@ def set_active_post():
             flash("Seleziona un evento.", "error")
             return redirect(url_for("staff_admin.set_active_form"))
 
-        # Chiudi tutti gli eventi
-        for ev in db.query(Evento).all():
-            ev.stato = "chiuso"
-
-        # Attiva quello scelto
+        # Disattiva tutti e abilita quello scelto
+        for ev in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
+            ev.is_staff_operativo = False
         ev = db.query(Evento).get(int(evento_id))
         if not ev:
             flash("Evento non trovato.", "error")
             return redirect(url_for("staff_admin.set_active_form"))
-        ev.stato = "attivo"
+        ev.is_staff_operativo = True
 
         db.commit()
-        current_app.config["EVENTO_ATTIVO_ID"] = ev.id_evento
-        flash(f"Evento attivo impostato: {ev.nome_evento} - {ev.data_evento}", "success")
+        set_evento_operativo_id(db, ev.id_evento)
+        log_action(db, tabella="eventi", record_id=ev.id_evento, staff_id=session.get("staff_id"), azione="set_operativo")
+        flash(f"Evento operativo impostato: {ev.nome_evento} - {ev.data_evento}", "success")
         return redirect(url_for("staff_admin.set_active_form"))
     finally:
         db.close()
@@ -75,14 +77,15 @@ def set_active_post():
 def close_active():
     db = SessionLocal()
     try:
-        ev = db.query(Evento).filter_by(stato="attivo").first()
+        ev = get_evento_operativo(db)
         if not ev:
             flash("Nessun evento attivo da chiudere.", "warning")
             return redirect(url_for("staff_admin.set_active_form"))
-        ev.stato = "chiuso"
+        ev.is_staff_operativo = False
         db.commit()
-        current_app.config["EVENTO_ATTIVO_ID"] = None
-        flash("Evento chiuso. La discoteca è ora chiusa.", "success")
+        set_evento_operativo_id(db, None)
+        log_action(db, tabella="eventi", record_id=(ev.id_evento if ev else 0), staff_id=session.get("staff_id"), azione="unset_operativo")
+        flash("Evento operativo disattivato. La discoteca è ora chiusa.", "success")
         return redirect(url_for("staff_admin.set_active_form"))
     finally:
         db.close()
@@ -212,10 +215,9 @@ def admin_delete(staff_id):
     try:
         s = db.query(Staff).get(staff_id)
         if s:
-            # Soft delete: disattiva invece di eliminare
-            s.attivo = False
+            db.delete(s)
             db.commit()
-            flash("Staff disattivato.", "warning")
+            flash("Staff eliminato.", "warning")
         return redirect(url_for("staff_admin.admin_list"))
     finally:
         db.close()
@@ -225,11 +227,8 @@ def admin_delete(staff_id):
 def admin_activate(staff_id):
     db = SessionLocal()
     try:
-        s = db.query(Staff).get(staff_id)
-        if s:
-            s.attivo = True
-            db.commit()
-            flash("Staff riattivato.", "success")
+        # Non più supportato: la logica di riattivazione è stata sostituita dall'eliminazione definitiva
+        flash("Operazione non disponibile. I profili staff si eliminano definitivamente.", "warning")
         return redirect(url_for("staff_admin.admin_list"))
     finally:
         db.close()

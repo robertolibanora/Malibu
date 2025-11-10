@@ -57,7 +57,7 @@ def nuova():
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.lista_pubblica"))
-        if e.stato != "attivo":
+        if e.stato_pubblico not in ("programmato", "attivo"):
             flash("Evento non disponibile per prenotazioni.", "warning")
             return redirect(url_for("eventi.dettaglio_pubblico", evento_id=e.id_evento))
 

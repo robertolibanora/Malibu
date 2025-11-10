@@ -101,15 +101,9 @@
         <footer class="staff-card__footer">
           <div class="staff-card__actions">
             <a href="{{ url_for('staff_admin.admin_edit', staff_id=s.id_staff) }}" class="btn btn--primary btn--small">Modifica</a>
-      {% if s.attivo %}
-            <form method="post" action="{{ url_for('staff_admin.admin_delete', staff_id=s.id_staff) }}" onsubmit="return confirm('Disattivare questo membro dello staff?');">
-              <button class="btn btn--ghost btn--small" type="submit">Disattiva</button>
-        </form>
-      {% else %}
-            <form method="post" action="{{ url_for('staff_admin.admin_activate', staff_id=s.id_staff) }}">
-              <button class="btn btn--secondary btn--small" type="submit">Riattiva</button>
-        </form>
-      {% endif %}
+            <form method="post" action="{{ url_for('staff_admin.admin_delete', staff_id=s.id_staff) }}" onsubmit="return confirm('Eliminare definitivamente questo membro dello staff? L’operazione non è reversibile.');">
+              <button class="btn btn--danger btn--small" type="submit">Elimina</button>
+            </form>
     </div>
           <small class="staff-card__hint">Aggiorna ruolo e credenziali prima di ogni evento operativo.</small>
         </footer>

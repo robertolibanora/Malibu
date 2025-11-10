@@ -5,15 +5,22 @@
 <section class="card">
   <h1 class="card__title">Evento Attivo</h1>
   {% if evento_attivo %}
+    <div class="banner banner--success" style="margin-bottom:1rem;">
+      <div style="display:flex;flex-direction:column;gap:0.3rem;">
+        <strong>Evento operativo</strong>
+        <span>{{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento }}</span>
+        <small class="text--muted">Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}</small>
+      </div>
+    </div>
     <ul class="list">
-      <li class="list__item"><strong>Nome:</strong> {{ evento_attivo.nome_evento }}</li>
-      <li class="list__item"><strong>Data:</strong> {{ evento_attivo.data_evento }}</li>
       <li class="list__item"><strong>DJ/Artista:</strong> {{ evento_attivo.dj_artista or '-' }}</li>
       <li class="list__item"><strong>Promozione:</strong> {{ evento_attivo.promozione or '-' }}</li>
       <li class="list__item"><strong>Capienza:</strong> {{ evento_attivo.capienza_max }}</li>
     </ul>
   {% else %}
-    <p class="text--muted">Nessun evento attivo impostato.</p>
+    <div class="banner banner--warning" role="alert">
+      Nessun evento operativo impostato. Rivolgiti all’amministratore per selezionare l’evento della serata.
+    </div>
   {% endif %}
   <div class="form__actions">
     <a class="btn btn--ghost" href="{{ url_for('staff.dashboard') }}">Torna alla dashboard</a>

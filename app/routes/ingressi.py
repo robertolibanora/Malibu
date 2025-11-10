@@ -1,10 +1,12 @@
 # app/routes/ingressi.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app, jsonify
 from sqlalchemy import func, and_
+from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.log_attivita import log_action
+from app.utils.events import get_evento_operativo
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
@@ -22,17 +24,7 @@ TIPI = ("lista", "tavolo", "omaggio", "prevendita")
 # Helpers
 # ---------------------------
 def _get_evento_attivo(db):
-    evento = (
-        db.query(Evento)
-        .filter(Evento.stato == "attivo")
-        .order_by(Evento.data_evento.desc())
-        .first()
-    )
-    if evento:
-        return evento
-
-    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
-    return db.query(Evento).get(evento_id) if evento_id else None
+    return get_evento_operativo(db)
 
 def _get_staff_id(db):
     # Se in futuro avrai login staff: salva session["staff_id"]
@@ -86,7 +78,10 @@ def staff_scan():
     try:
         e = _get_evento_attivo(db)
         if not e:
-            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
+            flash("Evento chiuso: non è possibile registrare nuovi ingressi.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            flash("Evento chiuso: non è possibile registrare nuovi ingressi.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
 
         if request.method == "POST":
@@ -105,10 +100,18 @@ def staff_scan():
                 flash("Cliente già entrato per questo evento.", "warning")
                 return redirect(url_for("ingressi.staff_scan"))
 
-            # Capienza (solo warning)
+            # Capienza: blocco con override esplicito
             tot = _capienza_counts(db, e.id_evento)
-            if e.capienza_max is not None and tot >= e.capienza_max:
-                flash(f"Attenzione: capienza superata ({tot}/{e.capienza_max}).", "warning")
+            if e.capienza_max is not None and tot >= e.capienza_max and request.form.get("override_capienza") != "1":
+                # Mostra pagina di conferma override
+                return render_template(
+                    "staff/ingressi_confirm_override.html",
+                    evento=e,
+                    cliente=cli,
+                    tot_ingressi=tot,
+                    capienza=e.capienza_max,
+                    qr=qr
+                )
 
             # Se ha prenotazione attiva: usa quel tipo e marca 'usata'
             pren = _active_prenotazione(db, cli.id_cliente, e.id_evento)
@@ -127,11 +130,37 @@ def staff_scan():
                 note=None
             )
             db.add(ingresso)
+            try:
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                flash("Cliente già entrato per questo evento.", "warning")
+                return redirect(url_for("ingressi.staff_scan"))
+
             # Marca prenotazione come usata se presente
             if pren:
                 pren.stato = "usata"
-            db.flush()
-            log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=_get_staff_id(db), azione="insert")
+                log_action(
+                    db,
+                    tabella="prenotazioni",
+                    record_id=pren.id_prenotazione,
+                    staff_id=_get_staff_id(db),
+                    azione="prenotazione_usata",
+                    note=f"evento_id={e.id_evento}"
+                )
+
+            if e.capienza_max is not None and tot >= e.capienza_max and request.form.get("override_capienza") == "1":
+                # Logga override capienza
+                note = f"Capienza superata {tot}/{e.capienza_max}, ingresso forzato"
+                log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=_get_staff_id(db), azione="override_capienza", note=note)
+            log_action(
+                db,
+                tabella="ingressi",
+                record_id=ingresso.id_ingresso,
+                staff_id=_get_staff_id(db),
+                azione="ingresso_automatico",
+                note=f"evento_id={e.id_evento}"
+            )
             db.commit()
             award_on_ingresso(
                 db,
@@ -139,6 +168,10 @@ def staff_scan():
                 evento_id=e.id_evento,
                 has_prenotazione=pren is not None
             )
+            if pren:
+                flash("Prenotazione trovata e convalidata, ingresso registrato.", "success")
+            else:
+                flash("Cliente non prenotato, ingresso registrato come lista.", "info")
             return redirect(url_for("ingressi.staff_esito", ingresso_id=ingresso.id_ingresso))
 
         # GET
@@ -173,6 +206,8 @@ def staff_scan_check():
         e = _get_evento_attivo(db)
         if not e:
             return jsonify({"ok": False, "reason": "no_event"}), 200
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            return jsonify({"ok": False, "reason": "event_closed"}), 200
         data = request.get_json(silent=True) or {}
         qr = (data.get("qr") or request.form.get("qr") or "").strip()
         if not qr:
@@ -205,6 +240,8 @@ def staff_scan_preview():
         e = _get_evento_attivo(db)
         if not e:
             return jsonify({"ok": False, "reason": "no_event"}), 200
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            return jsonify({"ok": False, "reason": "event_closed"}), 200
         data = request.get_json(silent=True) or {}
         qr = (data.get("qr") or "").strip()
         if not qr:
@@ -353,10 +390,30 @@ def admin_new():
                 note=note or None
             )
             db.add(ing)
+            try:
+                db.flush()
+            except IntegrityError:
+                db.rollback()
+                flash("Cliente già entrato per questo evento.", "warning")
+                return redirect(url_for("ingressi.admin_list"))
             if pren_id:
                 pren.stato = "usata"
-            db.flush()
-            log_action(db, tabella="ingressi", record_id=ing.id_ingresso, staff_id=staff_id, azione="insert")
+                log_action(
+                    db,
+                    tabella="prenotazioni",
+                    record_id=pren_id,
+                    staff_id=staff_id,
+                    azione="prenotazione_usata",
+                    note=f"evento_id={evento_id}"
+                )
+            log_action(
+                db,
+                tabella="ingressi",
+                record_id=ing.id_ingresso,
+                staff_id=staff_id,
+                azione="ingresso_automatico",
+                note=f"evento_id={evento_id}"
+            )
             db.commit()
             award_on_ingresso(
                 db,
@@ -364,7 +421,10 @@ def admin_new():
                 evento_id=evento_id,
                 has_prenotazione=pren_id is not None
             )
-            flash("Ingresso creato.", "success")
+            if pren_id:
+                flash("Prenotazione trovata e convalidata, ingresso registrato.", "success")
+            else:
+                flash("Ingresso registrato correttamente.", "success")
             return redirect(url_for("ingressi.admin_ingresso_detail", ingresso_id=ing.id_ingresso))
 
         return render_template("admin/ingressi_form.html", e=None, eventi=eventi, clienti=clienti, staff_list=staff_list)

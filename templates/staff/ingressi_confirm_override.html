@@ -1,0 +1,36 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Conferma override capienza{% endblock %}
+
+{% block staff_content %}
+<section class="card">
+  <h1 class="card__title">Capienza superata</h1>
+  <p class="text--muted" style="margin-top:0.5rem;">
+    La capienza è stata raggiunta ({{ tot_ingressi }}/{{ capienza }}). Confermi di procedere comunque con l'ingresso?
+  </p>
+  <div class="info-list" style="margin-top:1rem;">
+    <div class="info-item">
+      <span class="info-label">Evento:</span>
+      <span class="info-value">{{ evento.nome_evento }} — {{ evento.data_evento }}</span>
+    </div>
+    <div class="info-item">
+      <span class="info-label">Cliente:</span>
+      <span class="info-value">{{ cliente.nome }} {{ cliente.cognome }}</span>
+    </div>
+  </div>
+  <form class="form" method="post" action="{{ url_for('ingressi.staff_scan') }}" style="margin-top:1.25rem;">
+    <input type="hidden" name="qr" value="{{ qr }}">
+    <input type="hidden" name="override_capienza" value="1">
+    <div class="form__actions">
+      <a href="{{ url_for('ingressi.staff_scan') }}" class="btn btn--ghost">Annulla</a>
+      <button class="btn btn--secondary" type="submit">Confermo override</button>
+    </div>
+  </form>
+  <small class="text--muted" style="display:block;margin-top:0.5rem;">
+    Questa azione verrà registrata nei log attività.
+  </small>
+  <div class="form__actions" style="margin-top:1rem;">
+    <a href="{{ url_for('eventi.staff_select_event') }}" class="btn btn--ghost btn--small">Cambia evento operativo</a>
+  </div>
+{% endblock %}
+
+

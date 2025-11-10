@@ -15,11 +15,17 @@
   </div>
   {% if evento_attivo %}
     <div class="banner banner--success" style="margin-top: 1rem;">
-      <strong>Evento attivo corrente:</strong> {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }} — {{ evento_attivo.nome_evento }}
+      <div style="display:flex;flex-direction:column;gap:0.25rem;">
+        <strong>Evento operativo corrente</strong>
+        <span>{{ evento_attivo.data_evento.strftime('%d/%m/%Y') }} • {{ evento_attivo.nome_evento }}</span>
+        <span class="text--muted">
+          Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}{% if evento_attivo.stato_pubblico != 'attivo' %} (lo staff può operare solo su eventi <em>attivi</em>){% endif %}
+        </span>
+      </div>
     </div>
   {% else %}
     <div class="banner banner--warning" style="margin-top: 1rem;">
-      Nessun evento attivo impostato. Lo staff non potrà registrare ingressi o consumi finché non ne selezioni uno.
+      Nessun evento operativo impostato. Lo staff non potrà registrare ingressi o consumi finché non ne selezioni uno.
     </div>
   {% endif %}
 </section>
@@ -29,11 +35,22 @@
   <form class="form" method="post">
     <div class="list">
       {% for e in eventi %}
-      <label class="list__item" style="display:flex;gap:10px;align-items:center">
+      <label class="list__item" style="display:flex;gap:12px;align-items:flex-start;">
         <input type="radio" name="evento_id" value="{{ e.id_evento }}" {% if evento_attivo and evento_attivo.id_evento == e.id_evento %}checked{% endif %}>
         <div>
-          <div><strong>{{ e.nome_evento }}</strong></div>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <strong>{{ e.nome_evento }}</strong>
+            <span class="badge badge--{{ 'success' if e.stato_pubblico == 'attivo' else 'secondary' }}">{{ e.stato_pubblico|capitalize }}</span>
+            {% if e.is_staff_operativo and (not evento_attivo or evento_attivo.id_evento == e.id_evento) %}
+            <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+              Attuale operativo
+            </span>
+            {% endif %}
+          </div>
           <div class="text--muted">{{ e.data_evento.strftime('%d/%m/%Y') }} • {{ e.tipo_musica or e.categoria }}</div>
+          {% if e.capienza_max %}
+          <small class="text--muted">Capienza {{ e.capienza_max }} • Ingressi registrati {{ ingressi_map.get(e.id_evento, 0) if ingressi_map else '0' }}</small>
+          {% endif %}
         </div>
       </label>
       {% else %}
@@ -44,6 +61,7 @@
       <button class="btn btn--primary" type="submit">Imposta evento</button>
       <button class="btn btn--ghost" name="evento_id" value="clear" type="submit">Azzera evento attivo</button>
     </div>
+    <small class="text--muted">Suggerimento: scegli eventi con stato pubblico “attivo” per consentire allo staff di lavorare da mobile.</small>
   </form>
 </section>
 {% endblock %}

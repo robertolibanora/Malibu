@@ -155,7 +155,7 @@
         <div class="timeline-item__header">
           <strong>{{ evento.nome_evento }}</strong>
           <div class="timeline-item__badges">
-            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
+            <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">{{ evento.stato_pubblico }}</span>
               <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
           </div>
         </div>
@@ -185,7 +185,7 @@
         <div class="timeline-item__header">
           <strong>{{ evento.nome_evento }}</strong>
           <div class="timeline-item__badges">
-            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
+            <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">{{ evento.stato_pubblico }}</span>
               <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
           </div>
         </div>

@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
 from pathlib import Path
 import os
+import shutil
 
 from app.database import SessionLocal
 from app.models.eventi import Evento
@@ -14,27 +15,23 @@ from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.utils.decorators import require_admin, require_staff
 from app.models.template_eventi import TEMPLATE_EVENTI, TemplateEvento
+from app.utils.events import get_evento_operativo, set_evento_operativo_id
+from app.routes.log_attivita import log_action
+from app.routes.fedelta import award_on_no_show
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
 
 eventi_bp = Blueprint("eventi", __name__, url_prefix="/eventi")
 
-CATEGORIES_PUBLIC = ["reggaeton", "techno", "altro"]  # no 'privato' come da tua scelta
+CATEGORIES_PUBLIC = ["reggaeton", "techno", "altro"]  # categorie pubbliche esposte a UI
 
 
 def _get_evento_attivo(db):
-    evento = (
-        db.query(Evento)
-        .filter(Evento.stato == "attivo")
-        .order_by(Evento.data_evento.desc())
-        .first()
-    )
-    if evento:
-        return evento
-
-    evento_id = current_app.config.get("EVENTO_ATTIVO_ID")
-    return db.query(Evento).get(evento_id) if evento_id else None
+    """
+    Fonte unica: tabella config_app + flag su evento.
+    """
+    return get_evento_operativo(db)
 
 # --------------------------
 # CLIENTE — LISTA EVENTI PUBBLICI (no login)
@@ -66,7 +63,10 @@ def lista_pubblica():
 
         oggi = date.today()
         # Prossimi eventi (oggi e futuri)
-        q_next = apply_common_filters(db.query(Evento).filter(Evento.data_evento >= oggi))
+        q_next = apply_common_filters(
+            db.query(Evento)
+              .filter(Evento.data_evento >= oggi)
+        )
         eventi_prossimi = q_next.order_by(Evento.data_evento.asc(), Evento.id_evento.asc()).all()
 
         # Eventi passati (ultimi 10, più “grigi” a UI)
@@ -136,8 +136,12 @@ def staff_select_event():
     db = SessionLocal()
     try:
         evento_attivo = _get_evento_attivo(db)
-        eventi = db.query(Evento).filter(Evento.data_evento >= date.today()) \
-                     .order_by(Evento.data_evento.asc()).all()
+        # Includiamo anche gli eventi di "ieri" per coprire serate a cavallo della mezzanotte
+        window_start = date.today() - timedelta(days=1)
+        eventi = (db.query(Evento)
+                    .filter(Evento.data_evento >= window_start)
+                    .order_by(Evento.data_evento.asc())
+                    .all())
         return render_template("staff/evento_select.html", evento_attivo=evento_attivo, eventi=eventi)
     finally:
         db.close()
@@ -181,19 +185,39 @@ def staff_dashboard():
 def admin_evento_attivo():
     db = SessionLocal()
     try:
-        eventi = db.query(Evento).filter(Evento.data_evento >= date.today()) \
-                     .order_by(Evento.data_evento.asc()).all()
+        # includi anche ieri (overnight)
+        window_start = date.today() - timedelta(days=1)
+        eventi = (db.query(Evento)
+                    .filter(Evento.data_evento >= window_start)
+                    .order_by(Evento.data_evento.asc())
+                    .all())
+        ingressi_map = {}
+        if eventi:
+            ids = [ev.id_evento for ev in eventi]
+            counts = (db.query(Ingresso.evento_id, func.count(Ingresso.id_ingresso))
+                        .filter(Ingresso.evento_id.in_(ids))
+                        .group_by(Ingresso.evento_id)
+                        .all())
+            ingressi_map = {eid: tot for eid, tot in counts}
         evento_attivo = _get_evento_attivo(db)
 
         if request.method == "POST":
             scelta = request.form.get("evento_id")
             if scelta == "clear":
-                attivi = db.query(Evento).filter(Evento.stato == "attivo").all()
-                for ev in attivi:
-                    ev.stato = "chiuso"
+                # Disattiva operatività per tutti e azzera config
+                for ev in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
+                    ev.is_staff_operativo = False
                 db.commit()
-                current_app.config["EVENTO_ATTIVO_ID"] = None
-                flash("Evento attivo azzerato.", "info")
+                set_evento_operativo_id(db, None)
+                log_action(
+                    db,
+                    tabella="eventi",
+                    record_id=0,
+                    staff_id=session.get("staff_id"),
+                    azione="unset_operativo",
+                    note="evento_id=None"
+                )
+                flash("Evento operativo staff azzerato.", "info")
             else:
                 try:
                     evento_id = int(scelta)
@@ -205,18 +229,27 @@ def admin_evento_attivo():
                 if not ev:
                     flash("Evento non valido.", "danger")
                 else:
-                    attivi = db.query(Evento).filter(Evento.stato == "attivo").all()
-                    for other in attivi:
-                        other.stato = "chiuso"
-                    ev.stato = "attivo"
+                    # Assicura unicità: spegni gli altri e abilita questo
+                    for other in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
+                        other.is_staff_operativo = False
+                    ev.is_staff_operativo = True
                     db.commit()
-                    current_app.config["EVENTO_ATTIVO_ID"] = ev.id_evento
-                    flash(f"Evento attivo impostato su {ev.nome_evento}.", "success")
+                    set_evento_operativo_id(db, ev.id_evento)
+                    log_action(
+                        db,
+                        tabella="eventi",
+                        record_id=ev.id_evento,
+                        staff_id=session.get("staff_id"),
+                        azione="set_operativo",
+                        note=f"evento_id={ev.id_evento}"
+                    )
+                    flash(f"Evento operativo staff impostato su {ev.nome_evento}.", "success")
             return redirect(url_for("eventi.admin_evento_attivo"))
 
         return render_template("admin/evento_attivo.html",
                                eventi=eventi,
-                               evento_attivo=evento_attivo)
+                               evento_attivo=evento_attivo,
+                               ingressi_map=ingressi_map)
     finally:
         db.close()
 
@@ -234,7 +267,7 @@ def admin_menu():
         
         # Statistiche rapide
         tot_eventi = db.query(func.count(Evento.id_evento)).scalar() or 0
-        eventi_attivi = db.query(func.count(Evento.id_evento)).filter(Evento.stato == "attivo").scalar() or 0
+        eventi_attivi = db.query(func.count(Evento.id_evento)).filter(Evento.stato_pubblico == "attivo").scalar() or 0
         eventi_programmati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento >= oggi).scalar() or 0
         eventi_passati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento < oggi).scalar() or 0
         
@@ -265,16 +298,25 @@ def admin_list():
     try:
         from datetime import date
         oggi = date.today()
-        stato = request.args.get("stato")  # 'attivo'/'chiuso'/None
+        stato = request.args.get("stato")  # 'programmato'/'attivo'/'chiuso'/None
         periodo = request.args.get("periodo")  # 'programmati'/'passati'/None
         q = db.query(Evento)
-        if stato in ("attivo", "chiuso"):
-            q = q.filter(Evento.stato == stato)
+        if stato in ("programmato", "attivo", "chiuso"):
+            q = q.filter(Evento.stato_pubblico == stato)
         if periodo == "programmati":
             q = q.filter(Evento.data_evento >= oggi)
         elif periodo == "passati":
             q = q.filter(Evento.data_evento < oggi)
         eventi = q.order_by(Evento.data_evento.desc()).all()
+        evento_ids = [ev.id_evento for ev in eventi]
+
+        ingressi_map = {}
+        if evento_ids:
+            counts = (db.query(Ingresso.evento_id, func.count(Ingresso.id_ingresso))
+                        .filter(Ingresso.evento_id.in_(evento_ids))
+                        .group_by(Ingresso.evento_id)
+                        .all())
+            ingressi_map = {eid: count for eid, count in counts}
         
         # Classifica automaticamente gli eventi in base alla data
         eventi_programmati = [e for e in eventi if e.data_evento >= oggi]
@@ -286,7 +328,8 @@ def admin_list():
                              periodo=periodo,
                              oggi=oggi,
                              eventi_programmati=eventi_programmati,
-                             eventi_passati=eventi_passati)
+                             eventi_passati=eventi_passati,
+                             ingressi_map=ingressi_map)
     finally:
         db.close()
 
@@ -316,7 +359,8 @@ def admin_new():
                 promozione=request.form.get("promozione"),
                 capienza_max=request.form.get("capienza_max", type=int),
                 categoria=request.form.get("categoria"),
-                stato=request.form.get("stato"),
+                stato_pubblico=(request.form.get("stato_pubblico") or "programmato"),
+                is_staff_operativo=False,
                 cover_url=cover_filename,
                 template_id=(
                     int(request.form.get("template_evento").split("-",1)[1])
@@ -324,6 +368,15 @@ def admin_new():
                 ),
             )
             db.add(e)
+            db.flush()
+            log_action(
+                db,
+                tabella="eventi",
+                record_id=e.id_evento,
+                staff_id=session.get("staff_id"),
+                azione="evento_create",
+                note=f"evento_id={e.id_evento}"
+            )
             db.commit()
             flash("Evento creato.", "success")
             return redirect(url_for("eventi.admin_evento_detail", evento_id=e.id_evento))
@@ -482,7 +535,7 @@ def admin_edit(evento_id):
             e.promozione = request.form.get("promozione")
             e.capienza_max = request.form.get("capienza_max", type=int)
             e.categoria = request.form.get("categoria")
-            e.stato = request.form.get("stato")
+            e.stato_pubblico = request.form.get("stato_pubblico") or e.stato_pubblico
             
             # Gestione upload immagine
             if 'cover_image' in request.files:
@@ -547,19 +600,49 @@ def admin_duplicate(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
-        new_date = request.form.get("data_evento") or e.data_evento
+        new_date = request.form.get("data_evento")
+        if not new_date:
+            # default a oggi + 7 giorni
+            new_date = (date.today() + timedelta(days=7)).isoformat()
+        # warning se esiste già evento con stessa data
+        exists_same_date = db.query(Evento.id_evento).filter(Evento.data_evento == new_date).first()
+        if exists_same_date:
+            flash("Attenzione: esiste già un evento con la stessa data.", "warning")
         dup = Evento(
-            nome_evento=f"{e.nome_evento} (copy)",
+            nome_evento=f"{e.nome_evento} • {new_date}",
             data_evento=new_date,
             tipo_musica=e.tipo_musica,
             dj_artista=e.dj_artista,
             promozione=e.promozione,
             capienza_max=e.capienza_max,
             categoria=e.categoria if e.categoria in CATEGORIES_PUBLIC else "altro",
-            stato="attivo",
-            cover_url=None  # Non copiare l'immagine nella duplicazione
+            stato_pubblico="programmato",
+            is_staff_operativo=False,
+            cover_url=None
         )
         db.add(dup)
+        db.flush()
+        # Duplica cover se richiesto e presente
+        if request.form.get("duplica_cover") == "1" and e.cover_url:
+            src = Path(current_app.config['UPLOAD_FOLDER']) / e.cover_url
+            if src.exists():
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                name, ext = os.path.splitext(e.cover_url)
+                new_cover = f"{timestamp}_{name}{ext}"
+                dst = Path(current_app.config['UPLOAD_FOLDER']) / new_cover
+                try:
+                    shutil.copyfile(str(src), str(dst))
+                    dup.cover_url = new_cover
+                except Exception:
+                    pass
+        log_action(
+            db,
+            tabella="eventi",
+            record_id=dup.id_evento,
+            staff_id=session.get("staff_id"),
+            azione="evento_duplicate",
+            note=f"evento_id={dup.id_evento}"
+        )
         db.commit()
         flash("Evento duplicato.", "success")
         return redirect(url_for("eventi.admin_evento_detail", evento_id=dup.id_evento))
@@ -575,9 +658,38 @@ def admin_close(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
         else:
-            e.stato = "chiuso"
+            # Chiusura atomica: stato finale + cleanup operatività + prenotazioni residue a no-show
+            e.stato_pubblico = "chiuso"
+            e.is_staff_operativo = False
+            # reset fonte unica evento operativo
+            set_evento_operativo_id(db, None)
+            # prenotazioni attive -> no-show con assegnazione punti negativi
+            pren_attive = db.query(Prenotazione).filter(
+                Prenotazione.evento_id == evento_id,
+                Prenotazione.stato == "attiva"
+            ).all()
+            for pren in pren_attive:
+                pren.stato = "no-show"
+                award_on_no_show(db, cliente_id=pren.cliente_id, evento_id=pren.evento_id)
+                log_action(
+                    db,
+                    tabella="prenotazioni",
+                    record_id=pren.id_prenotazione,
+                    staff_id=session.get("staff_id"),
+                    azione="no_show_assegnato",
+                    note=f"evento_id={evento_id}"
+                )
+            db.flush()
+            log_action(
+                db,
+                tabella="eventi",
+                record_id=evento_id,
+                staff_id=session.get("staff_id"),
+                azione="event_close",
+                note=f"evento_id={evento_id}"
+            )
             db.commit()
-            flash("Evento chiuso.", "success")
+            flash("Evento chiuso. Prenotazioni residue marcate come no-show.", "success")
         return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
     finally:
         db.close()
@@ -606,34 +718,14 @@ def admin_analytics(evento_id):
         consumi_sum = (db.query(func.coalesce(func.sum(Consumo.importo), 0))
                          .filter(Consumo.evento_id == evento_id)
                          .scalar()) or 0
-
-        ingressi_per_evento_rows = (
-            db.query(
-                Evento.nome_evento,
-                Evento.categoria,
-                func.count(Ingresso.id_ingresso).label("tot_ingressi")
-            )
-            .outerjoin(Ingresso, Ingresso.evento_id == Evento.id_evento)
-            .group_by(Evento.id_evento, Evento.nome_evento, Evento.categoria)
-            .order_by(func.count(Ingresso.id_ingresso).desc())
-            .limit(20)
-            .all()
-        )
-
-        ingressi_per_evento_items = []
-        ingressi_categories = set()
-        for row in ingressi_per_evento_rows:
-            categoria = row.categoria or "non specificato"
-            ingressi_categories.add(categoria)
-            ingressi_per_evento_items.append({
-                "label": row.nome_evento,
-                "count": int(row.tot_ingressi or 0),
-                "categoria": categoria,
-            })
-
+        # Per coerenza di pagina evento: limita il dataset a questo evento
         ingressi_per_evento = {
-            "items": ingressi_per_evento_items,
-            "categories": sorted(ingressi_categories),
+            "items": [{
+                "label": e.nome_evento,
+                "count": int(ingressi_tot),
+                "categoria": e.categoria or "non specificato",
+            }],
+            "categories": [e.categoria] if e.categoria else [],
         }
 
         feedback_media_row = (db.query(

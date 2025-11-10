@@ -11,7 +11,22 @@ class LogAttivita(Base):
     tabella = Column(String(50), nullable=False)
     record_id = Column(Integer, nullable=False)
     staff_id = Column(Integer, ForeignKey("staff.id_staff", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
-    azione = Column(Enum("insert", "update", "delete", name="azione_enum"), nullable=False)
+    azione = Column(Enum(
+        "insert",
+        "update",
+        "delete",
+        "evento_create",
+        "evento_duplicate",
+        "set_operativo",
+        "unset_operativo",
+        "event_close",
+        "override_capienza",
+        "prenotazione_usata",
+        "ingresso_automatico",
+        "no_show_assegnato",
+        name="azione_enum"
+    ), nullable=False)
+    note = Column(String(255))
     timestamp = Column(DateTime, server_default=func.now())
 
     # 🔗 Relazioni ORM

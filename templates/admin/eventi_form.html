@@ -4,6 +4,9 @@
 {% block admin_content %}
 <section class="card">
   <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} evento</h1>
+  <p class="text--muted" style="margin-bottom:1.5rem;">
+    <strong>Nota:</strong> un evento appena creato parte in stato <em>programmato</em> e non è operativo per lo staff finché non lo imposti dal pannello “Evento operativo”.
+  </p>
   <form class="form" method="post" enctype="multipart/form-data" id="eventoForm">
     {% if not e %}
     <div class="form__group">
@@ -71,11 +74,13 @@
       </select>
     </div>
     <div class="form__group">
-      <label class="form__label">Stato</label>
-      <select class="form__input" name="stato" required>
-        <option value="attivo" {% if e and e.stato=='attivo' %}selected{% endif %}>Attivo</option>
-        <option value="chiuso" {% if e and e.stato=='chiuso' %}selected{% endif %}>Chiuso</option>
+      <label class="form__label">Stato pubblico</label>
+      <select class="form__input" name="stato_pubblico" required>
+        <option value="programmato" {% if e and e.stato_pubblico=='programmato' %}selected{% endif %}{% if not e %}selected{% endif %}>Programmato</option>
+        <option value="attivo" {% if e and e.stato_pubblico=='attivo' %}selected{% endif %}>Attivo</option>
+        <option value="chiuso" {% if e and e.stato_pubblico=='chiuso' %}selected{% endif %}>Chiuso</option>
       </select>
+      <small class="text--muted">Lo staff può operare solo sugli eventi con stato pubblico “attivo” e impostati come “operativi”.</small>
     </div>
     <div class="form__group">
       <label class="form__label">Immagine Copertina (JPG/PNG) {% if not e %}*{% endif %}</label>
@@ -113,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const categoriaSelect = document.getElementById('categoria');
   const tipoMusicaInput = document.getElementById('tipo_musica');
   const capienzaInput = document.getElementById('capienza_max');
+  const statoSelect = document.querySelector('select[name="stato_pubblico"]');
   
   templateSelect.addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
@@ -123,12 +129,18 @@ document.addEventListener('DOMContentLoaded', function() {
       categoriaSelect.value = selectedOption.getAttribute('data-categoria') || 'altro';
       tipoMusicaInput.value = selectedOption.getAttribute('data-tipo-musica') || '';
       capienzaInput.value = selectedOption.getAttribute('data-capienza') || '2500';
+      if (statoSelect) {
+        statoSelect.value = 'programmato';
+      }
     } else if (selectedOption.value === 'custom') {
       // Pulisci i campi per permettere inserimento personalizzato
       nomeInput.value = '';
       tipoMusicaInput.value = '';
       capienzaInput.value = '2500';
       categoriaSelect.value = 'altro';
+      if (statoSelect) {
+        statoSelect.value = 'programmato';
+      }
     }
   });
 });

@@ -11,12 +11,20 @@
 <section class="card">
   <h1 class="card__title">📍 Evento attivo</h1>
   <div class="card__meta">{{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}</div>
+  <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+    <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">{{ evento.stato_pubblico|capitalize }}</span>
+    {% if evento.is_staff_operativo %}
+    <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+      Evento operativo staff
+    </span>
+    {% endif %}
+  </div>
 </section>
 
 <section class="card">
   <h2 class="card__title">🔍 Scanner QR Cliente</h2>
   <p class="text--muted" style="margin-bottom: 1.5rem;">
-    Scansiona il QR del cliente prima di registrare il consumo.
+    Scansiona il QR del cliente prima di registrare il consumo. Lo scanner mostrerà messaggi chiari: <em>Pronto</em>, <em>Cliente trovato</em> o eventuali errori.
   </p>
   
   <form id="consumoForm" class="form" method="post" action="{{ url_for('consumi.staff_new') }}">

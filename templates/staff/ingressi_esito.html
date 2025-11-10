@@ -5,6 +5,20 @@
 <section class="card">
   <h1 class="card__title">Ingresso registrato</h1>
   <div class="card__meta">{{ evento.data_evento }} — {{ evento.nome_evento }}</div>
+  {% if ingresso.prenotazione_id %}
+  <div class="banner banner--success" style="margin:1rem 0;">
+    ✅ Prenotazione convalidata e ingresso registrato correttamente.
+  </div>
+  {% else %}
+  <div class="banner banner--info" style="margin:1rem 0;">
+    ✅ Ingresso registrato come “lista”. Informare il cliente che può raggiungere il locale.
+  </div>
+  {% endif %}
+  {% if ingresso.note and 'Capienza superata' in ingresso.note %}
+  <div class="banner banner--danger" style="margin-bottom:1rem;">
+    ⚠️ Ingresso autorizzato oltre la capienza. Notifica subito il responsabile.
+  </div>
+  {% endif %}
   <ul class="list">
     <li class="list__item"><strong>Cliente:</strong> {{ cliente.nome }} {{ cliente.cognome }}</li>
     <li class="list__item"><strong>Telefono:</strong> {{ cliente.telefono }}</li>
@@ -12,6 +26,9 @@
     <li class="list__item"><strong>Città:</strong> {{ cliente.citta }}</li>
     <li class="list__item"><strong>Tipo ingresso:</strong> {{ ingresso.tipo_ingresso|capitalize }}</li>
     <li class="list__item"><strong>Orario:</strong> {{ ingresso.orario_ingresso }}</li>
+    {% if ingresso.note %}
+    <li class="list__item"><strong>Note:</strong> {{ ingresso.note }}</li>
+    {% endif %}
   </ul>
   <div class="form__actions">
     <a class="btn btn--primary" href="{{ url_for('ingressi.staff_scan') }}">Scannerizza altro</a>

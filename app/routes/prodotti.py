@@ -51,7 +51,6 @@ def admin_new():
             nome = request.form.get("nome", "").strip()
             prezzo = request.form.get("prezzo", type=float)
             categoria = request.form.get("categoria", "").strip() or None
-            attivo = bool(request.form.get("attivo"))
             
             if not nome or prezzo is None:
                 flash("Nome e prezzo sono obbligatori.", "danger")
@@ -65,7 +64,7 @@ def admin_new():
                 nome=nome,
                 prezzo=prezzo,
                 categoria=categoria,
-                attivo=attivo
+                attivo=True
             )
             db.add(p)
             db.commit()
@@ -96,7 +95,6 @@ def admin_edit(prodotto_id):
             nome = request.form.get("nome", "").strip()
             prezzo = request.form.get("prezzo", type=float)
             categoria = request.form.get("categoria", "").strip() or None
-            attivo = bool(request.form.get("attivo"))
             
             if not nome or prezzo is None:
                 flash("Nome e prezzo sono obbligatori.", "danger")
@@ -109,7 +107,7 @@ def admin_edit(prodotto_id):
             p.nome = nome
             p.prezzo = prezzo
             p.categoria = categoria
-            p.attivo = attivo
+            p.attivo = True
             db.commit()
             flash("Prodotto aggiornato.", "success")
             return redirect(url_for("prodotti.admin_list"))

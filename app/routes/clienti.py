@@ -137,6 +137,10 @@ def area_personale():
     db = SessionLocal()
     try:
         cli = current_cliente(db)
+        if not cli:
+            session.pop("cliente_id", None)
+            flash("La tua sessione non è più valida. Effettua di nuovo l'accesso.", "warning")
+            return redirect(url_for("auth.auth_login_form"))
         # Prepara QR in data URL per embed
         qr_url = qr_data_url(cli.qr_code) if cli and cli.qr_code else None
 
@@ -1047,10 +1051,10 @@ def admin_deactivate(cliente_id):
     try:
         cli = db.query(Cliente).get(cliente_id)
         if not cli: abort(404)
-        cli.stato_account = "disattivato"
+        db.delete(cli)
         db.commit()
-        flash("Account disattivato. Il cliente non potrà più accedere fino alla riattivazione.", "warning")
-        return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
+        flash("Cliente eliminato definitivamente.", "warning")
+        return redirect(url_for("clienti.admin_lista_clienti"))
     finally:
         db.close()
 
@@ -1059,15 +1063,26 @@ def admin_deactivate(cliente_id):
 def admin_activate(cliente_id):
     db = SessionLocal()
     try:
-        cli = db.query(Cliente).get(cliente_id)
-        if not cli: abort(404)
-        cli.stato_account = "attivo"
-        db.commit()
-        flash("✓ Account riattivato con successo. Il cliente può ora accedere.", "success")
+        # Non più supportato: riattivazione disabilitata, i clienti vengono eliminati
+        flash("Operazione non disponibile. I clienti si eliminano definitivamente.", "warning")
         return redirect(url_for("clienti.admin_cliente_detail", cliente_id=cliente_id))
     finally:
         db.close()
 
+@clienti_bp.route("/admin/<int:cliente_id>/delete", methods=["POST"])
+@require_admin
+def admin_delete(cliente_id):
+    db = SessionLocal()
+    try:
+        cli = db.query(Cliente).get(cliente_id)
+        if not cli:
+            abort(404)
+        db.delete(cli)
+        db.commit()
+        flash("Cliente eliminato definitivamente.", "warning")
+        return redirect(url_for("clienti.admin_lista_clienti"))
+    finally:
+        db.close()
 @clienti_bp.route("/admin/<int:cliente_id>/set-note", methods=["POST"])
 @require_admin
 def admin_set_note(cliente_id):

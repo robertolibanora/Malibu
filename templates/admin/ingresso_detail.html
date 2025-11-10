@@ -9,13 +9,26 @@
       <div class="cliente-header__main">
         <h1 class="card__title">Ingresso</h1>
         <div class="cliente-header__meta">
-          <span class="badge badge--warning">{{ ingresso.tipo_ingresso|capitalize }}</span>
+          <span class="badge badge--muted">{{ ingresso.tipo_ingresso|capitalize }}</span>
+          {% if prenotazione %}
+          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+            Via prenotazione
+          </span>
+          {% endif %}
+          {% if ingresso.note and 'Capienza superata' in ingresso.note %}
+          <span class="badge badge--danger">Overbooking autorizzato</span>
+          {% endif %}
         </div>
       </div>
       <div class="cliente-header__actions">
         <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--secondary">← Torna alla lista</a>
       </div>
     </div>
+    {% if ingresso.note and 'Capienza superata' in ingresso.note %}
+    <div class="banner banner--danger" style="margin-top:1rem;">
+      ❗ Ingresso autorizzato oltre la capienza programmata.
+    </div>
+    {% endif %}
   </section>
 
   <!-- Informazioni ingresso -->

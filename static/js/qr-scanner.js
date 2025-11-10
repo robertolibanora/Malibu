@@ -351,6 +351,8 @@
             this._showWarning('QR non valido');
           } else if (check.reason === 'no_event') {
             this._showWarning('Nessun evento attivo');
+          } else if (check.reason === 'event_closed') {
+            this._showWarning('Evento chiuso: non è possibile registrare nuovi ingressi');
           } else {
             this._showWarning('Impossibile verificare');
           }

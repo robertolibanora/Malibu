@@ -213,28 +213,30 @@
 
 <section class="analytics-grid">
   <article class="chart-card chart-card--full">
-    <div class="chart-card__header">
-      <h2 class="chart-card__title">Ingressi per evento (top <span id="eventLabelIngressiLimite">10</span>)</h2>
-      <div class="chart-controls">
-        <label class="chart-label" for="eventFilterIngressiCategoria">Categoria</label>
-        <select id="eventFilterIngressiCategoria" class="chart-select">
-          <option value="__all">Tutte</option>
-          {% for categoria in ingressi_per_evento.categories %}
-            <option value="{{ categoria }}">{{ categoria|capitalize }}</option>
-          {% endfor %}
-        </select>
-        <label class="chart-label" for="eventFilterIngressiLimite">Top</label>
-        <select id="eventFilterIngressiLimite" class="chart-select">
-          <option value="5">5</option>
-          <option value="10" selected>10</option>
-          <option value="20">20</option>
-        </select>
+    <h2 class="chart-card__title">Stato serata</h2>
+    <div style="display:flex; flex-direction:column; gap:0.75rem;">
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <span class="badge badge--{{ 'success' if e.stato_pubblico == 'attivo' else 'secondary' }}">{{ e.stato_pubblico|capitalize }}</span>
+        {% if e.is_staff_operativo %}
+        <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+          Evento operativo staff
+        </span>
+        {% endif %}
       </div>
+      {% if e.capienza_max %}
+      {% set saturazione = (ingressi_tot / e.capienza_max * 100) if e.capienza_max else 0 %}
+      <div>
+        <strong>Ingressi registrati:</strong> {{ ingressi_tot }} / {{ e.capienza_max }}<br>
+        <small class="text--muted">Capienza residua: {{ e.capienza_max - ingressi_tot if e.capienza_max > ingressi_tot else 0 }}</small>
+        <div style="margin-top:0.5rem; background: rgba(255,255,255,0.08); border-radius: 999px; overflow:hidden; height:10px;">
+          <div style="width: {{ saturazione|round(0, 'floor') }}%; height:100%; background: var(--gold-primary);"></div>
+        </div>
+        <small class="text--muted">Saturazione {{ saturazione|round(0, 'floor') }}%</small>
+      </div>
+      {% endif %}
+      <p class="text--muted" style="margin:0;">Tutti i grafici sottostanti mostrano esclusivamente i dati dell’evento selezionato.</p>
     </div>
-    <canvas id="chartIngressiPerEvento"></canvas>
-    <p class="chart-card__empty">Non ci sono ingressi registrati per visualizzare il grafico.</p>
   </article>
-
   <article class="chart-card chart-card--wide">
     <div class="chart-card__header">
       <h2 class="chart-card__title">Flusso ingressi (ultime <span id="eventLabelIngressiRange">12</span> ore)</h2>
@@ -330,7 +332,6 @@
 
     const charts = {};
 
-    const ingressiPerEventoData = {{ ingressi_per_evento | tojson }};
     const ingressiTemporaliData = {{ ingressi_temporali | tojson }};
     const prodottiTopData = {{ prodotti_top | tojson }};
     const prenotazioniData = {{ prenotazioni_chart | tojson }};
@@ -382,44 +383,6 @@
         charts[canvasId].destroy();
       }
       charts[canvasId] = new Chart(canvas, config);
-    }
-
-    function updateEventIngressiChart() {
-      const categoria = document.getElementById('eventFilterIngressiCategoria')?.value || '__all';
-      const limite = parseInt(document.getElementById('eventFilterIngressiLimite')?.value || '10', 10);
-      const label = document.getElementById('eventLabelIngressiLimite');
-      if (label) label.textContent = limite;
-
-      const filtered = (ingressiPerEventoData.items || [])
-        .filter(item => categoria === '__all' || item.categoria === categoria)
-        .sort((a, b) => b.count - a.count)
-        .slice(0, limite);
-
-      renderChart('chartIngressiPerEvento', () => ({
-        type: 'bar',
-        data: {
-          labels: filtered.map(item => item.label),
-          datasets: [{
-            label: 'Ingressi',
-            data: filtered.map(item => item.count),
-            backgroundColor: GOLD,
-            borderRadius: 10,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { precision: 0, color: '#ffffff' },
-              grid: { color: 'rgba(255,255,255,0.08)' },
-            },
-            x: { grid: { display: false }, ticks: { color: '#ffffff' } },
-          },
-          plugins: { legend: { display: false } },
-        },
-      }));
     }
 
     function updateEventIngressiTemporaliChart() {
@@ -640,9 +603,6 @@
       }
     }
 
-    document.getElementById('eventFilterIngressiCategoria')?.addEventListener('change', updateEventIngressiChart);
-    document.getElementById('eventFilterIngressiLimite')?.addEventListener('change', updateEventIngressiChart);
-
     document.getElementById('eventFilterIngressiRange')?.addEventListener('change', updateEventIngressiTemporaliChart);
     document.getElementById('eventFilterIngressiTipo')?.addEventListener('change', updateEventIngressiTemporaliChart);
 
@@ -656,7 +616,6 @@
     document.getElementById('eventFilterFeedbackDato')?.addEventListener('change', updateEventFeedbackChart);
     document.getElementById('eventFilterFeedbackView')?.addEventListener('change', updateEventFeedbackChart);
 
-    updateEventIngressiChart();
     updateEventIngressiTemporaliChart();
     updateEventPrenotazioniChart();
     updateEventProdottiChart();

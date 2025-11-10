@@ -96,8 +96,28 @@
         <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;">
           {{ e.data_evento }} — {{ e.nome_evento }}
         </div>
+        <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
+          <span class="badge badge--muted">{{ i.tipo_ingresso|capitalize }}</span>
+          {% if i.prenotazione_id %}
+          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+            Via prenotazione
+          </span>
+          {% endif %}
+          {% if i.note and 'Capienza superata' in i.note %}
+          <span class="badge badge--danger">Overbooking autorizzato</span>
+          {% endif %}
+        </div>
       </div>
-      <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="btn btn--primary btn--small">Visualizza</a>
+      <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
+        <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="btn btn--primary btn--small">Dettagli</a>
+        <small class="text--muted">{{ i.orario_ingresso.strftime('%d/%m/%Y %H:%M') if i.orario_ingresso else '—' }}</small>
+      </div>
+    </div>
+    <div class="card__meta" style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.35rem;">
+      <span><strong>Registrato da:</strong> {{ i.staff.nome if i.staff else '—' }}</span>
+      {% if i.note %}
+      <span class="text--muted">{{ i.note }}</span>
+      {% endif %}
     </div>
   </article>
   {% else %}
