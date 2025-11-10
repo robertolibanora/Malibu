@@ -37,7 +37,7 @@
           {% for p in prodotti_cat %}
           <div style="padding: 1rem; background: var(--black-soft); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.1);">
             <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" style="width: 20px; height: 20px;" disabled>
+              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" data-nome="{{ p.nome }}" data-prezzo="{{ p.prezzo|float }}" style="width: 20px; height: 20px;" disabled>
               <div style="flex: 1;">
                 <strong style="display: block; color: var(--text-light);">{{ p.nome }}</strong>
                 <span style="color: var(--gold-primary); font-weight: 600;">€{{ "%.2f"|format(p.prezzo) }}</span>
@@ -71,11 +71,14 @@
         </select>
       </div>
       <div class="form__group">
-        <label class="form__label">Note</label>
+        <label class="form__label">Note (opzionale)</label>
         <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input" disabled>
-        <small>Obbligatorio per Tavolo/Privè</small>
       </div>
     </div>
+
+    <div id="cliente_banner" class="banner banner--info" role="status" style="display:none; margin-top:1rem;"></div>
+
+    <div id="cliente_alert_banner" class="banner banner--danger" role="alert" style="display:none; margin-top:1rem;"></div>
 
     <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
       <strong style="display: block; margin-bottom: 0.5rem; color: var(--gold-primary);">Totale selezionato:</strong>
@@ -87,7 +90,18 @@
       <button class="btn btn--primary" type="submit" id="submit_btn" disabled>Addebita al Cliente</button>
       <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">Annulla</a>
     </div>
+
+    <div id="confirm_banner" class="banner banner--warning" role="alertdialog" aria-live="assertive" style="display:none; margin-top:1rem;">
+      <p id="confirm_text" style="margin:0;"></p>
+      <div class="form__actions" style="margin-top:1rem;">
+        <button type="button" class="btn btn--primary" id="confirm_yes">Conferma</button>
+        <button type="button" class="btn btn--ghost" id="confirm_no">Annulla</button>
+      </div>
+    </div>
+
+    <div id="success_banner" class="banner banner--success" role="status" style="display:none; margin-top:1rem;"></div>
     {% endif %}
+    <input type="hidden" name="confirm_token" id="confirm_token" value="">
   </form>
 </section>
 
@@ -106,6 +120,18 @@ document.addEventListener("DOMContentLoaded", function(){
   const submitBtn = document.getElementById('submit_btn');
   const totaleEl = document.getElementById('totale');
   const puntiEl = document.getElementById('punti');
+  const confirmBanner = document.getElementById('confirm_banner');
+  const confirmText = document.getElementById('confirm_text');
+  const confirmYes = document.getElementById('confirm_yes');
+  const confirmNo = document.getElementById('confirm_no');
+  const successBanner = document.getElementById('success_banner');
+  const clienteInfoBanner = document.getElementById('cliente_banner');
+  const clienteAlertBanner = document.getElementById('cliente_alert_banner');
+  const confirmToken = document.getElementById('confirm_token');
+  let clienteInfo = null;
+  let clienteAbilitato = false;
+  let fetchTimeout = null;
+  let allowSubmit = false;
   
   // Blocca elementi fino allo scan
   function setLockedUI(locked) {
@@ -114,41 +140,48 @@ document.addEventListener("DOMContentLoaded", function(){
     if (puntoVendita) puntoVendita.disabled = locked;
     if (noteInput) noteInput.disabled = locked;
   }
-  setLockedUI(!qrHidden.value);
+  setLockedUI(true);
 
   // Sblocca al primo scan
-  document.addEventListener('qr-scanned', function(){
-    setLockedUI(false);
+  document.addEventListener('qr-scanned', function(event){
+    resetSelections();
+    setLockedUI(true);
+    clienteAbilitato = false;
+    allowSubmit = false;
+    confirmBanner.style.display = 'none';
+    successBanner.style.display = 'none';
     checkForm();
+    const code = event?.detail?.code;
+    if (code) {
+      fetchClienteInfo(code);
+    }
   });
 
   // Calcola totale e punti - costruisci dizionario prezzi da tutti i prodotti
-  const prezzi = {};
-  {% if prodotti %}
-  {% for p in prodotti %}
-  prezzi[{{ p.id_prodotto }}] = {{ p.prezzo }};
-  {% endfor %}
-  {% endif %}
-  {% if prodotti_per_categoria %}
-  {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
-  {% for p in prodotti_cat %}
-  if (!prezzi[{{ p.id_prodotto }}]) {
-    prezzi[{{ p.id_prodotto }}] = {{ p.prezzo }};
-  }
-  {% endfor %}
-  {% endfor %}
-  {% endif %}
-  
   function updateTotale(){
     let totale = 0;
     document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
       const pid = parseInt(cb.value);
       const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || 1);
-      totale += (prezzi[pid] || 0) * qty;
+      const prezzoUnitario = parseFloat(cb.dataset.prezzo || '0');
+      totale += prezzoUnitario * qty;
     });
     totaleEl.textContent = '€' + totale.toFixed(2);
     puntiEl.textContent = Math.floor(totale / 10);
     checkForm();
+  }
+
+  function resetSelections() {
+    document.querySelectorAll('.prodotto-checkbox').forEach(cb => {
+      cb.checked = false;
+      const container = cb.closest('div')?.querySelector('.quantita-container');
+      if (container) {
+        container.style.display = 'none';
+        const qtyInput = container.querySelector('input[type="number"]');
+        if (qtyInput) qtyInput.value = 1;
+      }
+    });
+    updateTotale();
   }
   
   // Mostra/nascondi quantità quando si seleziona prodotto
@@ -179,7 +212,7 @@ document.addEventListener("DOMContentLoaded", function(){
     const punto = puntoVendita.value;
     const hasNote = noteInput.value.trim().length > 0;
     
-    let valid = hasQR && hasProdotti;
+    let valid = hasQR && hasProdotti && clienteAbilitato;
     
     if (punto === 'tavolo' || punto === 'privè') {
       valid = valid && hasNote;
@@ -193,6 +226,148 @@ document.addEventListener("DOMContentLoaded", function(){
   
   // Inizializza
   checkForm();
+
+  async function fetchClienteInfo(qrCode) {
+    clienteInfo = null;
+    clienteInfoBanner.style.display = 'none';
+    clienteAlertBanner.style.display = 'none';
+    clienteAbilitato = false;
+    setLockedUI(true);
+    clienteAlertBanner.textContent = 'Recupero informazioni del cliente...';
+    clienteAlertBanner.style.display = 'block';
+    checkForm();
+    try {
+      const res = await fetch("{{ url_for('consumi.staff_cliente_info') }}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({ qr: qrCode })
+      });
+      const data = await res.json();
+      clienteAlertBanner.style.display = 'none';
+      if (!data.ok) {
+        let msg = 'Impossibile procedere.';
+        if (data.reason === 'not_found') {
+          msg = 'Cliente non trovato. Verifica il QR.';
+        } else if (data.reason === 'no_event' || data.reason === 'event_closed') {
+          msg = 'Evento non operativo: impossibile procedere.';
+        } else if (data.reason === 'missing_qr') {
+          msg = 'QR non valido.';
+        }
+        clienteAlertBanner.textContent = msg;
+        clienteAlertBanner.style.display = 'block';
+        clienteAbilitato = false;
+        resetSelections();
+        checkForm();
+        return;
+      }
+      clienteInfo = data.cliente;
+      const nomeCompleto = [clienteInfo.nome, clienteInfo.cognome].filter(Boolean).join(' ');
+      clienteInfoBanner.innerHTML = `<strong>Cliente:</strong> ${nomeCompleto || 'QR riconosciuto'}`;
+      clienteInfoBanner.style.display = 'block';
+      if (!data.ha_ingresso) {
+        clienteAlertBanner.textContent = 'Attenzione: il cliente non risulta entrato a questo evento.';
+        clienteAlertBanner.style.display = 'block';
+        clienteAbilitato = false;
+        resetSelections();
+      } else {
+        clienteAlertBanner.style.display = 'none';
+        clienteAbilitato = true;
+        setLockedUI(false);
+      }
+      checkForm();
+    } catch (err) {
+      console.error('Errore recupero cliente:', err);
+      clienteAlertBanner.textContent = 'Impossibile recuperare le informazioni del cliente.';
+      clienteAlertBanner.style.display = 'block';
+      clienteAbilitato = false;
+      resetSelections();
+      checkForm();
+    }
+  }
+
+  if (qrManual) {
+    const handleManualInput = function(){
+      const val = qrManual.value.trim();
+      if (!val) {
+        clienteInfo = null;
+        clienteAbilitato = false;
+        clienteInfoBanner.style.display = 'none';
+        clienteAlertBanner.textContent = 'Inserisci un QR valido.';
+        clienteAlertBanner.style.display = 'block';
+        setLockedUI(true);
+        resetSelections();
+        allowSubmit = false;
+        confirmBanner.style.display = 'none';
+        successBanner.style.display = 'none';
+        checkForm();
+        return;
+      }
+      if (fetchTimeout) clearTimeout(fetchTimeout);
+      fetchTimeout = setTimeout(() => {
+        resetSelections();
+        setLockedUI(true);
+        allowSubmit = false;
+        confirmBanner.style.display = 'none';
+        successBanner.style.display = 'none';
+        fetchClienteInfo(val);
+      }, 300);
+    };
+    qrManual.addEventListener('input', handleManualInput);
+    qrManual.addEventListener('blur', handleManualInput);
+  }
+
+  function getProdottiSummary() {
+    const items = [];
+    document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
+      const pid = cb.value;
+      const nome = cb.dataset.nome || cb.closest('label').querySelector('strong')?.textContent?.trim() || 'Prodotto';
+      const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || '1', 10);
+      items.push(qty > 1 ? `${nome} x${qty}` : nome);
+    });
+    return items;
+  }
+
+  function getClienteNome() {
+    if (clienteInfo) {
+      return [clienteInfo.nome, clienteInfo.cognome].filter(Boolean).join(' ').trim();
+    }
+    const manual = qrManual?.value?.trim();
+    return manual ? `cliente (${manual})` : 'cliente';
+  }
+
+  form.addEventListener('submit', function(event){
+    if (allowSubmit) {
+      return;
+    }
+    event.preventDefault();
+    const summary = getProdottiSummary();
+    if (summary.length === 0) {
+      return;
+    }
+    confirmText.innerHTML = `Confermi l'acquisto di <strong>${summary.join(', ')}</strong> per <strong>${getClienteNome()}</strong>?`;
+    confirmBanner.style.display = 'block';
+    successBanner.style.display = 'none';
+    confirmBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  confirmNo.addEventListener('click', function(){
+    confirmBanner.style.display = 'none';
+  });
+
+  confirmYes.addEventListener('click', function(){
+    const summary = getProdottiSummary();
+    confirmBanner.style.display = 'none';
+    const clienteNome = getClienteNome();
+    successBanner.innerHTML = `✅ Confermato acquisto di <strong>${summary.join(', ')}</strong> a <strong>${clienteNome}</strong>.`;
+    successBanner.style.display = 'block';
+    successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    allowSubmit = true;
+    confirmToken.value = Date.now().toString();
+    setTimeout(() => form.submit(), 1500);
+  });
 });
 </script>
 {% endblock %}

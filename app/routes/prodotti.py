@@ -1,4 +1,5 @@
 # app/routes/prodotti.py
+from collections import defaultdict
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from app.database import SessionLocal
 from app.models.prodotti import Prodotto
@@ -133,6 +134,33 @@ def admin_delete(prodotto_id):
             db.commit()
             flash("Prodotto eliminato.", "warning")
         return redirect(url_for("prodotti.admin_list"))
+    finally:
+        db.close()
+
+
+@prodotti_bp.route("/listino", methods=["GET"])
+def public_listino():
+    """Listino pubblico dei prodotti disponibili."""
+    db = SessionLocal()
+    try:
+        prodotti = (
+            db.query(Prodotto)
+              .filter(Prodotto.attivo == True)
+              .order_by(Prodotto.categoria.asc(), Prodotto.nome.asc())
+              .all()
+        )
+        per_categoria = defaultdict(list)
+        for p in prodotti:
+            key = p.categoria or "Generale"
+            per_categoria[key].append(p)
+
+        categorie = sorted(per_categoria.keys(), key=lambda c: (c != "Generale", c.lower()))
+
+        return render_template(
+            "public/listino_prodotti.html",
+            prodotti_per_categoria=per_categoria,
+            categorie=categorie
+        )
     finally:
         db.close()
 

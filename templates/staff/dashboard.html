@@ -5,14 +5,11 @@
 <section class="card" style="margin-bottom:1.5rem;">
   <h1 class="card__title">Dashboard Staff</h1>
   {% if evento_attivo %}
-  <div class="banner banner--success" style="margin-top:1rem;">
-    <div style="display:flex;flex-direction:column;gap:0.3rem;">
-      <strong>Evento operativo</strong>
-      <span>{{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}</span>
-      <span class="text--muted">
-        Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}{% if evento_attivo.stato_pubblico != 'attivo' %} (attenzione: l’evento non è pubblico come “attivo”){% endif %}
-      </span>
-    </div>
+  <div class="card__meta" style="margin-top:0.75rem;">
+    <strong>Evento operativo:</strong> {{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}<br>
+    <span class="text--muted">
+      Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}{% if evento_attivo.stato_pubblico != 'attivo' %} (attenzione: l’evento non è pubblico come “attivo”){% endif %}
+    </span>
   </div>
   {% else %}
   <div class="banner banner--warning" role="alert" style="margin-top:1rem;">
@@ -30,7 +27,10 @@
       🧾 Nuovo consumo
     </a>
     <a class="btn btn--ghost btn--large" href="{{ url_for('consumi.staff_listino') }}">
-      📒 Listino prodotti
+      🧾 Listino staff
+    </a>
+    <a class="btn btn--ghost btn--large" href="{{ url_for('prodotti.public_listino') }}" target="_blank" rel="noopener">
+      🌐 Listino pubblico
     </a>
     <a class="btn btn--ghost btn--large" href="{{ url_for('eventi.staff_select_event') }}">
       🎯 Gestisci evento operativo

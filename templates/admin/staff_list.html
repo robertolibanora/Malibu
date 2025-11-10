@@ -26,11 +26,12 @@
           <span>Ruolo</span>
           <select class="form__select form__select--dense" name="ruolo" onchange="this.form.submit()">
             <option value="" {% if not filtro.ruolo %}selected{% endif %}>Tutti</option>
-          <option value="admin" {% if filtro.ruolo=='admin' %}selected{% endif %}>Admin</option>
-          <option value="staff" {% if filtro.ruolo=='staff' %}selected{% endif %}>Staff</option>
-          <option value="barista" {% if filtro.ruolo=='barista' %}selected{% endif %}>Barista</option>
-          <option value="cassa" {% if filtro.ruolo=='cassa' %}selected{% endif %}>Cassa</option>
-        </select>
+            {% for code in filter_roles %}
+            <option value="{{ code }}" {% if filtro.ruolo==code %}selected{% endif %}>
+              {{ role_labels.get(code, code|capitalize) }}
+            </option>
+            {% endfor %}
+          </select>
         </label>
         <label class="staff-filter">
           <span>Stato</span>
@@ -66,7 +67,7 @@
     <article class="profile-metric">
       <span class="profile-metric__label">Ruoli coperti</span>
       <span class="profile-metric__value">{{ role_counts|length }}</span>
-      <span class="profile-metric__meta">Admin, Staff, Barista, Cassa…</span>
+      <span class="profile-metric__meta">Admin, Ingressista, Barista…</span>
     </article>
 </section>
 
@@ -78,7 +79,9 @@
       <div>
             <h2 class="staff-card__name">{{ s.nome }}</h2>
             <div class="staff-card__tags">
-              <span class="badge badge--{{ 'success' if s.attivo else 'secondary' }}">{{ s.ruolo|capitalize }}</span>
+              <span class="badge badge--{{ 'success' if s.attivo else 'secondary' }}">
+                {{ role_labels.get(s.ruolo, s.ruolo|capitalize) }}
+              </span>
               {% if not s.attivo %}<span class="badge badge--secondary">Disattivo</span>{% endif %}
       </div>
     </div>
@@ -94,7 +97,7 @@
           </div>
           <div>
             <dt>Ruolo</dt>
-            <dd>{{ s.ruolo|capitalize }}</dd>
+            <dd>{{ role_labels.get(s.ruolo, s.ruolo|capitalize) }}</dd>
           </div>
         </dl>
 

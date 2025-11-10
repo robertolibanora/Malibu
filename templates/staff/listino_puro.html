@@ -1,0 +1,211 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Listino{% endblock %}
+
+{% block staff_content %}
+<section class="card">
+  <h1 class="card__title">📋 Listino Prodotti</h1>
+  <div class="card__meta">
+    <strong>Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}
+  </div>
+  <div class="banner banner--info" style="margin-top: 0.75rem;">
+    <strong>Cliente:</strong> {{ cliente.cognome }} {{ cliente.nome }}
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Ordine</h2>
+  <form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}">
+    <input type="hidden" name="qr" value="{{ qr }}">
+
+    {% if prodotti_per_categoria %}
+    <div class="form__group" style="margin-top: 1rem;">
+      <label class="form__label">Seleziona Prodotti</label>
+      {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
+      <div style="margin-bottom: 1.5rem; padding: 1rem; background: rgba(212, 175, 55, 0.05); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.1);">
+        <h3 style="margin: 0 0 0.75rem 0; color: var(--gold-primary); font-size: 1.05rem;">{{ categoria }}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+          {% for p in prodotti_cat %}
+          <div style="padding: 1rem; background: var(--black-soft); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.1);">
+            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" data-nome="{{ p.nome }}" data-prezzo="{{ p.prezzo|float }}" style="width: 20px; height: 20px;">
+              <div style="flex: 1;">
+                <strong style="display: block; color: var(--text-light);">{{ p.nome }}</strong>
+                <span style="color: var(--gold-primary); font-weight: 600;">€{{ "%.2f"|format(p.prezzo) }}</span>
+              </div>
+            </label>
+            <div style="margin-top: 0.5rem; display: none;" class="quantita-container">
+              <label class="form__label" style="font-size: 0.75rem;">Quantità:</label>
+              <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="form__input" style="padding: 0.5rem; font-size: 0.875rem;">
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
+      <p>Nessun prodotto disponibile nel listino.</p>
+      <p style="font-size: 0.875rem; margin-top: 0.5rem;">L'admin deve aggiungere prodotti al listino.</p>
+    </div>
+    {% endif %}
+
+    <div class="grid grid--2" style="margin-top: 1rem;">
+      <div class="form__group">
+        <label class="form__label">Punto Vendita</label>
+        <select class="form__input" name="punto_vendita" required>
+          <option value="bar">Bar</option>
+          <option value="tavolo">Tavolo</option>
+          <option value="privè">Privè</option>
+        </select>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Note (opzionale)</label>
+        <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input">
+      </div>
+    </div>
+
+    <div class="banner banner--warning" id="confirm_banner" style="display:none; margin-top:1rem;">
+      <p id="confirm_text" style="margin:0;"></p>
+      <div class="form__actions" style="margin-top:1rem;">
+        <button type="button" class="btn btn--primary" id="confirm_yes">Conferma</button>
+        <button type="button" class="btn btn--ghost" id="confirm_no">Annulla</button>
+      </div>
+    </div>
+    <div id="success_banner" class="banner banner--success" role="status" style="display:none; margin-top:1rem;"></div>
+
+    <div style="margin-top: 1rem; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
+      <strong style="display: block; margin-bottom: 0.5rem; color: var(--gold-primary);">Totale selezionato:</strong>
+      <div id="totale" style="font-size: 1.5rem; font-weight: 700; color: var(--text-light);">€0.00</div>
+      <small style="color: var(--text-muted);">Punti che verranno assegnati: <span id="punti">0</span></small>
+    </div>
+
+    <div class="form__actions" style="margin-top: 1rem;">
+      <button class="btn btn--primary" type="submit" id="submit_btn" disabled>Addebita al Cliente</button>
+      <a href="{{ url_for('consumi.staff_scan_listino') }}" class="btn btn--ghost">Cambia cliente</a>
+    </div>
+  </form>
+</section>
+
+<section class="card">
+  <h2 class="card__title">Storico serata</h2>
+  {% if consumi_recenti %}
+  <ul class="list">
+    {% for c in consumi_recenti %}
+    <li class="list__item">
+      <strong>{{ c.prodotto }}</strong>
+      <small class="text--muted" style="display:block;">{{ c.data_consumo.strftime('%H:%M') }} • €{{ '%.2f'|format(c.importo) }} • {{ c.punto_vendita|capitalize }}</small>
+      {% if c.note %}<small class="text--muted">Note: {{ c.note }}</small>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="text--muted">Nessun acquisto registrato per questo cliente nell'evento corrente.</p>
+  {% endif %}
+</section>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const form = document.getElementById('listinoForm');
+  const submitBtn = document.getElementById('submit_btn');
+  const noteInput = document.getElementById('note_input');
+  const puntoVendita = document.querySelector('select[name="punto_vendita"]');
+  const totaleEl = document.getElementById('totale');
+  const puntiEl = document.getElementById('punti');
+  const confirmBanner = document.getElementById('confirm_banner');
+  const confirmText = document.getElementById('confirm_text');
+  const confirmYes = document.getElementById('confirm_yes');
+  const confirmNo = document.getElementById('confirm_no');
+  const successBanner = document.getElementById('success_banner');
+  let allowSubmit = false;
+
+  function updateTotale(){
+    let totale = 0;
+    document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
+      const pid = parseInt(cb.value);
+      const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || 1);
+      const prezzoUnitario = parseFloat(cb.dataset.prezzo || '0');
+      totale += prezzoUnitario * qty;
+    });
+    totaleEl.textContent = '€' + totale.toFixed(2);
+    puntiEl.textContent = Math.floor(totale / 10);
+    checkForm();
+  }
+
+  document.querySelectorAll('.prodotto-checkbox').forEach(cb => {
+    cb.addEventListener('change', function(){
+      const container = this.closest('div').querySelector('.quantita-container');
+      if (this.checked) {
+        container.style.display = 'block';
+      } else {
+        container.style.display = 'none';
+        const qtyInput = container.querySelector('input[type="number"]');
+        if (qtyInput) qtyInput.value = 1;
+      }
+      updateTotale();
+    });
+  });
+
+  document.querySelectorAll('input[name^="quantita_"]').forEach(input => {
+    input.addEventListener('change', updateTotale);
+    input.addEventListener('input', updateTotale);
+  });
+
+  function checkForm(){
+    const hasProdotti = document.querySelectorAll('.prodotto-checkbox:checked').length > 0;
+    submitBtn.disabled = !hasProdotti;
+  }
+
+  puntoVendita.addEventListener('change', checkForm);
+  noteInput.addEventListener('input', checkForm);
+  checkForm();
+
+  function getProdottiSummary() {
+    const items = [];
+    document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
+      const pid = cb.value;
+      const nome = cb.dataset.nome || cb.closest('label').querySelector('strong')?.textContent?.trim() || 'Prodotto';
+      const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || '1', 10);
+      items.push(qty > 1 ? `${nome} x${qty}` : nome);
+    });
+    return items;
+  }
+
+  function getClienteNome() {
+    return "{{ (cliente.nome or '') ~ ' ' ~ (cliente.cognome or '') }}".trim();
+  }
+
+  form.addEventListener('submit', function(event){
+    if (allowSubmit) {
+      return;
+    }
+    event.preventDefault();
+    const summary = getProdottiSummary();
+    if (summary.length === 0) {
+      return;
+    }
+    confirmText.innerHTML = `Confermi l'acquisto di <strong>${summary.join(', ')}</strong> per <strong>${getClienteNome()}</strong>?`;
+    confirmBanner.style.display = 'block';
+    successBanner.style.display = 'none';
+    confirmBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  confirmNo.addEventListener('click', function(){
+    confirmBanner.style.display = 'none';
+  });
+
+  confirmYes.addEventListener('click', function(){
+    const summary = getProdottiSummary();
+    confirmBanner.style.display = 'none';
+    const clienteNome = getClienteNome();
+    successBanner.innerHTML = `✅ Confermato acquisto di <strong>${summary.join(', ')}</strong> a <strong>${clienteNome}</strong>.`;
+    successBanner.style.display = 'block';
+    successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    allowSubmit = true;
+    setTimeout(() => form.submit(), 1000);
+  });
+});
+</script>
+{% endblock %}
+
+

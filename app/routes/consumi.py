@@ -1,6 +1,7 @@
 # app/routes/consumi.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app, jsonify
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
@@ -22,7 +23,8 @@ except Exception:
 
 consumi_bp = Blueprint("consumi", __name__, url_prefix="/consumi")
 
-PUNTI = ("tavolo", "privè")
+PUNTI_CONSENTITI = ("bar", "tavolo", "privè")
+PUNTI_NOTE = ("tavolo", "privè")
 # --------------------------------
 # Helpers comuni
 # --------------------------------
@@ -43,6 +45,45 @@ def _cliente_has_ingresso(db, cliente_id, evento_id):
         Ingresso.evento_id == evento_id
     ).first() is not None
 
+
+@consumi_bp.route("/staff/cliente-info", methods=["POST"])
+@require_staff
+def staff_cliente_info():
+    """
+    Restituisce informazioni di base sul cliente legato a un QR code.
+    Utile per conferme lato frontend prima dell'addebito.
+    """
+    data = request.get_json(silent=True) or {}
+    qr = (data.get("qr") or "").strip()
+    if not qr:
+        return jsonify({"ok": False, "reason": "missing_qr"}), 400
+
+    db = SessionLocal()
+    try:
+        evento = _get_evento_attivo(db)
+        if not evento:
+            return jsonify({"ok": False, "reason": "no_event"}), 409
+        if evento.stato_pubblico == "chiuso" or not evento.is_staff_operativo:
+            return jsonify({"ok": False, "reason": "event_closed"}), 409
+
+        cli = _cliente_by_qr(db, qr)
+        if not cli:
+            return jsonify({"ok": False, "reason": "not_found"}), 404
+
+        has_ingresso = _cliente_has_ingresso(db, cli.id_cliente, evento.id_evento)
+
+        return jsonify({
+            "ok": True,
+            "cliente": {
+                "id": cli.id_cliente,
+                "nome": cli.nome,
+                "cognome": cli.cognome
+            },
+            "ha_ingresso": has_ingresso
+        })
+    finally:
+        db.close()
+
 # ============================================
 # 👤 CLIENTE — Storico consumi
 # ============================================
@@ -52,11 +93,14 @@ def miei():
     db = SessionLocal()
     try:
         cid = session.get("cliente_id")
-        rows = (db.query(Consumo, Evento)
-                  .join(Evento, Evento.id_evento == Consumo.evento_id)
+        rows = (
+            db.query(Consumo)
+              .join(Consumo.evento)
+              .options(joinedload(Consumo.evento))
                   .filter(Consumo.cliente_id == cid)
                   .order_by(Consumo.data_consumo.desc())
-                  .all())
+              .all()
+        )
         # Totali per evento
         per_evento = dict(db.query(Consumo.evento_id, func.sum(Consumo.importo))
                             .filter(Consumo.cliente_id == cid)
@@ -84,6 +128,18 @@ def staff_listino():
             flash("Evento non operativo o chiuso. Imposta un evento operativo prima di registrare consumi.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
         
+        # Gating: accesso solo dopo scan QR valido con ingresso
+        qr_param = (request.args.get("qr") or "").strip()
+        if not qr_param:
+            return redirect(url_for("consumi.staff_scan_listino"))
+        cli = _cliente_by_qr(db, qr_param)
+        if not cli:
+            flash("QR non valido o cliente non trovato.", "danger")
+            return redirect(url_for("consumi.staff_scan_listino"))
+        if not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
+            flash("Il cliente non risulta entrato a questo evento.", "danger")
+            return redirect(url_for("consumi.staff_scan_listino"))
+
         # Carica prodotti attivi raggruppati per categoria
         prodotti = []
         if Prodotto is not None:
@@ -97,10 +153,20 @@ def staff_listino():
                 prodotti_per_categoria[categoria] = []
             prodotti_per_categoria[categoria].append(p)
         
-        return render_template("staff/listino.html", 
+        consumi_evento_cliente = (
+            db.query(Consumo)
+              .filter(Consumo.evento_id == e.id_evento, Consumo.cliente_id == cli.id_cliente)
+              .order_by(Consumo.data_consumo.desc())
+              .limit(5)
+              .all()
+        )
+        return render_template("staff/listino_puro.html", 
                              evento=e, 
                              prodotti_per_categoria=prodotti_per_categoria,
-                             prodotti=prodotti)
+                               prodotti=prodotti,
+                               cliente=cli,
+                               qr=qr_param,
+                               consumi_recenti=consumi_evento_cliente)
     finally:
         db.close()
 
@@ -123,11 +189,12 @@ def staff_listino_addebito():
         cli = _cliente_by_qr(db, qr)
         if not cli:
             flash("QR non valido o cliente non trovato.", "danger")
-            return redirect(url_for("consumi.staff_listino"))
+            return redirect(url_for("consumi.staff_scan_listino"))
         
         # Controllo ingresso -> solo warning
         if not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
-            flash("Attenzione: cliente non risulta entrato a questo evento.", "warning")
+            flash("Non puoi registrare consumi: il cliente non risulta entrato all'evento.", "danger")
+            return redirect(url_for("consumi.staff_scan_listino"))
         
         # Recupera prodotti selezionati
         prodotti_selezionati = request.form.getlist("prodotto_id")
@@ -139,15 +206,13 @@ def staff_listino_addebito():
         
         if not quantita:
             flash("Seleziona almeno un prodotto.", "danger")
-            return redirect(url_for("consumi.staff_listino"))
+            return redirect(url_for("consumi.staff_listino", qr=qr))
         
         # Recupera altri parametri
         punto_vendita = request.form.get("punto_vendita", "bar")
         note = (request.form.get("note") or "").strip() or None
         
-        if punto_vendita in PUNTI and not note:
-            flash("Per tavolo/privè è obbligatoria una nota (es. Tavolo 7).", "danger")
-            return redirect(url_for("consumi.staff_listino"))
+        # Le note sono ora opzionali: se fornite le salviamo, altrimenti restano None.
         
         # Crea consumi per ogni prodotto selezionato
         totale_importo = 0
@@ -188,10 +253,85 @@ def staff_listino_addebito():
             award_on_consumo(db, cliente_id=cli.id_cliente, evento_id=e.id_evento, importo_euro=totale_importo)
         
         flash(f"Addebito completato! Totale: €{totale_importo:.2f}. Punti assegnati: {int(totale_importo // 10)}", "success")
-        return redirect(url_for("consumi.staff_listino"))
+        return redirect(url_for("consumi.staff_listino", qr=qr))
     finally:
         db.close()
 
+
+@consumi_bp.route("/staff/scan", methods=["GET", "POST"])
+@require_staff
+def staff_scan_listino():
+    """Schermata di sola scansione QR per accedere al listino."""
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            flash("Nessun evento attivo impostato. Contatta un amministratore.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            flash("Evento non operativo o chiuso. Imposta un evento operativo prima di procedere.", "warning")
+            return redirect(url_for("eventi.staff_select_event"))
+
+        message = None
+        message_type = None
+        cliente = None
+        qr_value = None
+        ingresso_ok = False
+
+        if request.method == "POST":
+            qr = (request.form.get("qr") or request.form.get("qr_manual") or "").strip()
+            if not qr:
+                message = "QR mancante. Ripeti la scansione oppure inserisci il codice manualmente."
+                message_type = "error"
+            else:
+                cli = _cliente_by_qr(db, qr)
+                if not cli:
+                    message = "QR non valido o cliente non trovato."
+                    message_type = "error"
+                elif not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
+                    message = "Il cliente non risulta entrato a questo evento: registra prima l’ingresso per procedere."
+                    message_type = "error"
+                else:
+                    cliente = cli
+                    qr_value = qr
+                    ingresso_ok = True
+                    message = f"Cliente riconosciuto: {cli.nome} {cli.cognome}. Puoi aprire il listino e registrare l’acquisto."
+                    message_type = "success"
+
+        return render_template("staff/scan_cliente.html",
+                               evento=e,
+                               cliente=cliente,
+                               ingresso_ok=ingresso_ok,
+                               qr_value=qr_value,
+                               message=message,
+                               message_type=message_type)
+    finally:
+        db.close()
+
+
+@consumi_bp.route("/staff/precheck", methods=["POST"])
+@require_staff
+def staff_precheck_qr():
+    """Precheck per auto-submit scanner: ok solo se cliente esiste e ha ingresso per evento operativo."""
+    data = request.get_json(silent=True) or {}
+    qr = (data.get("qr") or "").strip()
+    if not qr:
+        return jsonify({"ok": False, "reason": "missing_qr"}), 400
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            return jsonify({"ok": False, "reason": "no_event"}), 409
+        if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
+            return jsonify({"ok": False, "reason": "event_closed"}), 409
+        cli = _cliente_by_qr(db, qr)
+        if not cli:
+            return jsonify({"ok": False, "reason": "not_found"}), 404
+        if not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
+            return jsonify({"ok": False, "reason": "no_ingresso"}), 403
+        return jsonify({"ok": True})
+    finally:
+        db.close()
 
 # ============================================
 # 🧑‍🍳 STAFF — Nuovo consumo (QR + evento attivo)
@@ -219,7 +359,8 @@ def staff_new():
 
             # controllo ingresso -> solo warning
             if not _cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
-                flash("Attenzione: cliente non risulta entrato a questo evento.", "warning")
+                flash("Non puoi registrare consumi: il cliente non risulta entrato all'evento.", "danger")
+                return redirect(url_for("consumi.staff_new"))
 
             # Prodotto/importo
             prodotto_sel_id = request.form.get("prodotto_id", type=int)
@@ -229,7 +370,7 @@ def staff_new():
             punto_vendita = request.form.get("punto_vendita")
             note = (request.form.get("note") or "").strip() or None
 
-            if punto_vendita in PUNTI and not note:
+            if punto_vendita in PUNTI_NOTE and not note:
                 flash("Per tavolo/privè è obbligatoria una nota (es. Tavolo 7).", "danger")
                 return redirect(url_for("consumi.staff_new"))
 
@@ -299,7 +440,7 @@ def admin_list():
 
         if evento_id: q = q.filter(Consumo.evento_id == evento_id)
         if staff_id:  q = q.filter(Consumo.staff_id == staff_id)
-        if punto in PUNTI: q = q.filter(Consumo.punto_vendita == punto)
+        if punto in PUNTI_CONSENTITI: q = q.filter(Consumo.punto_vendita == punto)
         if qprod: q = q.filter(Consumo.prodotto.ilike(f"%{qprod}%"))
         if dal:
             try:
@@ -312,7 +453,9 @@ def admin_list():
                 q = q.filter(Consumo.data_consumo < d2)
             except ValueError: pass
 
-        rows = q.order_by(Consumo.data_consumo.desc()).all()
+        rows = q.options(joinedload(Consumo.client), joinedload(Consumo.evento)) \
+                .order_by(Consumo.data_consumo.desc()) \
+                .all()
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
         staff_list = db.query(Staff).order_by(Staff.nome.asc()).all()
         return render_template("admin/consumi_list.html", rows=rows, eventi=eventi, staff_list=staff_list,
@@ -366,7 +509,7 @@ def admin_new():
                 except Exception:
                     pass
 
-            if punto_vendita in PUNTI and not note:
+            if punto_vendita in PUNTI_NOTE and not note:
                 flash("Per tavolo/privè è obbligatoria una nota.", "danger")
                 return redirect(url_for("consumi.admin_new"))
 
@@ -432,7 +575,7 @@ def admin_edit(consumo_id):
                 except Exception:
                     pass
 
-            if punto_vendita in PUNTI and not note:
+            if punto_vendita in PUNTI_NOTE and not note:
                 flash("Per tavolo/privè è obbligatoria una nota.", "danger")
                 return redirect(url_for("consumi.admin_edit", consumo_id=consumo_id))
 

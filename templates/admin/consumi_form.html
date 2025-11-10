@@ -57,6 +57,7 @@
       <div class="form__group">
         <label class="form__label">Punto vendita</label>
         <select class="form__input" name="punto_vendita" required>
+          <option value="bar" {% if e and e.punto_vendita=='bar' %}selected{% endif %}>Bar</option>
           <option value="tavolo" {% if e and e.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
           <option value="privè" {% if e and e.punto_vendita=='privè' %}selected{% endif %}>Privè</option>
         </select>

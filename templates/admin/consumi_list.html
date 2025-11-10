@@ -30,6 +30,7 @@
         <label class="form__label">Punto vendita</label>
         <select class="form__input" name="punto_vendita">
           <option value="">Tutti</option>
+          <option value="bar" {% if filtro.punto_vendita=='bar' %}selected{% endif %}>Bar</option>
           <option value="tavolo" {% if filtro.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
           <option value="privè" {% if filtro.punto_vendita=='privè' %}selected{% endif %}>Privè</option>
         </select>

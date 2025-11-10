@@ -11,6 +11,14 @@ from app.routes.log_attivita import log_action
 staff_bp = Blueprint("staff", __name__, url_prefix="/staff")
 staff_admin_bp = Blueprint("staff_admin", __name__, url_prefix="/admin/staff")
 
+OPERATIVE_ROLES = ("ingressista", "barista")
+ROLE_LABELS = {
+    "admin": "Admin",
+    "ingressista": "Ingressista",
+    "barista": "Barista",
+}
+FILTERABLE_ROLES = ("admin",) + OPERATIVE_ROLES
+
 # ---------- STAFF ----------
 @staff_bp.route("/")
 @require_staff
@@ -102,7 +110,9 @@ def admin_list():
         attivo = request.args.get("attivo")
         
         q = db.query(Staff)
-        if ruolo in ("admin", "staff", "barista", "cassa"):
+        if ruolo not in FILTERABLE_ROLES:
+            ruolo = None
+        if ruolo:
             q = q.filter(Staff.ruolo == ruolo)
         if attivo == "true":
             q = q.filter(Staff.attivo == True)
@@ -110,8 +120,13 @@ def admin_list():
             q = q.filter(Staff.attivo == False)
         
         staff_list = q.order_by(Staff.nome.asc()).all()
-        return render_template("admin/staff_list.html", staff_list=staff_list,
-                               filtro={"ruolo": ruolo, "attivo": attivo})
+        return render_template(
+            "admin/staff_list.html",
+            staff_list=staff_list,
+            filtro={"ruolo": ruolo, "attivo": attivo},
+            role_labels=ROLE_LABELS,
+            filter_roles=FILTERABLE_ROLES
+        )
     finally:
         db.close()
 
@@ -120,6 +135,8 @@ def admin_list():
 def admin_new():
     db = SessionLocal()
     try:
+        role_choices = [(code, ROLE_LABELS[code]) for code in OPERATIVE_ROLES]
+
         if request.method == "POST":
             nome = request.form.get("nome", "").strip()
             username = request.form.get("username", "").strip()
@@ -131,7 +148,7 @@ def admin_new():
                 flash("Compila tutti i campi obbligatori.", "danger")
                 return redirect(url_for("staff_admin.admin_new"))
             
-            if ruolo not in ("admin", "staff", "barista", "cassa"):
+            if ruolo not in dict(role_choices):
                 flash("Ruolo non valido.", "danger")
                 return redirect(url_for("staff_admin.admin_new"))
             
@@ -153,7 +170,7 @@ def admin_new():
             flash("Staff creato.", "success")
             return redirect(url_for("staff_admin.admin_list"))
         
-        return render_template("admin/staff_form.html", s=None)
+        return render_template("admin/staff_form.html", s=None, role_choices=role_choices, role_locked=False)
     finally:
         db.close()
 
@@ -167,6 +184,13 @@ def admin_edit(staff_id):
             flash("Staff non trovato.", "danger")
             return redirect(url_for("staff_admin.admin_list"))
         
+        if s.ruolo == "admin":
+            role_choices = [("admin", ROLE_LABELS["admin"])]
+            role_locked = True
+        else:
+            role_choices = [(code, ROLE_LABELS[code]) for code in OPERATIVE_ROLES]
+            role_locked = False
+
         if request.method == "POST":
             nome = request.form.get("nome", "").strip()
             username = request.form.get("username", "").strip()
@@ -178,7 +202,9 @@ def admin_edit(staff_id):
                 flash("Nome e username obbligatori.", "danger")
                 return redirect(url_for("staff_admin.admin_edit", staff_id=staff_id))
             
-            if ruolo not in ("admin", "staff", "barista", "cassa"):
+            if s.ruolo == "admin":
+                ruolo = "admin"
+            elif ruolo not in dict(role_choices):
                 flash("Ruolo non valido.", "danger")
                 return redirect(url_for("staff_admin.admin_edit", staff_id=staff_id))
             
@@ -204,7 +230,7 @@ def admin_edit(staff_id):
             flash("Staff aggiornato.", "success")
             return redirect(url_for("staff_admin.admin_list"))
         
-        return render_template("admin/staff_form.html", s=s)
+        return render_template("admin/staff_form.html", s=s, role_choices=role_choices, role_locked=role_locked)
     finally:
         db.close()
 

@@ -8,12 +8,12 @@
 </section>
 
 <section class="list">
-  {% for c, ev in rows %}
+  {% for consumo in rows %}
   <article class="card list__item">
-    <div class="card__title">{{ ev.data_evento }} — {{ ev.nome_evento }}</div>
-    <div class="card__meta">{{ c.data_consumo }} • {{ c.punto_vendita|capitalize }}</div>
-    <div>{{ c.prodotto }}</div>
-    <div><strong>€ {{ '%.2f'|format(c.importo) }}</strong></div>
+    <div class="card__title">{{ consumo.evento.data_evento }} — {{ consumo.evento.nome_evento }}</div>
+    <div class="card__meta">{{ consumo.data_consumo }} • {{ consumo.punto_vendita|capitalize }}</div>
+    <div>{{ consumo.prodotto }}</div>
+    <div><strong>€ {{ '%.2f'|format(consumo.importo) }}</strong></div>
   </article>
   {% else %}
     <div class="card"><p class="text--muted">Nessun consumo registrato.</p></div>

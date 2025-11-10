@@ -57,10 +57,52 @@ def create_app():
                     "ADD CONSTRAINT chk_voto_servizio "
                     "CHECK (voto_servizio BETWEEN 1 AND 10)"
                 ))
+        staff_columns = inspector.get_columns("staff")
+        ruolo_column = next((col for col in staff_columns if col["name"] == "ruolo"), None)
+        desired_roles = ("admin", "barista", "ingressista")
+        legacy_roles = ("staff", "cassa")
+        if ruolo_column:
+            current_roles = tuple(getattr(ruolo_column["type"], "enums", ()))
+            has_all_desired = all(role in current_roles for role in desired_roles)
+            legacy_present = any(role in current_roles for role in legacy_roles)
+            needs_cleanup = (set(current_roles) ^ set(desired_roles)) or legacy_present or not has_all_desired
+
+            if needs_cleanup:
+                # Step 1: assicurati che i valori legacy + nuovi siano ammessi prima dell'update
+                extended_roles = tuple(dict.fromkeys(current_roles + desired_roles + legacy_roles))
+                if set(extended_roles) != set(current_roles):
+                    default_role = "staff" if "staff" in extended_roles else desired_roles[-1]
+                    enum_literal = ",".join(f"'{r}'" for r in extended_roles)
+                    with engine.begin() as conn:
+                        conn.execute(text(
+                            f"ALTER TABLE staff "
+                            f"MODIFY ruolo ENUM({enum_literal}) "
+                            f"NOT NULL DEFAULT '{default_role}'"
+                        ))
+
+                # Step 2: normalizza i dati esistenti
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        "UPDATE staff SET ruolo = 'ingressista' "
+                        "WHERE ruolo = 'staff'"
+                    ))
+                    conn.execute(text(
+                        "UPDATE staff SET ruolo = 'barista' "
+                        "WHERE ruolo = 'cassa'"
+                    ))
+
+                # Step 3: imposta definitivamente l'enum ai soli valori ammessi
+                enum_literal = ",".join(f"'{r}'" for r in desired_roles)
+                with engine.begin() as conn:
+                    conn.execute(text(
+                        f"ALTER TABLE staff "
+                        f"MODIFY ruolo ENUM({enum_literal}) "
+                        f"NOT NULL DEFAULT 'ingressista'"
+                    ))
     except Exception as exc:
         # Evita di bloccare l'avvio dell'app: logga l'errore e prosegui.
         if app.logger:
-            app.logger.error("Impossibile sincronizzare la colonna voto_servizio: %s", exc)
+            app.logger.error("Impossibile sincronizzare le migrazioni automatiche: %s", exc)
 
     # Route root: reindirizza al login
     @app.route("/")

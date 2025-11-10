@@ -14,15 +14,7 @@
           <span>Categoria</span>
           <input type="text" name="categoria" value="{{ filtro.categoria }}" placeholder="Es. Drink, Privé" class="form__input">
         </label>
-        <label class="products-hub__filter-field">
-          <span>Stato</span>
-          <select name="attivo" class="form__select form__select--dense" onchange="this.form.submit()">
-            <option value="" {% if not filtro.attivo %}selected{% endif %}>Tutti</option>
-          <option value="si" {% if filtro.attivo=='si' %}selected{% endif %}>Attivi</option>
-          <option value="no" {% if filtro.attivo=='no' %}selected{% endif %}>Disattivi</option>
-        </select>
-        </label>
-      {% if filtro.categoria or filtro.attivo %}
+      {% if filtro.categoria %}
         <a class="btn btn--ghost btn--small" href="{{ url_for('prodotti.admin_list') }}">Reset</a>
       {% endif %}
       </form>
@@ -38,8 +30,9 @@
           <div>
             <h2 class="product-card__title">{{ p.nome }}</h2>
             <div class="product-card__tags">
-              <span class="badge badge--{{ 'success' if p.attivo else 'secondary' }}">{{ 'Attivo' if p.attivo else 'Disattivo' }}</span>
-              {% if p.categoria %}<span class="badge badge--warning">{{ p.categoria }}</span>{% endif %}
+              {% if p.categoria %}
+              <span class="badge badge--category">{{ p.categoria }}</span>
+              {% endif %}
             </div>
         </div>
           <div class="product-card__price">€{{ "%.2f"|format(p.prezzo) }}</div>

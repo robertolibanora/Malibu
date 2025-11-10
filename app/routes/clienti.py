@@ -247,7 +247,7 @@ def me_edit():
         except IntegrityError:
             db.rollback()
             flash("Questo numero di telefono è già in uso. Prova con un altro.", "warning")
-        return redirect(url_for("clienti.me_edit"))
+        return redirect(url_for("clienti.area_personale"))
     finally:
         db.close()
 

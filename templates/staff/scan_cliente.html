@@ -1,0 +1,43 @@
+{% extends "staff/base.html" %}
+{% from "staff/partials/qr_scanner.html" import render_qr_scanner %}
+{% block staff_title %}Scanner Cliente{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/qr-scanner.css') }}">
+{% endblock %}
+
+{% block staff_content %}
+<section class="card">
+  <h1 class="card__title">🔍 Scanner QR Cliente</h1>
+  <div class="card__meta">
+    <strong>Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}
+  </div>
+  {% if message %}
+  <div class="banner banner--{{ 'success' if message_type == 'success' else ('danger' if message_type == 'error' else 'info') }}" role="alert" style="margin: 1rem 0;">
+    {{ message }}
+  </div>
+  {% endif %}
+  <p class="text--muted" style="margin: 0.75rem 0 1rem 0;">Scansiona il QR del cliente. Se il cliente è già entrato, potrai aprire il listino e registrare l’acquisto.</p>
+  <form id="scanForm" method="post" action="{{ url_for('consumi.staff_scan_listino') }}">
+    {{ render_qr_scanner(container_id='qr-reader', form_id='scanForm', auto_submit=False, result_input_id='qr_hidden', manual_input_id='qr_manual', manual_input_label='Oppure inserisci manualmente il QR code', manual_input_placeholder='QR Code Cliente', precheck_url=url_for('consumi.staff_precheck_qr')) }}
+    <input type="hidden" id="qr_hidden" name="qr">
+    <div class="form__actions" style="margin-top:1rem;">
+      <button class="btn btn--primary" type="submit">Verifica</button>
+      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">Annulla</a>
+    </div>
+  </form>
+  {% if ingresso_ok %}
+  <div class="form__actions" style="margin-top:1rem;">
+    <a href="{{ url_for('consumi.staff_listino', qr=qr_value) }}" class="btn btn--primary btn--block">Apri listino consumazioni</a>
+  </div>
+  {% endif %}
+</section>
+
+<!-- html5-qrcode da CDN -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<!-- Modulo scanner QR -->
+<script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
+{% endblock %}
+
+

@@ -15,7 +15,10 @@ class Consumo(Base):
     prodotto = Column(String(100), nullable=False)
     importo = Column(DECIMAL(8, 2), nullable=False)
     data_consumo = Column(DateTime, server_default=func.now())
-    punto_vendita = Column(Enum("tavolo", "privè", name="punto_vendita_enum"), nullable=False)
+    punto_vendita = Column(
+        Enum("bar", "tavolo", "privè", name="punto_vendita_enum"),
+        nullable=False
+    )
     note = Column(Text)
 
     # 🔗 Relazioni ORM

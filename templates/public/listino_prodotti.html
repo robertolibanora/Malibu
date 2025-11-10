@@ -1,0 +1,345 @@
+{% extends "shared/base.html" %}
+{% block title %}Listino Prodotti{% endblock %}
+
+{% block content %}
+<section class="listino-page">
+  <div class="listino-hero">
+    <div class="listino-hero__inner">
+      <div class="listino-hero__copy">
+        <h1 class="listino-hero__title">Listino Ufficiale</h1>
+        <p class="listino-hero__subtitle">
+          Cocktail signature, bottiglie prestige e selezioni esclusive per la notte Malibù.
+        </p>
+      </div>
+      <div class="listino-hero__brand">
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù Events" class="listino-hero__logo">
+      </div>
+    </div>
+  </div>
+
+  {% if categorie %}
+  <nav class="listino-nav" aria-label="Categorie listino">
+    <span class="listino-nav__label">Vai a:</span>
+    <div class="listino-nav__chips">
+      {% for categoria in categorie %}
+        <button type="button" class="chip" data-target="categoria-{{ loop.index }}">{{ categoria|capitalize }}</button>
+      {% endfor %}
+    </div>
+  </nav>
+  {% endif %}
+
+  <div class="listino-content">
+    {% if categorie %}
+      {% for categoria in categorie %}
+        <section id="categoria-{{ loop.index }}" class="listino-section" aria-labelledby="categoria-{{ loop.index }}-title">
+          <header class="listino-section__header">
+            <h2 class="listino-section__title" id="categoria-{{ loop.index }}-title">
+              {{ categoria|capitalize }}
+            </h2>
+            <span class="listino-section__count">
+              {{ prodotti_per_categoria[categoria]|length }} prodotti
+            </span>
+          </header>
+          <div class="listino-items">
+            {% for prodotto in prodotti_per_categoria[categoria] %}
+              <article class="listino-item">
+                <div class="listino-item__body">
+                  <h3 class="listino-item__name">{{ prodotto.nome }}</h3>
+                  {% if prodotto.descrizione %}
+                  <p class="listino-item__note">
+                    {{ prodotto.descrizione }}
+                  </p>
+                  {% endif %}
+                </div>
+                <div class="listino-item__price">
+                  € {{ '%.2f'|format(prodotto.prezzo) }}
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% else %}
+      <section class="listino-empty">
+        <div class="listino-empty__card">
+          <h2 class="listino-empty__title">Listino non disponibile</h2>
+          <p class="listino-empty__text">
+            Stiamo aggiornando le proposte della serata. Torna presto per scoprire le novità del nostro bar.
+          </p>
+        </div>
+      </section>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_head %}
+{{ super() }}
+<style>
+  :root {
+    --listino-bg: radial-gradient(circle at top left, rgba(212,175,55,0.08), rgba(10,10,10,0.95));
+    --listino-card-bg: rgba(16, 16, 18, 0.92);
+    --listino-border: rgba(212, 175, 55, 0.25);
+    --listino-highlight: rgba(212, 175, 55, 0.18);
+  }
+  .listino-page {
+    background: var(--listino-bg);
+  }
+  .listino-hero {
+    padding: 3rem 0 2rem;
+  }
+  .listino-hero__inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    display: flex;
+    gap: 1.75rem;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .listino-hero__brand {
+    flex: 0 0 auto;
+    margin-top: 0.4rem;
+  }
+  .listino-hero__logo {
+    width: 110px;
+    height: auto;
+    margin-bottom: 0.75rem;
+    filter: drop-shadow(0 18px 32px rgba(0, 0, 0, 0.4));
+  }
+  .listino-hero__title {
+    font-size: 2.25rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 0.6rem;
+    color: var(--gold-primary);
+    font-family: var(--font-family-display);
+    font-weight: var(--font-weight-bold);
+  }
+  .listino-hero__subtitle {
+    margin: 0;
+    max-width: 520px;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: rgba(212, 175, 55, 0.85);
+  }
+  .listino-nav {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    backdrop-filter: blur(12px);
+    background: rgba(10, 10, 12, 0.72);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.12);
+    padding: 0.85rem 0;
+  }
+  .listino-nav__label {
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.72);
+    display: block;
+    margin: 0 1.25rem 0.35rem;
+  }
+  .listino-nav__chips {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .listino-nav__chips::-webkit-scrollbar {
+    display: none;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    color: #fff;
+    font-size: 0.78rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    white-space: nowrap;
+    cursor: pointer;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .chip:hover,
+  .chip:focus-visible {
+    background: rgba(212, 175, 55, 0.2);
+    border-color: rgba(212, 175, 55, 0.45);
+    transform: translateY(-1px);
+    outline: none;
+  }
+  .listino-content {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+  .listino-section {
+    background: var(--listino-card-bg);
+    border: 1px solid var(--listino-border);
+    border-radius: 18px;
+    box-shadow: 0 22px 46px -24px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+  }
+  .listino-section__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 1.6rem 1.75rem 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 1rem;
+  }
+  .listino-section__eyebrow {
+    margin: 0;
+    font-size: 0.7rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(212, 175, 55, 0.8);
+  }
+  .listino-section__title {
+    margin: 0.4rem 0 0;
+    font-size: 1.5rem;
+    letter-spacing: 0.03em;
+    color: var(--gold-primary);
+  }
+  .listino-section__count {
+    font-size: 0.75rem;
+    color: rgba(212, 175, 55, 0.85);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    background: rgba(212, 175, 55, 0.12);
+  }
+  .listino-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .listino-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.1rem 1.35rem;
+    background: rgba(10, 10, 12, 0.78);
+    transition: background 0.2s ease;
+  }
+  .listino-item:nth-child(odd) {
+    background: rgba(12, 12, 14, 0.9);
+  }
+  .listino-item:hover {
+    background: rgba(212, 175, 55, 0.12);
+  }
+  .listino-item__name {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .listino-item__note {
+    margin: 0.45rem 0 0;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+  }
+  .listino-item__price {
+    font-size: 1.05rem;
+    font-weight: 600;
+    padding: 0.5rem 0.9rem;
+    border-radius: 999px;
+    background: var(--listino-highlight);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    color: var(--gold-primary);
+    min-width: 90px;
+    text-align: center;
+  }
+  .listino-empty {
+    display: flex;
+    justify-content: center;
+    padding: 2rem 0 4rem;
+  }
+  .listino-empty__card {
+    background: rgba(12, 12, 14, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    max-width: 480px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 20px 40px -24px rgba(0, 0, 0, 0.55);
+  }
+  .listino-empty__title {
+    margin: 0 0 0.8rem;
+    font-size: 1.4rem;
+    color: var(--gold-primary);
+  }
+  .listino-empty__text {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.6;
+  }
+  @media (max-width: 780px) {
+    .listino-hero__inner {
+      flex-direction: column;
+      align-items: center;
+      gap: 1.2rem;
+    }
+    .listino-hero__logo {
+      width: 82px;
+      margin-bottom: 0.5rem;
+    }
+    .listino-hero__title {
+      font-size: 2rem;
+    }
+    .listino-nav {
+      position: static;
+      margin-top: -0.5rem;
+      border-bottom: none;
+    }
+    .listino-section__header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .listino-section__count {
+      align-self: flex-start;
+    }
+    .listino-items {
+      grid-template-columns: 1fr;
+    }
+    .listino-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+    .listino-item__price {
+      align-self: flex-end;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script>
+    document.addEventListener("DOMContentLoaded", function(){
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.querySelectorAll(".chip[data-target]").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var id = this.getAttribute("data-target");
+          var el = document.getElementById(id);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      });
+    });
+  </script>
+{% endblock %}
+

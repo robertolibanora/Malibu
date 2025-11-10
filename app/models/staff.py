@@ -9,9 +9,9 @@ class Staff(Base):
     id_staff = Column(Integer, primary_key=True, index=True)
     nome = Column(String(100), nullable=False)
     ruolo = Column(
-        Enum("admin", "staff", "barista", "cassa", name="ruolo_enum"),
+        Enum("admin", "barista", "ingressista", name="ruolo_enum"),
         nullable=False,
-        default="staff"
+        default="ingressista"
     )
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)

@@ -5,12 +5,9 @@
 <section class="card">
   <h1 class="card__title">Evento Attivo</h1>
   {% if evento_attivo %}
-    <div class="banner banner--success" style="margin-bottom:1rem;">
-      <div style="display:flex;flex-direction:column;gap:0.3rem;">
-        <strong>Evento operativo</strong>
-        <span>{{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento }}</span>
-        <small class="text--muted">Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}</small>
-      </div>
+    <div class="card__meta" style="margin-bottom:1rem;">
+      <strong>Evento operativo:</strong> {{ evento_attivo.nome_evento }} • {{ evento_attivo.data_evento }}<br>
+      <span class="text--muted">Stato pubblico: {{ evento_attivo.stato_pubblico|capitalize }}</span>
     </div>
     <ul class="list">
       <li class="list__item"><strong>DJ/Artista:</strong> {{ evento_attivo.dj_artista or '-' }}</li>

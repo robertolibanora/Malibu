@@ -23,9 +23,9 @@
       <li class="cliente-nav__item">
         <a href="{{ url_for('clienti.area_personale') }}" 
            class="cliente-nav__link {% if request.endpoint == 'clienti.area_personale' or request.endpoint == 'clienti.me_edit' %}cliente-nav__link--active{% endif %}"
-           aria-label="Il mio profilo">
+           aria-label="Home cliente">
           <span class="cliente-nav__icon">👤</span>
-          <span class="cliente-nav__text">Profilo</span>
+          <span class="cliente-nav__text">Home</span>
         </a>
       </li>
       <li class="cliente-nav__item">

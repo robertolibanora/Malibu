@@ -45,8 +45,8 @@
         </a>
       </li>
       <li class="staff-nav__item">
-        <a href="{{ url_for('consumi.staff_new') }}" 
-           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('consumi.staff') %}staff-nav__link--active{% endif %}"
+        <a href="{{ url_for('consumi.staff_scan_listino') }}" 
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('consumi.staff_') %}staff-nav__link--active{% endif %}"
            aria-label="Registra consumi">
           <span class="staff-nav__icon">🧾</span>
           <span class="staff-nav__text">Consumi</span>

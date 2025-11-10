@@ -36,7 +36,7 @@ CREATE TABLE clienti (
 CREATE TABLE staff (
   id_staff INT AUTO_INCREMENT PRIMARY KEY,
   nome VARCHAR(100) NOT NULL,
-  ruolo ENUM('admin', 'staff', 'barista', 'cassa') NOT NULL DEFAULT 'staff',
+  ruolo ENUM('admin', 'barista', 'ingressista') NOT NULL DEFAULT 'ingressista',
   username VARCHAR(50) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   attivo BOOLEAN DEFAULT TRUE,
@@ -176,7 +176,7 @@ CREATE TABLE consumi (
   prodotto VARCHAR(100) NOT NULL,
   importo DECIMAL(8,2) NOT NULL,
   data_consumo DATETIME DEFAULT CURRENT_TIMESTAMP,
-  punto_vendita ENUM('tavolo', 'privè') NOT NULL,
+  punto_vendita ENUM('bar', 'tavolo', 'privè') NOT NULL DEFAULT 'bar',
   note TEXT,
   INDEX idx_consumi_evento (evento_id),
   INDEX idx_consumi_cliente (cliente_id),

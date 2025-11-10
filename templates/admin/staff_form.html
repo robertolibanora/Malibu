@@ -47,19 +47,24 @@
       {% endif %}
     </div>
 
+    {% set choices = role_choices if role_choices is defined else [('ingressista', 'Ingressista'), ('barista', 'Barista')] %}
+    {% set locked = role_locked if role_locked is defined else False %}
     <div class="form__group">
       <label class="form__label" for="ruolo">Ruolo *</label>
-      <select class="form__input" id="ruolo" name="ruolo" required>
-        <option value="staff" {% if s and s.ruolo=='staff' %}selected{% endif %}>Staff</option>
-        <option value="admin" {% if s and s.ruolo=='admin' %}selected{% endif %}>Admin</option>
-        <option value="barista" {% if s and s.ruolo=='barista' %}selected{% endif %}>Barista</option>
-        <option value="cassa" {% if s and s.ruolo=='cassa' %}selected{% endif %}>Cassa</option>
+      <select class="form__input" id="ruolo" name="ruolo" required {% if locked %}disabled{% endif %}>
+        {% for value, label in choices %}
+        <option value="{{ value }}"
+          {% if (s and s.ruolo == value) or (not s and loop.first) %}selected{% endif %}>
+          {{ label }}
+        </option>
+        {% endfor %}
       </select>
+      {% if locked and choices %}
+      <input type="hidden" name="ruolo" value="{{ choices[0][0] }}">
+      {% endif %}
       <small class="text--muted">
-        <strong>Admin:</strong> accesso completo • 
-        <strong>Staff:</strong> gestione ingressi/consumi • 
-        <strong>Barista:</strong> gestione consumi • 
-        <strong>Cassa:</strong> gestione pagamenti
+        <strong>Ingressista:</strong> gestione ingressi e controllo accessi • 
+        <strong>Barista:</strong> gestione consumazioni e ordini al bar
       </small>
     </div>
 
