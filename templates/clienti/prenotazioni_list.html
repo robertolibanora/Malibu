@@ -26,7 +26,7 @@
       {% else %}
         <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
       {% endif %}
-      <span class="event-card__chip event-card__chip--attiva">Attiva</span>
+      <span class="event-card__chip event-card__chip--attiva" style="bottom: 8px; background: linear-gradient(135deg, rgba(63, 195, 128, 0.95) 0%, rgba(63, 195, 128, 0.85) 100%); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">✓ Attiva</span>
     </div>
     <div class="event-card__body">
       <div class="event-card__info">
@@ -46,7 +46,7 @@
       </div>
       <div class="event-card__actions">
         <form method="post" action="{{ url_for('prenotazioni.cancella_mia', pren_id=p.id_prenotazione) }}" onsubmit="return confirm('Cancellare la prenotazione?');">
-          <button class="btn btn--danger" type="submit">Cancella (entro le 18)</button>
+          <button class="btn btn--primary" type="submit" style="background: linear-gradient(135deg, rgba(196, 30, 58, 0.95) 0%, rgba(196, 30, 58, 0.85) 100%); color: white; border: 1px solid rgba(196, 30, 58, 0.4);">Cancella (entro le 18)</button>
         </form>
       </div>
     </div>
@@ -73,9 +73,9 @@
       {% else %}
         <div class="event-card__placeholder">{{ pren.evento.nome_evento[0]|upper }}</div>
       {% endif %}
-      <span class="event-card__chip event-card__chip--usata">Usata</span>
+      <span class="event-card__chip event-card__chip--usata" style="bottom: 8px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); color: black; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">✓ Usata</span>
       {% if feedback %}
-        <span class="event-card__chip event-card__chip--booked" style="bottom: auto; top: 12px; left: auto; right: 12px;">Già valutata</span>
+        <span class="event-card__chip event-card__chip--booked" style="bottom: auto; top: 12px; left: auto; right: 12px; background: rgba(100, 100, 100, 0.9); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">⭐ Valutata</span>
       {% endif %}
     </div>
     <div class="event-card__body">
@@ -145,7 +145,7 @@
       {% else %}
         <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
       {% endif %}
-      <span class="event-card__chip event-card__chip--no-show">Non usata</span>
+      <span class="event-card__chip event-card__chip--no-show" style="bottom: 8px; background: linear-gradient(135deg, rgba(200, 50, 60, 0.95) 0%, rgba(200, 50, 60, 0.85) 100%); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);">✗ Non usata</span>
     </div>
     <div class="event-card__body">
       <div class="event-card__info">
