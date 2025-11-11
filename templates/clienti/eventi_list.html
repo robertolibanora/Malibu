@@ -22,12 +22,20 @@
         <div class="event-card__placeholder">{{ e.nome_evento[0]|upper }}</div>
       {% endif %}
       
-      <!-- Badge prenotazione -->
+      <!-- Workflow status (se cliente loggato) -->
       {% if workflow_map and e.id_evento in workflow_map %}
         {% set workflow = workflow_map[e.id_evento] %}
-        {% if workflow.prenotazione_attiva %}
-          <span class="event-card__chip event-card__chip--booked">🎟️ Prenotato</span>
-        {% endif %}
+        <div class="event-card__workflow">
+          <small class="text--muted">
+            {% if workflow.prenotazione_attiva %}
+              ✓ Prenotazione confermata — Pronto per entrare!
+            {% elif workflow.ingresso_registrato %}
+              ✓ Sei entrato — Puoi lasciare feedback
+            {% else %}
+              → Scegli questa serata e prenota il tuo posto
+            {% endif %}
+          </small>
+        </div>
       {% endif %}
     </div>
     <div class="event-card__body">
