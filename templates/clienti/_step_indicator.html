@@ -1,4 +1,4 @@
-{% comment %}
+{#
 🎬 STEP INDICATOR — Mostra il progresso lineare del flusso cliente
 
 Uso:
@@ -9,7 +9,7 @@ Colori:
   - ORO (#D4A574) = completed/current
   - NERO (#1A1A1A) = disabled
   - GRIGIO (#999) = future
-{% endcomment %}
+#}
 
 {% if step_progress %}
 <div class="step-indicator" role="progressbar" aria-valuenow="{{ step_progress|length }}" aria-valuemin="1" aria-valuemax="5" aria-label="Progresso evento">

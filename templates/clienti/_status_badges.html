@@ -1,4 +1,4 @@
-{% comment %}
+{#
 🎨 STATUS BADGES — Badge riutilizzabili per stato evento, prenotazione, ingresso
 
 Macros:
@@ -7,7 +7,7 @@ Macros:
   {% macro render_ingresso_badge(badge_info) %}
 
 Da usare con dati da app/utils/workflow.py
-{% endcomment %}
+#}
 
 {% macro render_evento_badge(badge_info) %}
 <span class="badge badge--{{ badge_info.class }}" 
