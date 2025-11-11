@@ -2,8 +2,15 @@
 {% block title %}Eventi - Malibù{% endblock %}
 
 {% block cliente_content %}
-{% import "clienti/_status_badges.html" as badges %}
 {% set show_all_past = show_all_past|default(false) %}
+
+<div class="section-heading">
+  <span class="section-heading__icon">🎉</span>
+  <div class="section-heading__meta">
+    <span class="section-heading__eyebrow">Scopri e prenota</span>
+    <h1 class="section-heading__title">Prossimi eventi</h1>
+  </div>
+</div>
 
 <section class="event-list">
   {% for e in eventi_prossimi %}
@@ -13,14 +20,6 @@
         <img src="{{ url_for('static', filename='uploads/eventi/' ~ e.cover_url) }}" alt="{{ e.nome_evento }}">
       {% else %}
         <div class="event-card__placeholder">{{ e.nome_evento[0]|upper }}</div>
-      {% endif %}
-      
-      <!-- Badge stato evento -->
-      {% if evento_badge_map and e.id_evento in evento_badge_map %}
-        {% set badge = evento_badge_map[e.id_evento] %}
-        <span class="event-card__chip event-card__chip--{{ badge.color }}">
-          {{ badge.icon }} {{ badge.label }}
-        </span>
       {% endif %}
       
       <!-- Badge prenotazione -->
