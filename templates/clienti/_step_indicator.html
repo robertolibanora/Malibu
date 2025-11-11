@@ -1,0 +1,274 @@
+{% comment %}
+🎬 STEP INDICATOR — Mostra il progresso lineare del flusso cliente
+
+Uso:
+  {% include "clienti/_step_indicator.html" with context %}
+  Richiede: step_progress (dict dal workflow.py)
+
+Colori:
+  - ORO (#D4A574) = completed/current
+  - NERO (#1A1A1A) = disabled
+  - GRIGIO (#999) = future
+{% endcomment %}
+
+{% if step_progress %}
+<div class="step-indicator" role="progressbar" aria-valuenow="{{ step_progress|length }}" aria-valuemin="1" aria-valuemax="5" aria-label="Progresso evento">
+  <div class="step-indicator__track">
+    
+    {% set steps = [
+      step_progress.step_1_evento,
+      step_progress.step_2_prenotazione,
+      step_progress.step_3_ingresso,
+      step_progress.step_4_feedback,
+      step_progress.step_5_consumi
+    ] %}
+    
+    {% for idx, step in enumerate(steps) %}
+      {% set is_completed = step.completed %}
+      {% set is_current = step.get('current', False) %}
+      {% set is_enabled = step.enabled %}
+      {% set step_number = idx + 1 %}
+      
+      <div class="step-indicator__step 
+        {% if is_completed %}step-indicator__step--completed{% endif %}
+        {% if is_current %}step-indicator__step--current{% endif %}
+        {% if not is_enabled %}step-indicator__step--disabled{% endif %}"
+        role="presentation">
+        
+        <!-- Cerchio/numero step -->
+        <div class="step-indicator__circle" 
+          {% if is_enabled %}aria-label="{{ step.label }}"{% endif %}>
+          {% if is_completed %}
+            <span class="step-indicator__icon">✓</span>
+          {% else %}
+            <span class="step-indicator__number">{{ step_number }}</span>
+          {% endif %}
+        </div>
+        
+        <!-- Label -->
+        <span class="step-indicator__label">{{ step.label }}</span>
+        
+        <!-- Linea connessione -->
+        {% if idx < steps|length - 1 %}
+          <div class="step-indicator__connector" role="presentation"></div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    
+  </div>
+  
+  <!-- Info tooltip sotto il step corrente -->
+  <div class="step-indicator__info">
+    {% for idx, step in enumerate(steps) %}
+      {% if step.get('current', False) %}
+        <div class="step-indicator__tooltip">
+          <strong>{{ step.label }}</strong>
+          <p>{{ step.description }}</p>
+        </div>
+        {% break %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+
+<style scoped>
+/* STEP INDICATOR — Lineare + Mobile-First */
+
+.step-indicator {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(212, 165, 116, 0.05);
+  border-radius: 8px;
+  border-left: 4px solid #D4A574;
+}
+
+.step-indicator__track {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.step-indicator__step {
+  flex: 1;
+  min-width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  position: relative;
+  transition: opacity 0.2s;
+}
+
+.step-indicator__step--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.step-indicator__circle {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: bold;
+  font-size: 0.95rem;
+  background: #f0f0f0;
+  border: 2px solid #ccc;
+  color: #666;
+  transition: all 0.3s ease;
+}
+
+/* Completed step */
+.step-indicator__step--completed .step-indicator__circle {
+  background: #D4A574;
+  border-color: #D4A574;
+  color: white;
+}
+
+/* Current step */
+.step-indicator__step--current .step-indicator__circle {
+  background: white;
+  border-color: #D4A574;
+  color: #D4A574;
+  box-shadow: 0 0 0 3px rgba(212, 165, 116, 0.2);
+  animation: pulse-gold 1.5s infinite;
+}
+
+/* Disabled step */
+.step-indicator__step--disabled .step-indicator__circle {
+  background: #f9f9f9;
+  border-color: #ddd;
+  color: #999;
+  cursor: not-allowed;
+}
+
+@keyframes pulse-gold {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.step-indicator__number {
+  font-size: 1.1rem;
+}
+
+.step-indicator__icon {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.step-indicator__label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  color: #333;
+  line-height: 1.2;
+  max-width: 70px;
+  word-break: break-word;
+}
+
+.step-indicator__step--disabled .step-indicator__label {
+  color: #999;
+}
+
+/* Linea connessione */
+.step-indicator__connector {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  width: calc(100% - 10px);
+  height: 2px;
+  background: #ddd;
+  transform: translateX(-50%);
+  z-index: -1;
+}
+
+.step-indicator__step--completed .step-indicator__connector,
+.step-indicator__step--current .step-indicator__connector {
+  background: #D4A574;
+}
+
+/* Info tooltip */
+.step-indicator__info {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.step-indicator__tooltip {
+  font-size: 0.85rem;
+}
+
+.step-indicator__tooltip strong {
+  color: #D4A574;
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.step-indicator__tooltip p {
+  margin: 0;
+  color: #666;
+  font-size: 0.8rem;
+}
+
+/* MOBILE: stack verticale */
+@media (max-width: 480px) {
+  .step-indicator__track {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .step-indicator__step {
+    min-width: 50px;
+  }
+
+  .step-indicator__circle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .step-indicator__label {
+    font-size: 0.7rem;
+    max-width: 60px;
+  }
+
+  .step-indicator__connector {
+    display: none;
+  }
+}
+
+/* TABLET + desktop: layout orizzontale */
+@media (min-width: 768px) {
+  .step-indicator {
+    padding: 1.5rem;
+  }
+
+  .step-indicator__track {
+    gap: 1rem;
+  }
+
+  .step-indicator__circle {
+    width: 48px;
+    height: 48px;
+    font-size: 1rem;
+  }
+
+  .step-indicator__label {
+    font-size: 0.8rem;
+    max-width: 90px;
+  }
+
+  .step-indicator__connector {
+    top: 24px;
+  }
+}
+</style>
+
+{% endif %}
+

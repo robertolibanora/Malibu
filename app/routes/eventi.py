@@ -38,6 +38,7 @@ def _get_evento_attivo(db):
 # --------------------------
 @eventi_bp.route("/", methods=["GET"])
 def lista_pubblica():
+    from app.utils.workflow import get_workflow_state, evento_stato_badge
     db = SessionLocal()
     try:
         cat = request.args.get("categoria")
@@ -69,7 +70,7 @@ def lista_pubblica():
         )
         eventi_prossimi = q_next.order_by(Evento.data_evento.asc(), Evento.id_evento.asc()).all()
 
-        # Eventi passati (ultimi 10, più “grigi” a UI)
+        # Eventi passati (ultimi 10, più "grigi" a UI)
         show_all = request.args.get("show_all")
         show_all_past = (show_all == "past")
 
@@ -79,7 +80,9 @@ def lista_pubblica():
             q_past = q_past.limit(20)
         eventi_passati = q_past.all()
 
+        # Stato prenotazioni e workflow per cliente loggato
         prenotati_ids = set()
+        workflow_map = {}  # { evento_id: workflow_state }
         cid = session.get("cliente_id")
         if cid and eventi_prossimi:
             prenotati_ids = {
@@ -91,11 +94,21 @@ def lista_pubblica():
                 )
                 .all()
             }
+            # Crea workflow state per ogni evento
+            for ev in eventi_prossimi:
+                workflow_map[ev.id_evento] = get_workflow_state(db, cid, ev.id_evento)
+
+        # Badge per stato evento
+        evento_badge_map = {}
+        for ev in eventi_prossimi + eventi_passati:
+            evento_badge_map[ev.id_evento] = evento_stato_badge(ev)
 
         return render_template("clienti/eventi_list.html",
                                eventi_prossimi=eventi_prossimi,
                                eventi_passati=eventi_passati,
                                eventi_prenotati=prenotati_ids,
+                               workflow_map=workflow_map,
+                               evento_badge_map=evento_badge_map,
                                CATEGORIES_PUBLIC=CATEGORIES_PUBLIC,
                                filtri={"categoria": cat, "dal": dal, "al": al},
                                show_all_past=show_all_past)
@@ -107,22 +120,35 @@ def lista_pubblica():
 # --------------------------
 @eventi_bp.route("/<int:evento_id>", methods=["GET"])
 def dettaglio_pubblico(evento_id):
+    from app.utils.workflow import get_workflow_state, evento_stato_badge
     db = SessionLocal()
     try:
         e = db.query(Evento).get(evento_id)
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.lista_pubblica"))
+        
         # Mostra eventuali acquisti dell'utente loggato durante la serata
         consumi_miei = []
+        workflow_state = None
         cid = session.get("cliente_id")
         if cid:
             consumi_miei = (db.query(Consumo)
                               .filter(Consumo.evento_id == evento_id, Consumo.cliente_id == cid)
                               .order_by(Consumo.data_consumo.desc())
                               .all())
+            # Workflow state per il cliente
+            workflow_state = get_workflow_state(db, cid, evento_id)
+        
         is_future = e.data_evento >= date.today()
-        return render_template("clienti/evento_detail.html", e=e, consumi_miei=consumi_miei, is_future=is_future)
+        evento_badge = evento_stato_badge(e)
+        
+        return render_template("clienti/evento_detail.html",
+                             e=e,
+                             consumi_miei=consumi_miei,
+                             workflow_state=workflow_state,
+                             evento_badge=evento_badge,
+                             is_future=is_future)
     finally:
         db.close()
 

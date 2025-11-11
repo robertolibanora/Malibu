@@ -113,6 +113,7 @@ def nuova():
 @prenotazioni_bp.route("/mie", methods=["GET"])
 @require_cliente
 def mie():
+    from app.utils.workflow import get_workflow_state
     db = SessionLocal()
     try:
         cli = _get_current_cliente(db)
@@ -150,6 +151,11 @@ def mie():
             if mov.evento_id:
                 fedelta_map[mov.evento_id] += mov.punti or 0
 
+        # Workflow state map per visualizzare lo stato completo
+        workflow_map = {}
+        for p in pren:
+            workflow_map[p.id_prenotazione] = get_workflow_state(db, cli.id_cliente, p.evento_id)
+
         return render_template(
             "clienti/prenotazioni_list.html",
             prenotazioni_attive=pren_attive,
@@ -158,6 +164,7 @@ def mie():
             punti_per_no_show=punti_per_no_show,
             punti_persi_no_show=punti_persi,
             punti_evento=fedelta_map,
+            workflow_map=workflow_map,
             show_all_usate=show_all_usate
         )
     finally:
@@ -167,6 +174,7 @@ def mie():
 @prenotazioni_bp.route("/mie/<int:pren_id>", methods=["GET"])
 @require_cliente
 def mia_prenotazione_detail(pren_id):
+    from app.utils.workflow import get_workflow_state
     db = SessionLocal()
     try:
         cli = _get_current_cliente(db)
@@ -175,8 +183,10 @@ def mia_prenotazione_detail(pren_id):
         pren = db.query(Prenotazione).get(pren_id)
         if not pren or pren.cliente_id != cli.id_cliente:
             abort(404)
+        
+        # Mostra dettagli solo se la prenotazione è stata usata (= cliente è entrato)
         if pren.stato != "usata":
-            flash("I dettagli consumo sono disponibili solo dopo aver usufruito della prenotazione.", "info")
+            flash("I dettagli consumo e feedback sono disponibili solo dopo aver usufruito della prenotazione.", "info")
             return redirect(url_for("prenotazioni.mie"))
 
         consumi = (
@@ -194,11 +204,15 @@ def mia_prenotazione_detail(pren_id):
             Feedback.evento_id == pren.evento_id
         ).first()
 
+        # Workflow state per mostrare il progresso
+        workflow_state = get_workflow_state(db, cli.id_cliente, pren.evento_id)
+
         return render_template(
             "clienti/prenotazione_detail.html",
             prenotazione=pren,
             consumi=consumi,
-            feedback_esistente=feedback_esistente
+            feedback_esistente=feedback_esistente,
+            workflow_state=workflow_state
         )
     finally:
         db.close()

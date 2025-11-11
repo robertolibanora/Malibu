@@ -25,6 +25,7 @@ def miei():
 @feedback_bp.route("/nuovo", methods=["GET", "POST"])
 @require_cliente
 def nuovo():
+    from app.utils.workflow import get_workflow_state
     db = SessionLocal()
     try:
         cliente_id = session.get("cliente_id")
@@ -49,25 +50,18 @@ def nuovo():
                 flash("Seleziona un evento.", "error")
                 return redirect(url_for("feedback.nuovo"))
 
-            # verifica che il cliente abbia ingresso registrato su quell'evento
-            check_ing = (
-                db.query(Ingresso)
-                .filter(and_(Ingresso.cliente_id == cliente_id, Ingresso.evento_id == int(evento_id)))
-                .first()
-            )
-            if not check_ing:
-                flash("Puoi lasciare feedback solo per eventi a cui sei entrato.", "error")
+            evento_id = int(evento_id)
+            
+            # BLOCCO LOGICO: Verifica tramite workflow
+            workflow = get_workflow_state(db, cliente_id, evento_id)
+            
+            # Blocco 1: Cliente MUST avere ingresso valido
+            if not workflow.cliente_puo_lasciare_feedback():
+                if not workflow.cliente_ha_ingresso_valido():
+                    flash("⚠️ Puoi lasciare feedback solo per eventi a cui sei entrato.", "warning")
+                else:
+                    flash("⚠️ Hai già lasciato un feedback per questo evento.", "warning")
                 return redirect(url_for("feedback.nuovo"))
-
-            # evita duplicati cliente+evento (uno per evento)
-            dup = (
-                db.query(Feedback)
-                .filter(and_(Feedback.cliente_id == cliente_id, Feedback.evento_id == int(evento_id)))
-                .first()
-            )
-            if dup:
-                flash("Hai già lasciato un feedback per questo evento.", "warning")
-                return redirect(url_for("feedback.miei"))
 
             voto_musica = int(request.form.get("voto_musica", 0))
             voto_ingresso = int(request.form.get("voto_ingresso", 0))
