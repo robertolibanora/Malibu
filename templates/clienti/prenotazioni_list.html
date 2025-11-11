@@ -26,7 +26,6 @@
       {% else %}
         <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
       {% endif %}
-      <span class="event-card__chip event-card__chip--attiva" style="bottom: 8px; right: 8px; left: auto; font-size: 0.75rem; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, rgba(63, 195, 128, 0.95) 0%, rgba(63, 195, 128, 0.85) 100%); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); white-space: nowrap;">✓ Attiva</span>
     </div>
     <div class="event-card__body">
       <div class="event-card__info">
@@ -72,10 +71,6 @@
         <img src="{{ url_for('static', filename='uploads/eventi/' ~ pren.evento.cover_url) }}" alt="{{ pren.evento.nome_evento }}">
       {% else %}
         <div class="event-card__placeholder">{{ pren.evento.nome_evento[0]|upper }}</div>
-      {% endif %}
-      <span class="event-card__chip event-card__chip--usata" style="bottom: 8px; right: 8px; left: auto; font-size: 0.75rem; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); color: black; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); white-space: nowrap;">✓ Usata</span>
-      {% if feedback %}
-        <span class="event-card__chip event-card__chip--booked" style="bottom: auto; top: 8px; right: 8px; left: auto; font-size: 0.75rem; padding: 0.4rem 0.8rem; background: rgba(100, 100, 100, 0.9); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); white-space: nowrap;">⭐ Valutata</span>
       {% endif %}
     </div>
     <div class="event-card__body">
@@ -145,7 +140,6 @@
       {% else %}
         <div class="event-card__placeholder">{{ p.evento.nome_evento[0]|upper }}</div>
       {% endif %}
-      <span class="event-card__chip event-card__chip--no-show" style="bottom: 8px; right: 8px; left: auto; font-size: 0.75rem; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, rgba(200, 50, 60, 0.95) 0%, rgba(200, 50, 60, 0.85) 100%); color: white; font-weight: 700; border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4); white-space: nowrap;">✗ Non usata</span>
     </div>
     <div class="event-card__body">
       <div class="event-card__info">
