@@ -5,14 +5,6 @@
 {% import "clienti/_status_badges.html" as badges %}
 {% set show_all_past = show_all_past|default(false) %}
 
-<div class="section-heading">
-  <span class="section-heading__icon">🎉</span>
-  <div class="section-heading__meta">
-    <span class="section-heading__eyebrow">Scopri e prenota</span>
-    <h1 class="section-heading__title">Prossimi eventi</h1>
-  </div>
-</div>
-
 <section class="event-list">
   {% for e in eventi_prossimi %}
   <article class="event-card">
