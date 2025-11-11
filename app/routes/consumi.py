@@ -171,10 +171,16 @@ def staff_listino():
         db.close()
 
 
-@consumi_bp.route("/staff/listino/addebito", methods=["POST"])
+@consumi_bp.route("/staff/listino/addebito", methods=["GET", "POST"])
 @require_staff
 def staff_listino_addebito():
     """Processa l'addebito di prodotti selezionati al QR code del cliente"""
+    if request.method == "GET":
+        qr_query = (request.args.get("qr") or "").strip()
+        flash("Per registrare un addebito utilizza il modulo del listino prodotti.", "info")
+        if qr_query:
+            return redirect(url_for("consumi.staff_listino", qr=qr_query))
+        return redirect(url_for("consumi.staff_scan_listino"))
     db = SessionLocal()
     try:
         e = _get_evento_attivo(db)
