@@ -1,1 +1,61 @@
-{# Flash messages disabilitate per richiesta estetica #}
+{% set flash_messages = get_flashed_messages(with_categories=true) %}
+{% if flash_messages %}
+<div class="flash" role="status" aria-live="assertive">
+  {% for category, message in flash_messages %}
+    {% set normalized = {
+      "success": "success",
+      "ok": "success",
+      "danger": "danger",
+      "error": "danger",
+      "warning": "warning",
+      "info": "info"
+    } %}
+    {% set level = normalized.get(category, "info") %}
+    <div class="flash__item flash__item--{{ level }}" data-flash-item>
+      <span class="flash__message">{{ message }}</span>
+      <button type="button" class="flash__close" aria-label="Chiudi notifica" data-flash-close>&times;</button>
+    </div>
+  {% endfor %}
+</div>
+<style>
+  .flash__close {
+    border: none;
+    background: rgba(0,0,0,0.2);
+    color: currentColor;
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: transform 150ms ease, background 150ms ease, opacity 150ms ease;
+  }
+  .flash__close:hover {
+    transform: scale(1.05);
+    background: rgba(0,0,0,0.3);
+  }
+  .flash__item.is-leaving {
+    opacity: 0;
+    transform: translateX(40px) scale(0.98);
+    transition: opacity 220ms var(--ease-exit), transform 220ms var(--ease-exit);
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", function(){
+    document.querySelectorAll('[data-flash-item]').forEach(function(item){
+      const closeBtn = item.querySelector('[data-flash-close]');
+      const scheduleHide = function(delay){
+        setTimeout(function(){
+          item.classList.add('is-leaving');
+          setTimeout(function(){ item.remove(); }, 280);
+        }, delay);
+      };
+      scheduleHide(6000);
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function(){
+          scheduleHide(0);
+        });
+      }
+    });
+  });
+</script>
+{% endif %}
