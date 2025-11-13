@@ -187,6 +187,38 @@ def staff_scan():
         db.close()
 
 
+@ingressi_bp.route("/staff/prenotati-count", methods=["GET"])
+@require_staff
+def staff_prenotati_count():
+    """
+    Ritorna il numero di prenotazioni ancora 'attive' (non usate) per l'evento operativo.
+    Utile per il contatore real-time degli ingressi.
+    """
+    db = SessionLocal()
+    try:
+        e = _get_evento_attivo(db)
+        if not e:
+            return jsonify({"ok": False, "reason": "no_event"}), 409
+
+        # Conta prenotazioni attive (stato='attiva')
+        prenotati_count = db.query(func.count(Prenotazione.id_prenotazione)).filter(
+            Prenotazione.evento_id == e.id_evento,
+            Prenotazione.stato == "attiva"
+        ).scalar() or 0
+
+        # Conta ingressi totali
+        ingressi_count = _capienza_counts(db, e.id_evento)
+
+        return jsonify({
+            "ok": True,
+            "prenotati_mancanti": prenotati_count,
+            "ingressi_totali": ingressi_count,
+            "capienza": e.capienza_max
+        }), 200
+    finally:
+        db.close()
+
+
 @ingressi_bp.route("/staff/scan/check", methods=["POST"])
 @require_staff
 def staff_scan_check():

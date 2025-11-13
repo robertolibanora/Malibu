@@ -12,6 +12,7 @@ from app.utils.qr import generate_short_code, qr_data_url
 from app.utils.auth import hash_password
 from app.routes.fedelta import get_thresholds, compute_level, next_threshold_info
 from app.utils.decorators import require_cliente, require_admin
+from app.utils.events import get_evento_operativo
 from datetime import datetime, date, timedelta
 
 clienti_bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -44,6 +45,17 @@ def register_submit():
     data_nascita = request.form.get("data_nascita")  # yyyy-mm-dd
     citta = request.form.get("citta", "").strip()
     password = request.form.get("password", "").strip()
+    termini_accettati = request.form.get("accetto_termini") == "on"
+    privacy_accettata = request.form.get("accetto_privacy") == "on"
+
+    if not termini_accettati or not privacy_accettata:
+        if not termini_accettati and not privacy_accettata:
+            flash("Per proseguire devi accettare i Termini e Condizioni e la Privacy Policy.", "warning")
+        elif not termini_accettati:
+            flash("Per proseguire devi accettare i Termini e Condizioni.", "warning")
+        else:
+            flash("Per proseguire devi accettare la Privacy Policy.", "warning")
+        return redirect(url_for("clienti.register_form"))
 
     if not all([nome, cognome, telefono, password, data_nascita, citta]):
         flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
@@ -319,6 +331,93 @@ def admin_dashboard():
         if prossimo_evento and prossimo_evento.data_evento:
             giorni_al_prossimo_evento = (prossimo_evento.data_evento - now.date()).days
 
+        evento_operativo = get_evento_operativo(db)
+        prossimo_evento_stats = None
+        if prossimo_evento:
+            evento_id = prossimo_evento.id_evento
+            prenotazioni_totali = (
+                db.query(func.count(Prenotazione.id_prenotazione))
+                .filter(Prenotazione.evento_id == evento_id)
+                .scalar()
+                or 0
+            )
+            prenotazioni_attive_evento = (
+                db.query(func.count(Prenotazione.id_prenotazione))
+                .filter(
+                    Prenotazione.evento_id == evento_id,
+                    Prenotazione.stato == "attiva",
+                )
+                .scalar()
+                or 0
+            )
+            prenotazioni_utilizzate = (
+                db.query(func.count(Prenotazione.id_prenotazione))
+                .filter(
+                    Prenotazione.evento_id == evento_id,
+                    Prenotazione.stato == "usata",
+                )
+                .scalar()
+                or 0
+            )
+            ingressi_tot_evento = (
+                db.query(func.count(Ingresso.id_ingresso))
+                .filter(Ingresso.evento_id == evento_id)
+                .scalar()
+                or 0
+            )
+            consumi_tot_evento = (
+                db.query(func.sum(Consumo.importo))
+                .filter(Consumo.evento_id == evento_id)
+                .scalar()
+                or 0
+            )
+            consumi_tot_evento = float(consumi_tot_evento) if consumi_tot_evento else 0.0
+
+            feedback_evento = db.query(
+                func.avg(Feedback.voto_musica),
+                func.avg(Feedback.voto_ingresso),
+                func.avg(Feedback.voto_ambiente),
+                func.count(Feedback.id_feedback),
+            ).filter(Feedback.evento_id == evento_id).one()
+            feedback_samples = int(feedback_evento[3] or 0)
+            feedback_media_generale = (
+                round(
+                    (
+                        (feedback_evento[0] or 0)
+                        + (feedback_evento[1] or 0)
+                        + (feedback_evento[2] or 0)
+                    )
+                    / 3,
+                    1,
+                )
+                if feedback_samples
+                else 0.0
+            )
+
+            capienza = prossimo_evento.capienza_max or 0
+            occupancy_pct = (
+                round(min(100.0, (ingressi_tot_evento / capienza) * 100), 1)
+                if capienza
+                else 0.0
+            )
+            booking_load_pct = (
+                round(min(100.0, (prenotazioni_attive_evento / capienza) * 100), 1)
+                if capienza
+                else 0.0
+            )
+            prossimo_evento_stats = {
+                "prenotazioni_totali": prenotazioni_totali,
+                "prenotazioni_attive": prenotazioni_attive_evento,
+                "prenotazioni_usate": prenotazioni_utilizzate,
+                "ingressi_totali": ingressi_tot_evento,
+                "consumi_totali": consumi_tot_evento,
+                "feedback_samples": feedback_samples,
+                "feedback_media_generale": feedback_media_generale,
+                "occupancy_pct": occupancy_pct,
+                "booking_load_pct": booking_load_pct,
+                "capienza": capienza,
+            }
+
         # Ingressi (range selezionato)
         ingressi_recenti = (
             db.query(func.count(Ingresso.id_ingresso))
@@ -456,6 +555,8 @@ def admin_dashboard():
             eventi_attivi=eventi_attivi,
             prossimo_evento=prossimo_evento,
             giorni_al_prossimo_evento=giorni_al_prossimo_evento,
+            evento_operativo=evento_operativo,
+            prossimo_evento_stats=prossimo_evento_stats,
             ingressi_recenti=ingressi_recenti,
             consumi_recenti=consumi_recenti,
             prenotazioni_attive=prenotazioni_attive,

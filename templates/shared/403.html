@@ -25,7 +25,7 @@
         <a href="{{ url_for('clienti.area_personale') }}" class="btn btn--primary">Torna all'Area Cliente</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn--ghost">Logout</a>
       {% elif session.get('staff_id') %}
-        <a href="{{ url_for('staff.dashboard') }}" class="btn btn--primary">Torna alla Dashboard Staff</a>
+        <a href="{{ url_for('staff.home') }}" class="btn btn--primary">Torna alla Home Staff</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn--ghost">Logout</a>
       {% else %}
         <a href="{{ url_for('auth.auth_login_form') }}" class="btn btn--primary">Vai al Login</a>

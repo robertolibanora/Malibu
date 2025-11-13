@@ -17,7 +17,7 @@
       {% if session.get('cliente_id') %}
         <a href="{{ url_for('clienti.area_personale') }}" class="btn btn--primary">Area Cliente</a>
       {% elif session.get('staff_id') %}
-        <a href="{{ url_for('staff.dashboard') }}" class="btn btn--primary">Dashboard Staff</a>
+        <a href="{{ url_for('staff.home') }}" class="btn btn--primary">Home Staff</a>
       {% elif session.get('staff_role') == 'admin' %}
         <a href="{{ url_for('dashboard.admin_dashboard') }}" class="btn btn--primary">Dashboard Admin</a>
       {% else %}

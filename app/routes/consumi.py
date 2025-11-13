@@ -3,6 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
+import re
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.log_attivita import log_action
@@ -81,6 +82,115 @@ def staff_cliente_info():
             },
             "ha_ingresso": has_ingresso
         })
+    finally:
+        db.close()
+
+
+@consumi_bp.route("/staff/search-cliente", methods=["POST"])
+@require_staff
+def staff_search_cliente():
+    """
+    Cerca clienti per nome/cognome con autocomplete.
+    Restituisce lista di clienti trovati con id, nome, cognome.
+    """
+    data = request.get_json(silent=True) or {}
+    query = (data.get("q") or "").strip()
+    
+    if not query or len(query) < 2:
+        return jsonify({"ok": True, "clienti": []}), 200
+
+    db = SessionLocal()
+    try:
+        evento = _get_evento_attivo(db)
+        if not evento:
+            return jsonify({"ok": False, "reason": "no_event"}), 409
+        if evento.stato_pubblico == "chiuso" or not evento.is_staff_operativo:
+            return jsonify({"ok": False, "reason": "event_closed"}), 409
+
+        # Ricerca per nome o cognome (case-insensitive, wildcard)
+        search_term = f"%{query}%"
+        clienti = db.query(Cliente).filter(
+            (Cliente.nome.ilike(search_term)) | (Cliente.cognome.ilike(search_term))
+        ).limit(10).all()
+
+        # Ritorna solo clienti con ingresso all'evento
+        result = []
+        for cli in clienti:
+            has_ingresso = _cliente_has_ingresso(db, cli.id_cliente, evento.id_evento)
+            result.append({
+                "id": cli.id_cliente,
+                "nome": cli.nome,
+                "cognome": cli.cognome,
+                "qr": cli.qr_code,
+                "ha_ingresso": has_ingresso
+            })
+
+        return jsonify({"ok": True, "clienti": result}), 200
+    finally:
+        db.close()
+
+
+@consumi_bp.route("/staff/ordini", methods=["GET"])
+@require_staff
+def staff_ordini():
+    """
+    Pagina di stampa ordini per l'evento operativo.
+    Mostra: cliente (nome cognome), prodotti, tavolo.
+    Ottimizzata per stampa.
+    """
+    db = SessionLocal()
+    try:
+        evento = _get_evento_attivo(db)
+        if not evento:
+            flash("Nessun evento attivo.", "warning")
+            return redirect(url_for("staff.home"))
+
+        # Recupera tutti i consumi dell'evento, ordinati per tavolo e cognome
+        ordini = db.query(Consumo, Cliente).join(
+            Cliente, Cliente.id_cliente == Consumo.cliente_id
+        ).filter(
+            Consumo.evento_id == evento.id_evento
+        ).order_by(
+            Consumo.punto_vendita.asc(),
+            Consumo.note.asc(),
+            Cliente.cognome.asc(),
+            Cliente.nome.asc(),
+            Consumo.data_consumo.asc()
+        ).all()
+
+        # Raggruppa per tavolo
+        ordini_per_tavolo = {}
+        for consumo, cliente in ordini:
+            chiave_tavolo = f"{consumo.punto_vendita}_{consumo.note or ''}"
+            if chiave_tavolo not in ordini_per_tavolo:
+                ordini_per_tavolo[chiave_tavolo] = {
+                    'punto': consumo.punto_vendita,
+                    'tavolo': consumo.note or '—',
+                    'ordini': []
+                }
+
+            prodotto_nome = consumo.prodotto or "-"
+            quantita = 1
+            match_quantita = re.search(r"\sx(\d+)$", prodotto_nome)
+            if match_quantita:
+                quantita = int(match_quantita.group(1))
+                prodotto_nome = prodotto_nome[:match_quantita.start()].strip()
+
+            ordini_per_tavolo[chiave_tavolo]['ordini'].append({
+                'cliente_nome': cliente.nome,
+                'cliente_cognome': cliente.cognome,
+                'prodotto': prodotto_nome,
+                'quantita': quantita,
+                'data': consumo.data_consumo
+            })
+
+        return render_template(
+            "staff/ordini.html",
+            evento=evento,
+            ordini_per_tavolo=ordini_per_tavolo,
+            total_ordini=sum(len(v['ordini']) for v in ordini_per_tavolo.values()),
+            now=datetime.now()
+        )
     finally:
         db.close()
 
@@ -459,7 +569,7 @@ def admin_list():
                 q = q.filter(Consumo.data_consumo < d2)
             except ValueError: pass
 
-        rows = q.options(joinedload(Consumo.client), joinedload(Consumo.evento)) \
+        rows = q.options(joinedload(Consumo.cliente), joinedload(Consumo.evento)) \
                 .order_by(Consumo.data_consumo.desc()) \
                 .all()
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()

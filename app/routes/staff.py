@@ -22,11 +22,11 @@ FILTERABLE_ROLES = ("admin",) + OPERATIVE_ROLES
 # ---------- STAFF ----------
 @staff_bp.route("/")
 @require_staff
-def dashboard():
+def home():
     db = SessionLocal()
     try:
         evento_attivo = get_evento_operativo(db)
-        return render_template("staff/dashboard.html", evento_attivo=evento_attivo)
+        return render_template("staff/home.html", evento_attivo=evento_attivo)
     finally:
         db.close()
 

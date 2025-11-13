@@ -21,11 +21,11 @@
     
     <ul class="staff-nav__menu">
       <li class="staff-nav__item">
-        <a href="{{ url_for('staff.dashboard') }}" 
-           class="staff-nav__link {% if request.endpoint == 'staff.dashboard' %}staff-nav__link--active{% endif %}"
-           aria-label="Dashboard operativa">
-          <span class="staff-nav__icon">📊</span>
-          <span class="staff-nav__text">Dashboard</span>
+        <a href="{{ url_for('staff.home') }}" 
+           class="staff-nav__link {% if request.endpoint == 'staff.home' %}staff-nav__link--active{% endif %}"
+           aria-label="Home operativa">
+          <span class="staff-nav__icon">🏠</span>
+          <span class="staff-nav__text">Home</span>
         </a>
       </li>
       <li class="staff-nav__item">
@@ -46,7 +46,7 @@
       </li>
       <li class="staff-nav__item">
         <a href="{{ url_for('consumi.staff_scan_listino') }}" 
-           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('consumi.staff_') %}staff-nav__link--active{% endif %}"
+           class="staff-nav__link {% if request.endpoint and request.endpoint.startswith('consumi.staff') and request.endpoint != 'consumi.staff_ordini' %}staff-nav__link--active{% endif %}"
            aria-label="Registra consumi">
           <span class="staff-nav__icon">🧾</span>
           <span class="staff-nav__text">Consumi</span>
@@ -60,6 +60,15 @@
           <span class="staff-nav__text">Fedeltà</span>
         </a>
       </li>
+      <li class="staff-nav__item">
+        <a href="{{ url_for('consumi.staff_ordini') }}" 
+           class="staff-nav__link {% if request.endpoint == 'consumi.staff_ordini' %}staff-nav__link--active{% endif %}"
+           aria-label="Stampa ordini evento">
+          <span class="staff-nav__icon">🖨️</span>
+          <span class="staff-nav__text">Ordini</span>
+        </a>
+      </li>
+
       <li class="staff-nav__item staff-nav__item--secondary">
         <a href="{{ url_for('auth.logout') }}" 
            class="staff-nav__link staff-nav__link--logout"

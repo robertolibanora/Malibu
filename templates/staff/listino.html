@@ -1,6 +1,6 @@
 {% extends "staff/base.html" %}
 {% from "staff/partials/qr_scanner.html" import render_qr_scanner %}
-{% block staff_title %}Listino{% endblock %}
+{% block staff_title %}Listino Consumazioni{% endblock %}
 
 {% block extra_head %}
   {{ super() }}
@@ -8,115 +8,203 @@
 {% endblock %}
 
 {% block staff_content %}
-<section class="card">
-  <h1 class="card__title">📋 Listino Prodotti</h1>
+<form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}">
+  
+  <!-- Header Section -->
+  <section class="card staff-listino__header">
+    <h1 class="card__title">📋 Listino Consumazioni</h1>
   <div class="card__meta">
     <strong>Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}
   </div>
 </section>
 
-<!-- Scanner QR -->
-<section class="card">
-  <h2 class="card__title">🔍 Scanner QR Cliente</h2>
-  <p class="text--muted" style="margin-bottom: 1.5rem;">
-    Scansiona il QR del cliente, poi seleziona i prodotti da addebitare.
-  </p>
-  
-  <form id="listinoForm" method="post" action="{{ url_for('consumi.staff_listino_addebito') }}">
-    {{ render_qr_scanner(container_id='qr-reader', form_id='listinoForm', auto_submit=False, show_manual_input=True, result_input_id='qr_hidden', manual_input_id='qr_manual', manual_input_label='QR Code Cliente', manual_input_placeholder='Oppure inserisci manualmente il QR code') }}
-
-    <!-- Listino prodotti per categoria -->
-    {% if prodotti_per_categoria %}
-    <div class="form__group" style="margin-top: 2rem;">
-      <label class="form__label">Seleziona Prodotti</label>
-      
-      {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
-      <div style="margin-bottom: 2rem; padding: 1rem; background: rgba(212, 175, 55, 0.05); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.1);">
-        <h3 style="margin: 0 0 1rem 0; color: var(--gold-primary); font-size: 1.125rem;">{{ categoria }}</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
-          {% for p in prodotti_cat %}
-          <div style="padding: 1rem; background: var(--black-soft); border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.1);">
-            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
-              <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" data-nome="{{ p.nome }}" data-prezzo="{{ p.prezzo|float }}" style="width: 20px; height: 20px;" disabled>
-              <div style="flex: 1;">
-                <strong style="display: block; color: var(--text-light);">{{ p.nome }}</strong>
-                <span style="color: var(--gold-primary); font-weight: 600;">€{{ "%.2f"|format(p.prezzo) }}</span>
-              </div>
-            </label>
-            <div style="margin-top: 0.5rem; display: none;" class="quantita-container">
-              <label class="form__label" style="font-size: 0.75rem;">Quantità:</label>
-              <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="form__input" style="padding: 0.5rem; font-size: 0.875rem;" disabled>
-            </div>
-          </div>
-          {% endfor %}
+  <!-- Cliente Info Section -->
+  <section class="card staff-listino__cliente-section">
+    <h2 class="staff-listino__section-title">👤 Cliente</h2>
+    <div id="cliente_info" class="staff-listino__cliente-info" style="display: none;">
+      <div class="staff-listino__cliente-card">
+        <span class="staff-listino__cliente-badge">✓</span>
+        <div>
+          <p class="staff-listino__cliente-name" id="client_name">-</p>
+          <p class="staff-listino__cliente-status">Verificato</p>
         </div>
       </div>
-      {% endfor %}
     </div>
-    {% else %}
-    <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
-      <p>Nessun prodotto disponibile nel listino.</p>
-      <p style="font-size: 0.875rem; margin-top: 0.5rem;">L'admin deve aggiungere prodotti al listino.</p>
-    </div>
-    {% endif %}
+    <div id="cliente_prompt" class="staff-listino__cliente-prompt">
+      <!-- Tab Switcher -->
+      <div class="staff-scanner__tabs">
+        <button type="button" class="staff-scanner__tab staff-scanner__tab--active" data-tab="qr">
+          📱 QR Code
+        </button>
+        <button type="button" class="staff-scanner__tab" data-tab="search">
+          🔎 Ricerca Cliente
+        </button>
+      </div>
 
+      <!-- QR Tab (default) -->
+      <div id="tab-qr" class="staff-scanner__tab-content staff-scanner__tab-content--active">
+        <div class="staff-scanner__instruction">
+          📱 Scansiona il QR del cliente per iniziare
+        </div>
+    {{ render_qr_scanner(container_id='qr-reader', form_id='listinoForm', auto_submit=False, show_manual_input=True, result_input_id='qr_hidden', manual_input_id='qr_manual', manual_input_label='QR Code Cliente', manual_input_placeholder='Oppure inserisci manualmente il QR code') }}
+      </div>
+
+      <!-- Search Tab -->
+      <div id="tab-search" class="staff-scanner__tab-content">
+        <div class="staff-scanner__search-container">
+          <input 
+            type="text" 
+            id="search_cliente" 
+            class="form__input staff-scanner__search-input" 
+            placeholder="Cerca per nome o cognome..."
+            autocomplete="off"
+            aria-label="Ricerca cliente">
+          <div id="search_results" class="staff-scanner__search-results"></div>
+        </div>
+      </div>
+      
+      <!-- Status Message -->
+      <div id="scanner_status" class="staff-scanner__status staff-scanner__status--idle" role="status" aria-live="polite">
+        <span class="staff-scanner__status-icon">⏳</span>
+        <span class="staff-scanner__status-text">In attesa di scansione...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prodotti Listino - Solo se cliente è scannerizzato -->
     {% if prodotti_per_categoria %}
-    <div class="grid grid--2" style="margin-top: 1.5rem;">
+  <section id="prodotti_section" class="card staff-listino__prodotti" style="display: none;">
+    <h2 class="staff-listino__section-title">🛍️ Seleziona Prodotti</h2>
+      
+      {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
+    <div class="staff-listino__categoria">
+      <h3 class="staff-listino__categoria-title">{{ categoria }}</h3>
+      <div class="staff-listino__prodotti-grid">
+          {% for p in prodotti_cat %}
+        <div class="staff-listino__prodotto-item">
+          <label class="staff-listino__prodotto-label">
+            <input type="checkbox" name="prodotto_id" value="{{ p.id_prodotto }}" class="prodotto-checkbox" data-nome="{{ p.nome }}" data-prezzo="{{ p.prezzo|float }}" disabled>
+            <div class="staff-listino__prodotto-content">
+              <span class="staff-listino__prodotto-nome">{{ p.nome }}</span>
+              <span class="staff-listino__prodotto-prezzo">€{{ "%.2f"|format(p.prezzo) }}</span>
+            </div>
+          </label>
+          
+          <!-- Quantità Control -->
+          <div class="staff-listino__quantita-wrapper" style="display: none;">
+            <button type="button" class="staff-listino__qty-btn staff-listino__qty-btn--minus" data-product-id="{{ p.id_prodotto }}">−</button>
+            <input type="number" name="quantita_{{ p.id_prodotto }}" value="1" min="1" class="staff-listino__qty-input" disabled>
+            <button type="button" class="staff-listino__qty-btn staff-listino__qty-btn--plus" data-product-id="{{ p.id_prodotto }}">+</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <!-- Punto Vendita & Note -->
+  <section id="options_section" class="card staff-listino__options" style="display: none;">
+    <h2 class="staff-listino__section-title">⚙️ Opzioni</h2>
+    <div class="grid grid--2">
       <div class="form__group">
-        <label class="form__label">Punto Vendita</label>
-        <select class="form__input" name="punto_vendita" required disabled>
-          <option value="bar">Bar</option>
-          <option value="tavolo">Tavolo</option>
-          <option value="privè">Privè</option>
+        <label class="form__label" for="punto_vendita">Punto Vendita</label>
+        <select class="form__input" id="punto_vendita" name="punto_vendita" required disabled>
+          <option value="">- Seleziona -</option>
+          <option value="bar">🍻 Bar</option>
+          <option value="tavolo">🪑 Tavolo</option>
+          <option value="privè">🎭 Privè</option>
         </select>
       </div>
       <div class="form__group">
-        <label class="form__label">Note (opzionale)</label>
-        <input class="form__input" type="text" name="note" placeholder="Es. Tavolo 7" id="note_input" disabled>
+        <label class="form__label" for="note_input">Note (opzionale)</label>
+        <input class="form__input" type="text" id="note_input" name="note" placeholder="Es. Tavolo 7" disabled>
       </div>
     </div>
+  </section>
 
-    <div id="cliente_banner" class="banner banner--info" role="status" style="display:none; margin-top:1rem;"></div>
-
-    <div id="cliente_alert_banner" class="banner banner--danger" role="alert" style="display:none; margin-top:1rem;"></div>
-
-    <div style="margin-top: 1.5rem; padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
-      <strong style="display: block; margin-bottom: 0.5rem; color: var(--gold-primary);">Totale selezionato:</strong>
-      <div id="totale" style="font-size: 1.5rem; font-weight: 700; color: var(--text-light);">€0.00</div>
-      <small style="color: var(--text-muted);">Punti che verranno assegnati: <span id="punti">0</span></small>
-    </div>
-
-    <div class="form__actions" style="margin-top: 1.5rem;">
-      <button class="btn btn--primary" type="submit" id="submit_btn" disabled>Addebita al Cliente</button>
-      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">Annulla</a>
-    </div>
-
-    <div id="confirm_banner" class="banner banner--warning" role="alertdialog" aria-live="assertive" style="display:none; margin-top:1rem;">
-      <p id="confirm_text" style="margin:0;"></p>
-      <div class="form__actions" style="margin-top:1rem;">
-        <button type="button" class="btn btn--primary" id="confirm_yes">Conferma</button>
-        <button type="button" class="btn btn--ghost" id="confirm_no">Annulla</button>
+  <!-- Totale Riepilogo - Sticky -->
+  <section id="riepilogo_section" class="card staff-listino__riepilogo" style="display: none;">
+    <div class="staff-listino__totale-box">
+      <div class="staff-listino__totale-label">Totale selezionato</div>
+      <div class="staff-listino__totale-amount" id="totale">€0.00</div>
+      <div class="staff-listino__totale-punti">
+        Punti fedeltà: <strong id="punti">0</strong>
       </div>
     </div>
+  </section>
 
-    <div id="success_banner" class="banner banner--success" role="status" style="display:none; margin-top:1rem;"></div>
-    {% endif %}
+  <!-- Empty State Message -->
+  {% else %}
+  <section class="card">
+    <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
+      <p>❌ Nessun prodotto disponibile nel listino.</p>
+      <p style="font-size: 0.875rem; margin-top: 0.5rem;">L'admin deve aggiungere prodotti al listino.</p>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Actions -->
+  <section class="card staff-listino__actions" {% if not prodotti_per_categoria %}style="display: none;"{% endif %}>
+    <div class="staff-listino__action-buttons">
+      <button class="btn btn--primary btn--large" type="submit" id="submit_btn" disabled>
+        ✓ Addebita al Cliente
+      </button>
+      <a href="{{ url_for('staff.home') }}" class="btn btn--ghost btn--large">
+        ← Annulla
+      </a>
+    </div>
+  </section>
+
+  <!-- System Banner - Conferma Acquisto -->
+  <div id="confirm_banner" class="staff-listino__system-banner staff-listino__system-banner--confirm" role="alertdialog" style="display: none;">
+    <div class="staff-listino__banner-icon">📋</div>
+    <div class="staff-listino__banner-content">
+      <div class="staff-listino__banner-title">Conferma Acquisto</div>
+      <div id="confirm_text" class="staff-listino__banner-message"></div>
+    </div>
+    <div class="staff-listino__banner-actions">
+      <button type="button" class="btn btn--primary btn--sm" id="confirm_yes">✓ Conferma</button>
+      <button type="button" class="btn btn--ghost btn--sm" id="confirm_no">✕ Annulla</button>
+    </div>
+    </div>
+
+  <!-- System Banner - Successo -->
+  <div id="success_banner" class="staff-listino__system-banner staff-listino__system-banner--success" role="status" aria-live="polite" style="display: none;">
+    <div class="staff-listino__banner-icon">✅</div>
+    <div class="staff-listino__banner-content">
+      <div class="staff-listino__banner-title">Acquisto Registrato</div>
+      <div id="success_text" class="staff-listino__banner-message"></div>
+    </div>
+    <button type="button" class="staff-listino__banner-close" onclick="this.parentElement.style.display='none';" aria-label="Chiudi">×</button>
+      </div>
+
+  <!-- System Banner - Errore -->
+  <div id="error_banner" class="staff-listino__system-banner staff-listino__system-banner--error" role="alert" style="display: none;">
+    <div class="staff-listino__banner-icon">⚠️</div>
+    <div class="staff-listino__banner-content">
+      <div id="error_text" class="staff-listino__banner-message"></div>
+    </div>
+    <button type="button" class="staff-listino__banner-close" onclick="this.parentElement.style.display='none';" aria-label="Chiudi">×</button>
+    </div>
+
+  <!-- Hidden Fields -->
+  <input type="hidden" id="qr_hidden" name="qr">
     <input type="hidden" name="confirm_token" id="confirm_token" value="">
   </form>
-</section>
 
-<!-- html5-qrcode da CDN -->
+<!-- Scripts -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-<!-- Modulo scanner QR -->
 <script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
 
 <script>
 document.addEventListener("DOMContentLoaded", function(){
+  // Elements
   const form = document.getElementById('listinoForm');
   const qrHidden = document.getElementById('qr_hidden');
   const qrManual = document.getElementById('qr_manual');
   const noteInput = document.getElementById('note_input');
-  const puntoVendita = document.querySelector('select[name="punto_vendita"]');
+  const puntoVendita = document.getElementById('punto_vendita');
   const submitBtn = document.getElementById('submit_btn');
   const totaleEl = document.getElementById('totale');
   const puntiEl = document.getElementById('punti');
@@ -125,24 +213,88 @@ document.addEventListener("DOMContentLoaded", function(){
   const confirmYes = document.getElementById('confirm_yes');
   const confirmNo = document.getElementById('confirm_no');
   const successBanner = document.getElementById('success_banner');
-  const clienteInfoBanner = document.getElementById('cliente_banner');
-  const clienteAlertBanner = document.getElementById('cliente_alert_banner');
-  const confirmToken = document.getElementById('confirm_token');
-  let clienteInfo = null;
+  const successText = document.getElementById('success_text');
+  const errorBanner = document.getElementById('error_banner');
+  const errorText = document.getElementById('error_text');
+  const clienteInfo = document.getElementById('cliente_info');
+  const clientePrompt = document.getElementById('cliente_prompt');
+  const prodottiSection = document.getElementById('prodotti_section');
+  const optionsSection = document.getElementById('options_section');
+  const riepiegoSection = document.getElementById('riepilogo_section');
+  const scannerStatus = document.getElementById('scanner_status');
+  const actionsSection = document.querySelector('.staff-listino__actions');
+  
+  let clienteData = null;
   let clienteAbilitato = false;
-  let fetchTimeout = null;
   let allowSubmit = false;
   
-  // Blocca elementi fino allo scan
+  const searchInput = document.getElementById('search_cliente');
+  const searchResults = document.getElementById('search_results');
+  const tabs = document.querySelectorAll('.staff-scanner__tab');
+  const tabContents = document.querySelectorAll('.staff-scanner__tab-content');
+
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(e){
+      e.preventDefault();
+      const targetTab = this.dataset.tab;
+      
+      // Deselect all tabs
+      tabs.forEach(t => t.classList.remove('staff-scanner__tab--active'));
+      tabContents.forEach(tc => tc.classList.remove('staff-scanner__tab-content--active'));
+      
+      // Select current tab
+      this.classList.add('staff-scanner__tab--active');
+      document.getElementById(`tab-${targetTab}`).classList.add('staff-scanner__tab-content--active');
+      
+      if (targetTab === 'search') {
+        searchInput.focus();
+      }
+    });
+  });
+
+  // Update status message
+  function updateStatus(type, message) {
+    const iconMap = {'idle': '⏳', 'found': '✅', 'error': '❌', 'loading': '⌛'};
+    scannerStatus.className = `staff-scanner__status staff-scanner__status--${type}`;
+    scannerStatus.innerHTML = `
+      <span class="staff-scanner__status-icon">${iconMap[type]}</span>
+      <span class="staff-scanner__status-text">${message}</span>
+    `;
+  }
+
+  // Lock/Unlock UI
   function setLockedUI(locked) {
     document.querySelectorAll('.prodotto-checkbox').forEach(cb => cb.disabled = locked);
-    document.querySelectorAll('input[name^=\"quantita_\"]').forEach(inp => inp.disabled = locked);
+    document.querySelectorAll('input[name^="quantita_"]').forEach(inp => inp.disabled = locked);
+    document.querySelectorAll('.staff-listino__qty-btn').forEach(btn => btn.disabled = locked);
     if (puntoVendita) puntoVendita.disabled = locked;
     if (noteInput) noteInput.disabled = locked;
   }
-  setLockedUI(true);
 
-  // Sblocca al primo scan
+  // Show/Hide sections
+  function updateSectionsVisibility(showProducts) {
+    if (showProducts) {
+      clientePrompt.style.display = 'none';
+      clienteInfo.style.display = 'block';
+      prodottiSection.style.display = 'block';
+      optionsSection.style.display = 'block';
+      riepiegoSection.style.display = 'block';
+      actionsSection.style.display = 'block';
+    } else {
+      clientePrompt.style.display = 'block';
+      clienteInfo.style.display = 'none';
+      prodottiSection.style.display = 'none';
+      optionsSection.style.display = 'none';
+      riepiegoSection.style.display = 'none';
+      actionsSection.style.display = 'none';
+    }
+  }
+
+  setLockedUI(true);
+  updateSectionsVisibility(false);
+
+  // QR Scanned
   document.addEventListener('qr-scanned', function(event){
     resetSelections();
     setLockedUI(true);
@@ -150,14 +302,13 @@ document.addEventListener("DOMContentLoaded", function(){
     allowSubmit = false;
     confirmBanner.style.display = 'none';
     successBanner.style.display = 'none';
-    checkForm();
+    errorBanner.style.display = 'none';
+    updateStatus('idle', 'Scansione riconosciuta...');
     const code = event?.detail?.code;
-    if (code) {
-      fetchClienteInfo(code);
-    }
+    if (code) fetchClienteInfo(code);
   });
 
-  // Calcola totale e punti - costruisci dizionario prezzi da tutti i prodotti
+  // Calcola totale
   function updateTotale(){
     let totale = 0;
     document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
@@ -171,41 +322,60 @@ document.addEventListener("DOMContentLoaded", function(){
     checkForm();
   }
 
+  // Reset
   function resetSelections() {
     document.querySelectorAll('.prodotto-checkbox').forEach(cb => {
       cb.checked = false;
-      const container = cb.closest('div')?.querySelector('.quantita-container');
-      if (container) {
-        container.style.display = 'none';
-        const qtyInput = container.querySelector('input[type="number"]');
+      const wrapper = cb.closest('.staff-listino__prodotto-item')?.querySelector('.staff-listino__quantita-wrapper');
+      if (wrapper) {
+        wrapper.style.display = 'none';
+        const qtyInput = wrapper.querySelector('input[type="number"]');
         if (qtyInput) qtyInput.value = 1;
       }
     });
     updateTotale();
   }
   
-  // Mostra/nascondi quantità quando si seleziona prodotto
+  // Product checkbox change
   document.querySelectorAll('.prodotto-checkbox').forEach(cb => {
     cb.addEventListener('change', function(){
-      const container = this.closest('div').querySelector('.quantita-container');
-      if (this.checked) {
-        container.style.display = 'block';
-      } else {
-        container.style.display = 'none';
-        const qtyInput = container.querySelector('input[type="number"]');
+      const wrapper = this.closest('.staff-listino__prodotto-item')?.querySelector('.staff-listino__quantita-wrapper');
+      if (wrapper) {
+        wrapper.style.display = this.checked ? 'flex' : 'none';
+        if (!this.checked) {
+          const qtyInput = wrapper.querySelector('input[type="number"]');
         if (qtyInput) qtyInput.value = 1;
+        }
+      }
+      updateTotale();
+    });
+  });
+
+  // Quantity buttons
+  document.querySelectorAll('.staff-listino__qty-btn').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      const productId = this.dataset.productId;
+      const input = document.querySelector(`input[name="quantita_${productId}"]`);
+      if (!input) return;
+      
+      const currentVal = parseInt(input.value) || 1;
+      if (this.classList.contains('staff-listino__qty-btn--plus')) {
+        input.value = currentVal + 1;
+      } else if (this.classList.contains('staff-listino__qty-btn--minus')) {
+        input.value = Math.max(1, currentVal - 1);
       }
       updateTotale();
     });
   });
   
-  // Aggiorna totale quando cambia quantità
+  // Quantity input change
   document.querySelectorAll('input[name^="quantita_"]').forEach(input => {
     input.addEventListener('change', updateTotale);
     input.addEventListener('input', updateTotale);
   });
   
-  // Validazione form
+  // Form validation
   function checkForm(){
     const hasQR = qrHidden.value.trim().length > 0;
     const hasProdotti = document.querySelectorAll('.prodotto-checkbox:checked').length > 0;
@@ -224,94 +394,170 @@ document.addEventListener("DOMContentLoaded", function(){
   puntoVendita.addEventListener('change', checkForm);
   noteInput.addEventListener('input', checkForm);
   
-  // Inizializza
-  checkForm();
-
+  // Fetch cliente info
   async function fetchClienteInfo(qrCode) {
-    clienteInfo = null;
-    clienteInfoBanner.style.display = 'none';
-    clienteAlertBanner.style.display = 'none';
+    clienteData = null;
     clienteAbilitato = false;
     setLockedUI(true);
-    clienteAlertBanner.textContent = 'Recupero informazioni del cliente...';
-    clienteAlertBanner.style.display = 'block';
-    checkForm();
+    updateStatus('loading', 'Verifica cliente...');
+    errorBanner.style.display = 'none';
+    
     try {
       const res = await fetch("{{ url_for('consumi.staff_cliente_info') }}", {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: {'Content-Type': 'application/json'},
         credentials: 'same-origin',
         body: JSON.stringify({ qr: qrCode })
       });
       const data = await res.json();
-      clienteAlertBanner.style.display = 'none';
+      
       if (!data.ok) {
         let msg = 'Impossibile procedere.';
-        if (data.reason === 'not_found') {
-          msg = 'Cliente non trovato. Verifica il QR.';
-        } else if (data.reason === 'no_event' || data.reason === 'event_closed') {
-          msg = 'Evento non operativo: impossibile procedere.';
-        } else if (data.reason === 'missing_qr') {
-          msg = 'QR non valido.';
-        }
-        clienteAlertBanner.textContent = msg;
-        clienteAlertBanner.style.display = 'block';
-        clienteAbilitato = false;
+        if (data.reason === 'not_found') msg = 'Cliente non trovato. Verifica il QR.';
+        else if (data.reason === 'no_event' || data.reason === 'event_closed') msg = 'Evento non operativo.';
+        else if (data.reason === 'missing_qr') msg = 'QR non valido.';
+        
+        updateStatus('error', msg);
+        errorText.textContent = msg;
+        errorBanner.style.display = 'block';
         resetSelections();
+        updateSectionsVisibility(false);
         checkForm();
         return;
       }
-      clienteInfo = data.cliente;
-      const nomeCompleto = [clienteInfo.nome, clienteInfo.cognome].filter(Boolean).join(' ');
-      clienteInfoBanner.innerHTML = `<strong>Cliente:</strong> ${nomeCompleto || 'QR riconosciuto'}`;
-      clienteInfoBanner.style.display = 'block';
+
+      clienteData = data.cliente;
+      const nomeCompleto = [clienteData.nome, clienteData.cognome].filter(Boolean).join(' ');
+      document.getElementById('client_name').textContent = nomeCompleto || 'Cliente';
+
       if (!data.ha_ingresso) {
-        clienteAlertBanner.textContent = 'Attenzione: il cliente non risulta entrato a questo evento.';
-        clienteAlertBanner.style.display = 'block';
+        updateStatus('error', '⚠️ Cliente non entrato a questo evento');
+        errorText.textContent = 'Attenzione: il cliente non risulta entrato a questo evento.';
+        errorBanner.style.display = 'block';
         clienteAbilitato = false;
         resetSelections();
+        updateSectionsVisibility(false);
       } else {
-        clienteAlertBanner.style.display = 'none';
+        updateStatus('found', '✓ Cliente verificato');
+        errorBanner.style.display = 'none';
         clienteAbilitato = true;
         setLockedUI(false);
+        updateSectionsVisibility(true);
       }
       checkForm();
     } catch (err) {
-      console.error('Errore recupero cliente:', err);
-      clienteAlertBanner.textContent = 'Impossibile recuperare le informazioni del cliente.';
-      clienteAlertBanner.style.display = 'block';
-      clienteAbilitato = false;
+      console.error('Errore:', err);
+      updateStatus('error', '❌ Errore recupero cliente');
+      errorText.textContent = 'Impossibile recuperare le informazioni del cliente.';
+      errorBanner.style.display = 'block';
       resetSelections();
+      updateSectionsVisibility(false);
       checkForm();
     }
   }
 
+  // Search cliente functionality
+  let searchTimeout = null;
+  if (searchInput) {
+    searchInput.addEventListener('input', function(){
+      clearTimeout(searchTimeout);
+      const query = this.value.trim();
+      
+      if (!query || query.length < 2) {
+        searchResults.innerHTML = '';
+        return;
+      }
+
+      searchTimeout = setTimeout(async () => {
+        updateStatus('loading', 'Ricerca in corso...');
+        
+        try {
+          const res = await fetch("{{ url_for('consumi.staff_search_cliente') }}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({ q: query })
+          });
+
+          const data = await res.json();
+          
+          if (!data.ok || !data.clienti || data.clienti.length === 0) {
+            searchResults.innerHTML = '<div class="staff-scanner__search-empty">❌ Nessun cliente trovato</div>';
+            updateStatus('error', 'Cliente non trovato');
+            return;
+          }
+
+          // Build results
+          let html = '<div class="staff-scanner__search-list">';
+          data.clienti.forEach(cli => {
+            const statusBadge = cli.ha_ingresso 
+              ? '<span class="staff-scanner__client-badge staff-scanner__client-badge--entered">✓ Entrato</span>'
+              : '<span class="staff-scanner__client-badge staff-scanner__client-badge--not-entered">⚠️ Non entrato</span>';
+            
+            html += `
+              <button type="button" class="staff-scanner__search-result" data-qr="${cli.qr}" data-has-ingresso="${cli.ha_ingresso}">
+                <div class="staff-scanner__result-name">${cli.nome} ${cli.cognome}</div>
+                ${statusBadge}
+              </button>
+            `;
+          });
+          html += '</div>';
+          searchResults.innerHTML = html;
+
+          // Add click handlers
+          document.querySelectorAll('.staff-scanner__search-result').forEach(btn => {
+            btn.addEventListener('click', function(e){
+              e.preventDefault();
+              const qr = this.dataset.qr;
+              const hasIngresso = this.dataset.hasIngresso === 'true';
+              
+              qrHidden.value = qr;
+              searchInput.value = this.querySelector('.staff-scanner__result-name').textContent;
+              searchResults.innerHTML = '';
+              
+              if (hasIngresso) {
+                updateStatus('found', 'Cliente selezionato e verificato ✓');
+                fetchClienteInfo(qr);
+              } else {
+                updateStatus('error', 'Cliente non entrato a questo evento');
+              }
+            });
+          });
+
+          updateStatus('found', `${data.clienti.length} cliente/i trovato/i`);
+        } catch (err) {
+          console.error('Errore ricerca:', err);
+          updateStatus('error', 'Errore durante la ricerca');
+          searchResults.innerHTML = '<div class="staff-scanner__search-empty">❌ Errore durante la ricerca</div>';
+        }
+      }, 300);
+    });
+  }
+
+  // Manual input
   if (qrManual) {
     const handleManualInput = function(){
       const val = qrManual.value.trim();
       if (!val) {
-        clienteInfo = null;
+        clienteData = null;
         clienteAbilitato = false;
-        clienteInfoBanner.style.display = 'none';
-        clienteAlertBanner.textContent = 'Inserisci un QR valido.';
-        clienteAlertBanner.style.display = 'block';
+        errorText.textContent = 'Inserisci un QR valido.';
+        errorBanner.style.display = 'block';
         setLockedUI(true);
         resetSelections();
-        allowSubmit = false;
+        updateSectionsVisibility(false);
         confirmBanner.style.display = 'none';
         successBanner.style.display = 'none';
+        updateStatus('idle', 'In attesa di scansione...');
         checkForm();
         return;
       }
-      if (fetchTimeout) clearTimeout(fetchTimeout);
-      fetchTimeout = setTimeout(() => {
+      setTimeout(() => {
         resetSelections();
         setLockedUI(true);
-        allowSubmit = false;
         confirmBanner.style.display = 'none';
         successBanner.style.display = 'none';
+        errorBanner.style.display = 'none';
         fetchClienteInfo(val);
       }, 300);
     };
@@ -319,56 +565,58 @@ document.addEventListener("DOMContentLoaded", function(){
     qrManual.addEventListener('blur', handleManualInput);
   }
 
-  function getProdottiSummary() {
-    const items = [];
+  // Form submission - Show confirm banner
+  form.addEventListener('submit', function(event){
+    if (allowSubmit) return;
+    event.preventDefault();
+    
+    const summary = [];
     document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
       const pid = cb.value;
-      const nome = cb.dataset.nome || cb.closest('label').querySelector('strong')?.textContent?.trim() || 'Prodotto';
+      const nome = cb.dataset.nome || 'Prodotto';
       const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || '1', 10);
-      items.push(qty > 1 ? `${nome} x${qty}` : nome);
+      summary.push(qty > 1 ? `${nome} x${qty}` : nome);
     });
-    return items;
-  }
 
-  function getClienteNome() {
-    if (clienteInfo) {
-      return [clienteInfo.nome, clienteInfo.cognome].filter(Boolean).join(' ').trim();
-    }
-    const manual = qrManual?.value?.trim();
-    return manual ? `cliente (${manual})` : 'cliente';
-  }
+    if (summary.length === 0) return;
 
-  form.addEventListener('submit', function(event){
-    if (allowSubmit) {
-      return;
-    }
-    event.preventDefault();
-    const summary = getProdottiSummary();
-    if (summary.length === 0) {
-      return;
-    }
-    confirmText.innerHTML = `Confermi l'acquisto di <strong>${summary.join(', ')}</strong> per <strong>${getClienteNome()}</strong>?`;
-    confirmBanner.style.display = 'block';
+    const nomeCliente = clienteData ? [clienteData.nome, clienteData.cognome].filter(Boolean).join(' ').trim() : 'Cliente';
+    confirmText.innerHTML = `Addebita <strong>${summary.join(', ')}</strong> a <strong>${nomeCliente}</strong>?`;
+    confirmBanner.style.display = 'flex';
     successBanner.style.display = 'none';
-    confirmBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    errorBanner.style.display = 'none';
+    confirmBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   });
 
+  // Confirm handlers
   confirmNo.addEventListener('click', function(){
     confirmBanner.style.display = 'none';
   });
 
   confirmYes.addEventListener('click', function(){
-    const summary = getProdottiSummary();
+    const summary = [];
+    document.querySelectorAll('.prodotto-checkbox:checked').forEach(cb => {
+      const pid = cb.value;
+      const nome = cb.dataset.nome || 'Prodotto';
+      const qty = parseInt(document.querySelector(`input[name="quantita_${pid}"]`)?.value || '1', 10);
+      summary.push(qty > 1 ? `${nome} x${qty}` : nome);
+    });
+
+    const nomeCliente = clienteData ? [clienteData.nome, clienteData.cognome].filter(Boolean).join(' ').trim() : 'Cliente';
+    const summary_text = summary.join(', ');
+    
+    // Hide confirm, show success
     confirmBanner.style.display = 'none';
-    const clienteNome = getClienteNome();
-    successBanner.innerHTML = `✅ Confermato acquisto di <strong>${summary.join(', ')}</strong> a <strong>${clienteNome}</strong>.`;
-    successBanner.style.display = 'block';
-    successBanner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    successText.innerHTML = `Addebito di <strong>${summary_text}</strong> confermato per <strong>${nomeCliente}</strong>`;
+    successBanner.style.display = 'flex';
+    successBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Submit form after delay
     allowSubmit = true;
     confirmToken.value = Date.now().toString();
     setTimeout(() => form.submit(), 1500);
   });
 });
 </script>
-{% endblock %}
 
+{% endblock %}

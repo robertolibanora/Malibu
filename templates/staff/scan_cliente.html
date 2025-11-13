@@ -8,36 +8,268 @@
 {% endblock %}
 
 {% block staff_content %}
-<section class="card">
-  <h1 class="card__title">🔍 Scanner QR Cliente</h1>
+<section class="card staff-scanner__header">
+  <h1 class="card__title">🔍 Scansiona Cliente</h1>
   <div class="card__meta">
     <strong>Evento:</strong> {{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}
   </div>
   {% if message %}
-  <div class="banner banner--{{ 'success' if message_type == 'success' else ('danger' if message_type == 'error' else 'info') }}" role="alert" style="margin: 1rem 0;">
+    <div class="banner banner--{{ 'success' if message_type == 'success' else ('danger' if message_type == 'error' else 'info') }}" role="alert" style="margin-top: 1rem;">
     {{ message }}
   </div>
   {% endif %}
-  <p class="text--muted" style="margin: 0.75rem 0 1rem 0;">Scansiona il QR del cliente. Se il cliente è già entrato, potrai aprire il listino e registrare l’acquisto.</p>
-  <form id="scanForm" method="post" action="{{ url_for('consumi.staff_scan_listino') }}">
+</section>
+
+<!-- Scanner QR Principal -->
+<section class="card staff-scanner__section">
+  <div class="staff-scanner__container">
+    <p class="staff-scanner__instruction">
+      📱 Posiziona il QR del cliente di fronte alla fotocamera
+    </p>
+    
+    <form id="scanForm" method="post" action="{{ url_for('consumi.staff_scan_listino') }}" class="staff-scanner__form">
     {{ render_qr_scanner(container_id='qr-reader', form_id='scanForm', auto_submit=False, result_input_id='qr_hidden', manual_input_id='qr_manual', manual_input_label='Oppure inserisci manualmente il QR code', manual_input_placeholder='QR Code Cliente', precheck_url=url_for('consumi.staff_precheck_qr')) }}
     <input type="hidden" id="qr_hidden" name="qr">
-    <div class="form__actions" style="margin-top:1rem;">
-      <button class="btn btn--primary" type="submit">Verifica</button>
-      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">Annulla</a>
+      
+      <!-- Status Messages -->
+      <div id="scanner_status" class="staff-scanner__status staff-scanner__status--idle" role="status" aria-live="polite">
+        <span class="staff-scanner__status-icon">⏳</span>
+        <span class="staff-scanner__status-text">In attesa di scansione...</span>
+      </div>
+
+      <!-- Tab Switcher -->
+      <div class="staff-scanner__tabs">
+        <button type="button" class="staff-scanner__tab staff-scanner__tab--active" data-tab="qr">
+          📱 QR Code
+        </button>
+        <button type="button" class="staff-scanner__tab" data-tab="search">
+          🔎 Ricerca Cliente
+        </button>
+      </div>
+
+      <!-- QR Tab (default) -->
+      <div id="tab-qr" class="staff-scanner__tab-content staff-scanner__tab-content--active">
+      </div>
+
+      <!-- Search Tab -->
+      <div id="tab-search" class="staff-scanner__tab-content">
+        <div class="staff-scanner__search-container">
+          <input 
+            type="text" 
+            id="search_cliente" 
+            class="form__input staff-scanner__search-input" 
+            placeholder="Cerca per nome o cognome..."
+            autocomplete="off"
+            aria-label="Ricerca cliente">
+          <div id="search_results" class="staff-scanner__search-results"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="staff-scanner__actions">
+        <button class="btn btn--primary staff-scanner__btn" type="submit" id="verify_btn" disabled>
+          ✓ Verifica
+        </button>
+        <a href="{{ url_for('staff.home') }}" class="btn btn--ghost staff-scanner__btn">
+          ← Annulla
+        </a>
     </div>
   </form>
-  {% if ingresso_ok %}
-  <div class="form__actions" style="margin-top:1rem;">
-    <a href="{{ url_for('consumi.staff_listino', qr=qr_value) }}" class="btn btn--primary btn--block">Apri listino consumazioni</a>
   </div>
-  {% endif %}
 </section>
+
+<!-- Result Section - Shown after verification -->
+{% if ingresso_ok %}
+<section class="card staff-scanner__success">
+  <div class="staff-scanner__success-badge">
+    <span class="staff-scanner__success-icon">✅</span>
+    <span class="staff-scanner__success-text">Cliente verificato</span>
+  </div>
+  
+  <div class="staff-scanner__listino-cta">
+    <a href="{{ url_for('consumi.staff_listino', qr=qr_value) }}" class="btn btn--primary btn--large staff-scanner__btn-primary">
+      📋 Apri Listino Consumazioni
+    </a>
+    <p class="text--muted" style="text-align: center; margin-top: 1rem;">
+      Il cliente è entrato. Procedi per registrare i consumi.
+    </p>
+  </div>
+</section>
+{% endif %}
 
 <!-- html5-qrcode da CDN -->
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <!-- Modulo scanner QR -->
 <script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+  const statusEl = document.getElementById('scanner_status');
+  const verifyBtn = document.getElementById('verify_btn');
+  const qrHidden = document.getElementById('qr_hidden');
+  const qrManual = document.getElementById('qr_manual');
+  const searchInput = document.getElementById('search_cliente');
+  const searchResults = document.getElementById('search_results');
+  const tabs = document.querySelectorAll('.staff-scanner__tab');
+  const tabContents = document.querySelectorAll('.staff-scanner__tab-content');
+
+  // Update status message
+  function updateStatus(type, message) {
+    const iconMap = {
+      'idle': '⏳',
+      'scanning': '🔍',
+      'found': '✅',
+      'error': '❌',
+      'loading': '⌛'
+    };
+    
+    statusEl.className = `staff-scanner__status staff-scanner__status--${type}`;
+    statusEl.innerHTML = `
+      <span class="staff-scanner__status-icon">${iconMap[type]}</span>
+      <span class="staff-scanner__status-text">${message}</span>
+    `;
+  }
+
+  // Tab switching
+  tabs.forEach(tab => {
+    tab.addEventListener('click', function(e){
+      e.preventDefault();
+      const targetTab = this.dataset.tab;
+      
+      // Deselect all tabs
+      tabs.forEach(t => t.classList.remove('staff-scanner__tab--active'));
+      tabContents.forEach(tc => tc.classList.remove('staff-scanner__tab-content--active'));
+      
+      // Select current tab
+      this.classList.add('staff-scanner__tab--active');
+      document.getElementById(`tab-${targetTab}`).classList.add('staff-scanner__tab-content--active');
+      
+      if (targetTab === 'search') {
+        searchInput.focus();
+      }
+    });
+  });
+
+  // Handle QR scan
+  document.addEventListener('qr-scanned', function(event){
+    const code = event?.detail?.code;
+    if (code) {
+      updateStatus('found', `QR riconosciuto: ${code.substring(0, 8)}...`);
+      qrHidden.value = code;
+      verifyBtn.disabled = false;
+    }
+  });
+
+  // Manual QR input handling
+  if (qrManual) {
+    qrManual.addEventListener('input', function(){
+      const val = this.value.trim();
+      if (val) {
+        updateStatus('found', `QR inserito: ${val.substring(0, 8)}...`);
+        qrHidden.value = val;
+        verifyBtn.disabled = false;
+      } else {
+        updateStatus('idle', 'In attesa di scansione...');
+        verifyBtn.disabled = true;
+      }
+    });
+
+    qrManual.addEventListener('blur', function(){
+      if (!this.value.trim()) {
+        updateStatus('idle', 'In attesa di scansione...');
+        verifyBtn.disabled = true;
+      }
+    });
+  }
+
+  // Search cliente functionality
+  let searchTimeout = null;
+  if (searchInput) {
+    searchInput.addEventListener('input', function(){
+      clearTimeout(searchTimeout);
+      const query = this.value.trim();
+      
+      if (!query || query.length < 2) {
+        searchResults.innerHTML = '';
+        return;
+      }
+
+      searchTimeout = setTimeout(async () => {
+        updateStatus('loading', 'Ricerca in corso...');
+        
+        try {
+          const res = await fetch("{{ url_for('consumi.staff_search_cliente') }}", {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'same-origin',
+            body: JSON.stringify({ q: query })
+          });
+
+          const data = await res.json();
+          
+          if (!data.ok || !data.clienti || data.clienti.length === 0) {
+            searchResults.innerHTML = '<div class="staff-scanner__search-empty">❌ Nessun cliente trovato</div>';
+            updateStatus('error', 'Cliente non trovato');
+            verifyBtn.disabled = true;
+            return;
+          }
+
+          // Build results
+          let html = '<div class="staff-scanner__search-list">';
+          data.clienti.forEach(cli => {
+            const statusBadge = cli.ha_ingresso 
+              ? '<span class="staff-scanner__client-badge staff-scanner__client-badge--entered">✓ Entrato</span>'
+              : '<span class="staff-scanner__client-badge staff-scanner__client-badge--not-entered">⚠️ Non entrato</span>';
+            
+            html += `
+              <button type="button" class="staff-scanner__search-result" data-qr="${cli.qr}" data-has-ingresso="${cli.ha_ingresso}">
+                <div class="staff-scanner__result-name">${cli.nome} ${cli.cognome}</div>
+                ${statusBadge}
+              </button>
+            `;
+          });
+          html += '</div>';
+          searchResults.innerHTML = html;
+
+          // Add click handlers
+          document.querySelectorAll('.staff-scanner__search-result').forEach(btn => {
+            btn.addEventListener('click', function(e){
+              e.preventDefault();
+              const qr = this.dataset.qr;
+              const hasIngresso = this.dataset.hasIngresso === 'true';
+              
+              qrHidden.value = qr;
+              searchInput.value = this.querySelector('.staff-scanner__result-name').textContent;
+              searchResults.innerHTML = '';
+              
+              if (hasIngresso) {
+                updateStatus('found', 'Cliente selezionato e verificato ✓');
+                verifyBtn.disabled = false;
+              } else {
+                updateStatus('error', 'Cliente non entrato a questo evento');
+                verifyBtn.disabled = true;
+              }
+            });
+          });
+
+          updateStatus('found', `${data.clienti.length} cliente/i trovato/i`);
+        } catch (err) {
+          console.error('Errore ricerca:', err);
+          updateStatus('error', 'Errore durante la ricerca');
+          searchResults.innerHTML = '<div class="staff-scanner__search-empty">❌ Errore durante la ricerca</div>';
+        }
+      }, 300);
+    });
+  }
+
+  // Form submission
+  document.getElementById('scanForm').addEventListener('submit', function(e){
+    if (!qrHidden.value.trim()) {
+      e.preventDefault();
+      updateStatus('error', 'Seleziona un cliente');
+    }
+  });
+});
+</script>
+
 {% endblock %}
-
-

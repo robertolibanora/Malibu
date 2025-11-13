@@ -11,14 +11,27 @@
 <section class="card">
   <h1 class="card__title">📍 Evento attivo</h1>
   <div class="card__meta">{{ evento.data_evento.strftime('%d/%m/%Y') }} — {{ evento.nome_evento }}</div>
-  <div class="text--muted" style="margin-top: 0.75rem;">
-    <strong>Ingressi registrati:</strong> {{ ingressi_totali }}
+  <div class="staff-ingressi__stats">
+    <div class="staff-ingressi__stat-item">
+      <span class="staff-ingressi__stat-label">Ingressi registrati</span>
+      <span class="staff-ingressi__stat-value">{{ ingressi_totali }}</span>
+    </div>
+    
     {% if residua is not none %}
-    <br><strong>Capienza residua:</strong> 
-    <span class="{% if residua <= 10 %}text--danger{% elif residua <= 50 %}text--warning{% else %}text--success{% endif %}">
+    <div class="staff-ingressi__stat-item">
+      <span class="staff-ingressi__stat-label">Capienza residua</span>
+      <span class="staff-ingressi__stat-value {% if residua <= 10 %}staff-ingressi__stat-value--danger{% elif residua <= 50 %}staff-ingressi__stat-value--warning{% else %}staff-ingressi__stat-value--success{% endif %}">
       {{ residua }} / {{ evento.capienza_max }}
     </span>
+    </div>
     {% endif %}
+
+    <div class="staff-ingressi__stat-item">
+      <span class="staff-ingressi__stat-label">Prenotati in attesa</span>
+      <span class="staff-ingressi__stat-value staff-ingressi__stat-value--primary" id="prenotati_counter">
+        <span class="staff-ingressi__counter-value">-</span>
+      </span>
+    </div>
   </div>
 </section>
 
@@ -42,8 +55,8 @@
         ✅ Fai entrare
       </button>
       <button class="btn btn--ghost" type="button" id="btn_nega" disabled>⛔ Nega ingresso</button>
-      <a href="{{ url_for('staff.dashboard') }}" class="btn btn--ghost">
-        ← Dashboard
+      <a href="{{ url_for('staff.home') }}" class="btn btn--ghost">
+        ← Home
       </a>
     </div>
   </form>
@@ -79,6 +92,32 @@ document.addEventListener('DOMContentLoaded', function(){
   const btnConferma = document.getElementById('btn_conferma');
   const btnNega = document.getElementById('btn_nega');
   const qrHidden = document.getElementById('qr-result') || document.getElementById('qr_manual') || document.getElementById('qr_hidden') || document.getElementById('qr_manual');
+  const counterEl = document.getElementById('prenotati_counter');
+
+  // Fetch prenotati count
+  async function updatePrenotatiCounter() {
+    try {
+      const res = await fetch('{{ url_for("ingressi.staff_prenotati_count") }}', {
+        method: 'GET',
+        credentials: 'same-origin'
+      });
+      const data = await res.json();
+      if (data.ok) {
+        const counter = counterEl.querySelector('.staff-ingressi__counter-value');
+        if (counter) {
+          counter.textContent = data.prenotati_mancanti;
+          // Animate change
+          counterEl.classList.add('staff-ingressi__stat-value--updated');
+          setTimeout(() => counterEl.classList.remove('staff-ingressi__stat-value--updated'), 600);
+        }
+      }
+    } catch (err) {
+      console.error('Error updating counter:', err);
+    }
+  }
+
+  // Initial load
+  updatePrenotatiCounter();
 
   async function fetchPreview(qr) {
     const res = await fetch('{{ url_for("ingressi.staff_scan_preview") }}', {
@@ -123,6 +162,18 @@ document.addEventListener('DOMContentLoaded', function(){
     } catch(err) {
       console.warn('preview error', err);
     }
+  });
+
+  // Update counter on scan
+  document.addEventListener('qr-scanned', function(){
+    setTimeout(() => updatePrenotatiCounter(), 500);
+  });
+
+  // Form submission
+  const scanForm = document.getElementById('scanForm');
+  scanForm?.addEventListener('submit', function(e){
+    // Update counter dopo il submit (anche se la pagina reindirizza, il counter si aggiorna momentaneamente)
+    updatePrenotatiCounter();
   });
 
   btnNega?.addEventListener('click', function(){

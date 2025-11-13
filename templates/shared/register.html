@@ -36,6 +36,23 @@
       <input class="form__input" id="password_reg" type="password" name="password" required autocomplete="new-password" aria-label="Password" minlength="6">
       <small class="form__help">Minimo 6 caratteri</small>
     </div>
+    <fieldset class="form-consents">
+      <legend class="form-consents__legend">Consensi obbligatori</legend>
+      <label class="form-consents__item">
+        <input class="form-consents__checkbox" type="checkbox" name="accetto_termini" required>
+        <span>
+          Dichiaro di aver letto e accettato i
+          <a href="{{ url_for('static', filename='doc/term.pdf') }}" target="_blank" rel="noopener">Termini e Condizioni</a>.
+        </span>
+      </label>
+      <label class="form-consents__item">
+        <input class="form-consents__checkbox" type="checkbox" name="accetto_privacy" required>
+        <span>
+          Acconsento al trattamento dei dati secondo la
+          <a href="{{ url_for('static', filename='doc/privacy.pdf') }}" target="_blank" rel="noopener">Privacy Policy</a>.
+        </span>
+      </label>
+    </fieldset>
     <div class="form__actions">
       <button class="btn btn--primary" type="submit" id="registerBtn">Registrati</button>
     </div>

@@ -1,38 +1,172 @@
 {% extends "staff/base.html" %}
 {% block staff_title %}Fedeltà — Quick Scan{% endblock %}
+
 {% block staff_content %}
-<section class="card">
-  <h1 class="card__title">Scanner QR</h1>
-  <div id="reader" style="width:100%;max-width:420px;margin:auto;"></div>
-  <form method="post" class="form" style="margin-top:1rem;">
-    <input type="hidden" name="qr" id="qr_hidden">
-    <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Mostra Fedeltà</button>
-    </div>
-  </form>
+<!-- Scanner Section -->
+<section class="card staff-fedelta__header">
+  <h1 class="card__title">⚡ Fedeltà Cliente</h1>
+  <p class="text--muted" style="margin: 0.75rem 0 0 0;">Scansiona il QR del cliente per visualizzare i punti fedeltà</p>
 </section>
 
+<!-- Scanner QR -->
+<section class="card staff-fedelta__scanner-section">
+  <div class="staff-fedelta__scanner-container">
+    <h2 class="staff-fedelta__section-title">🔍 Scanner QR</h2>
+    <div id="reader" class="staff-fedelta__scanner" style="width:100%;max-width:420px;margin:auto;"></div>
+    
+    <!-- Scanner Status -->
+    <div id="scanner_status" class="staff-scanner__status staff-scanner__status--idle" role="status" aria-live="polite" style="margin-top: 1rem;">
+      <span class="staff-scanner__status-icon">⏳</span>
+      <span class="staff-scanner__status-text">In attesa di scansione...</span>
+    </div>
+
+    <!-- Manual Input -->
+    <div class="staff-fedelta__manual-input" style="margin-top: 1.5rem;">
+      <input 
+        type="text" 
+        id="qr_manual" 
+        class="form__input" 
+        placeholder="Oppure inserisci il QR code manualmente"
+        autocomplete="off"
+        aria-label="Inserimento manuale QR code"
+        style="font-size: clamp(0.95rem, 2.8vw, 1.05rem);">
+    </div>
+
+    <form method="post" style="margin-top: 1.5rem;">
+      <input type="hidden" name="qr" id="qr_hidden">
+      <button class="btn btn--primary btn--large" type="submit" id="submit_btn" disabled>
+        Visualizza Fedeltà
+      </button>
+  </form>
+  </div>
+</section>
+
+<!-- Info Section - Shown after scan -->
 {% if info %}
-<section class="card">
-  <h2 class="card__title">{{ info.cliente.cognome }} {{ info.cliente.nome }}</h2>
-  <div class="text--muted">Telefono: {{ info.cliente.telefono }}</div>
-  <p>Punti: <strong>{{ info.points }}</strong></p>
-  <p>Livello: <strong>{{ info.lvl|upper }}</strong></p>
-  {% if info.nxt %}<p class="text--muted">Mancano {{ info.to_go }} pt per {{ info.nxt|upper }}</p>{% endif %}
+<section class="card staff-fedelta__info">
+  <div class="staff-fedelta__cliente-header">
+    <div class="staff-fedelta__cliente-avatar">
+      <span class="staff-fedelta__avatar-icon">👤</span>
+    </div>
+    <div class="staff-fedelta__cliente-info">
+      <h2 class="staff-fedelta__cliente-name">
+        {{ info.cliente.cognome }} {{ info.cliente.nome }}
+      </h2>
+      <p class="staff-fedelta__cliente-phone">
+        📱 {{ info.cliente.telefono }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div class="staff-fedelta__stats-grid">
+    <!-- Punti -->
+    <div class="staff-fedelta__stat-card staff-fedelta__stat-card--primary">
+      <div class="staff-fedelta__stat-label">Punti Fedeltà</div>
+      <div class="staff-fedelta__stat-value">{{ info.points }}</div>
+      <div class="staff-fedelta__stat-meta">pt</div>
+    </div>
+
+    <!-- Livello -->
+    <div class="staff-fedelta__stat-card staff-fedelta__stat-card--secondary">
+      <div class="staff-fedelta__stat-label">Livello</div>
+      <div class="staff-fedelta__stat-value staff-fedelta__stat-value--level">
+        <span class="staff-fedelta__level-badge">{{ info.lvl|upper }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress to Next Level -->
+  {% if info.nxt %}
+  <div class="staff-fedelta__progress-section">
+    <div class="staff-fedelta__progress-header">
+      <span class="staff-fedelta__progress-label">Prossimo Livello</span>
+      <span class="staff-fedelta__progress-next">{{ info.nxt|upper }}</span>
+    </div>
+    <div class="staff-fedelta__progress-bar">
+      <div class="staff-fedelta__progress-fill" style="width: calc(({{ info.points }} % {{ info.to_go }}) * 100% / {{ info.to_go }})"></div>
+    </div>
+    <div class="staff-fedelta__progress-text">
+      Mancano <strong>{{ info.to_go }} pt</strong> per il prossimo livello
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Action Buttons -->
+  <div class="staff-fedelta__actions">
+    <form method="post" style="display: flex; gap: 0.75rem; flex-wrap: wrap; width: 100%;">
+      <input type="hidden" name="qr" id="qr_hidden_submit">
+      <button class="btn btn--ghost" type="button" onclick="location.reload();">
+        ↻ Scansiona Altro
+      </button>
+      <a href="{{ url_for('staff.home') }}" class="btn btn--secondary" style="flex: 1; min-width: 140px;">
+        ← Torna alla Home
+      </a>
+    </form>
+  </div>
 </section>
 {% endif %}
-{% endblock %}
 
-{% block scripts %}
+<!-- Scripts -->
 <script src="https://unpkg.com/html5-qrcode" defer></script>
 <script>
 document.addEventListener("DOMContentLoaded", function(){
-  function handleDecoded(txt){ document.getElementById('qr_hidden').value = txt; }
-  if (window.Html5Qrcode){
+  const qrHidden = document.getElementById('qr_hidden');
+  const qrManual = document.getElementById('qr_manual');
+  const submitBtn = document.getElementById('submit_btn');
+  const scannerStatus = document.getElementById('scanner_status');
+  const readerDiv = document.getElementById('reader');
+
+  // Update status message
+  function updateStatus(type, message) {
+    const iconMap = {'idle': '⏳', 'found': '✅', 'error': '❌', 'loading': '⌛'};
+    scannerStatus.className = `staff-scanner__status staff-scanner__status--${type}`;
+    scannerStatus.innerHTML = `
+      <span class="staff-scanner__status-icon">${iconMap[type]}</span>
+      <span class="staff-scanner__status-text">${message}</span>
+    `;
+  }
+
+  // Initialize QR code scanner
+  if (window.Html5Qrcode) {
     const html5QrCode = new Html5Qrcode("reader");
-    html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, handleDecoded)
-      .catch(()=>{ /* fallback: input hidden resta vuoto */ });
+    
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: 250 },
+      function(txt) {
+        qrHidden.value = txt;
+        updateStatus('found', `QR riconosciuto: ${txt.substring(0, 8)}...`);
+        submitBtn.disabled = false;
+      }
+    ).catch(() => {
+      // Camera access denied or not available - allow manual input
+      updateStatus('idle', 'Usa il form manuale');
+    });
+  }
+
+  // Manual input handling
+  if (qrManual) {
+    qrManual.addEventListener('input', function(){
+      const val = this.value.trim();
+      if (val) {
+        qrHidden.value = val;
+        updateStatus('found', `QR inserito: ${val.substring(0, 8)}...`);
+        submitBtn.disabled = false;
+      } else {
+        updateStatus('idle', 'In attesa di scansione...');
+        submitBtn.disabled = true;
+      }
+    });
+
+    qrManual.addEventListener('blur', function(){
+      if (!this.value.trim()) {
+        updateStatus('idle', 'In attesa di scansione...');
+        submitBtn.disabled = true;
+      }
+    });
   }
 });
 </script>
+
 {% endblock %}

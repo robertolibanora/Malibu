@@ -1,0 +1,100 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Home{% endblock %}
+
+{% block staff_content %}
+<!-- Event Status Header -->
+<section class="card staff-home__header">
+  <div class="staff-home__event-status">
+    {% if evento_attivo %}
+      <div class="staff-home__event-info">
+        <span class="staff-home__event-badge staff-home__event-badge--active">
+          🎯 EVENTO ATTIVO
+        </span>
+        <h1 class="staff-home__event-name">{{ evento_attivo.nome_evento }}</h1>
+        <p class="staff-home__event-date">
+          📅 {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}
+          {% if evento_attivo.stato_pubblico != 'attivo' %}
+            <span class="staff-home__event-warning">⚠️ Non pubblico come "attivo"</span>
+          {% endif %}
+        </p>
+      </div>
+    {% else %}
+      <div class="staff-home__event-empty">
+        <span class="staff-home__event-badge staff-home__event-badge--empty">
+          ⚠️ NO EVENT
+        </span>
+        <h1 class="staff-home__event-name">Nessun evento operativo</h1>
+        <p class="staff-home__event-date">
+          Contatta l'amministratore per selezionare l'evento della serata
+        </p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- Primary Actions -->
+<section class="card staff-home__section">
+  <h2 class="staff-home__section-title">🎯 Azioni Principali</h2>
+  <div class="staff-home__actions-grid staff-home__actions-grid--primary">
+    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
+       href="{{ url_for('ingressi.staff_scan') }}" 
+       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
+      <span class="staff-home__action-icon">🔍</span>
+      <span class="staff-home__action-label">Scanner Ingressi</span>
+      <span class="staff-home__action-desc">Scansiona QR clienti in ingresso</span>
+    </a>
+    
+    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
+       href="{{ url_for('consumi.staff_listino') }}" 
+       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
+      <span class="staff-home__action-icon">🧾</span>
+      <span class="staff-home__action-label">Registra Consumi</span>
+      <span class="staff-home__action-desc">Addebita prodotti ai clienti</span>
+    </a>
+
+    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
+       href="{{ url_for('fedelta.staff_quick') }}" 
+       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
+      <span class="staff-home__action-icon">⚡</span>
+      <span class="staff-home__action-label">Fedeltà</span>
+      <span class="staff-home__action-desc">Visualizza punti fedeltà</span>
+    </a>
+  </div>
+</section>
+
+<!-- Secondary Actions -->
+<section class="card staff-home__section">
+  <h2 class="staff-home__section-title">📋 Risorse</h2>
+  <div class="staff-home__actions-grid staff-home__actions-grid--secondary">
+    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
+       href="{{ url_for('consumi.staff_new') }}">
+      <span class="staff-home__action-icon">➕</span>
+      <span class="staff-home__action-label">Nuovo Consumo</span>
+    </a>
+
+    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
+       href="{{ url_for('prodotti.public_listino') }}" 
+       target="_blank" rel="noopener">
+      <span class="staff-home__action-icon">🌐</span>
+      <span class="staff-home__action-label">Listino Pubblico</span>
+    </a>
+
+    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
+       href="{{ url_for('eventi.staff_select_event') }}">
+      <span class="staff-home__action-icon">🎯</span>
+      <span class="staff-home__action-label">Gestisci Evento</span>
+    </a>
+  </div>
+</section>
+
+<!-- Info Banner -->
+{% if not evento_attivo %}
+<section class="card staff-home__info">
+  <div class="banner banner--warning" role="alert">
+    <strong>⚠️ Attenzione:</strong> Le azioni principali sono disabilitate finché non viene impostato un evento operativo.
+  </div>
+</section>
+{% endif %}
+
+{% endblock %}
+

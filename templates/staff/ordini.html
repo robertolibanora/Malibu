@@ -1,0 +1,104 @@
+{% extends "staff/base.html" %}
+{% block staff_title %}Ordini Evento{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white; }
+      .staff-ordini__container { margin: 0; padding: 0; }
+      .staff-ordini__header { break-after: avoid; }
+      .staff-ordini__tavolo-section { break-inside: avoid; page-break-inside: avoid; }
+    }
+  </style>
+{% endblock %}
+
+{% block staff_content %}
+<div class="staff-ordini__container">
+  <!-- Header -->
+  <section class="card staff-ordini__header no-print">
+    <h1 class="card__title">📋 Ordini Evento</h1>
+    <div class="card__meta">
+      <strong>{{ evento.nome_evento }}</strong><br>
+      {{ evento.data_evento.strftime('%d/%m/%Y') }}<br>
+      <span class="staff-ordini__totale-label">Totale ordini</span>
+      <span class="staff-ordini__totale-value">{{ total_ordini }}</span>
+    </div>
+    <div class="staff-ordini__actions no-print">
+      <button class="btn btn--primary" onclick="window.print()">
+        🖨️ Stampa Ordini
+      </button>
+      <a href="{{ url_for('staff.home') }}" class="btn btn--ghost">
+        ← Torna a Home
+      </a>
+    </div>
+  </section>
+
+  <!-- Printable Content -->
+  <div class="staff-ordini__print">
+    <!-- Print Header -->
+    <div class="staff-ordini__print-header">
+      <h1>{{ evento.nome_evento }}</h1>
+      <p>{{ evento.data_evento.strftime('%d/%m/%Y') }}</p>
+      <p>Ordini Totali: {{ total_ordini }}</p>
+      <p>Stampato: {{ now.strftime('%d/%m/%Y %H:%M') }}</p>
+    </div>
+
+    <!-- Ordini Per Tavolo -->
+    {% for chiave_tavolo, gruppo_tavolo in ordini_per_tavolo.items() %}
+    <div class="card staff-ordini__tavolo-section">
+      <div class="staff-ordini__tavolo-header">
+        <div class="staff-ordini__tavolo-badges">
+          <span class="badge">{{ gruppo_tavolo.punto|capitalize }}</span>
+          {% if gruppo_tavolo.tavolo != '—' %}
+            <span class="badge badge--warning">{{ gruppo_tavolo.tavolo }}</span>
+          {% endif %}
+        </div>
+        <div class="staff-ordini__tavolo-count">
+          {{ gruppo_tavolo.ordini|length }} ordini
+        </div>
+      </div>
+
+      <table class="staff-ordini__table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Prodotto</th>
+            <th>Tavolo / Note</th>
+            <th class="staff-ordini__cell-quantita">Qtà</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ordine in gruppo_tavolo.ordini %}
+          <tr>
+            <td class="staff-ordini__cell-cliente">
+              {{ ordine.cliente_cognome }} {{ ordine.cliente_nome }}
+            </td>
+            <td class="staff-ordini__cell-prodotto">
+              {{ ordine.prodotto }}
+            </td>
+            <td class="staff-ordini__cell-tavolo">
+              {{ gruppo_tavolo.tavolo }}
+            </td>
+            <td class="staff-ordini__cell-quantita">
+              {{ ordine.quantita }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+
+    <!-- Empty State -->
+    {% if not ordini_per_tavolo %}
+    <div class="staff-ordini__empty">
+      <p>Nessun ordine registrato per questo evento.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+

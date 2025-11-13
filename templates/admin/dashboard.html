@@ -140,9 +140,14 @@
   </div>
 
   {% if prossimo_evento %}
-  <section class="card card--highlight fade-in" style="animation-delay: 420ms;">
-    <div class="card__header">
-      <h2 class="card__title">Prossimo evento</h2>
+  {% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
+  <section class="card card--highlight event-control fade-in" style="animation-delay: 420ms;">
+    <div class="event-control__header">
+      <div class="event-control__intro">
+        <div class="event-control__eyebrow">Prossimo evento</div>
+        <div class="event-control__title-row">
+          <h2 class="event-control__title">{{ prossimo_evento.nome_evento }}</h2>
+          <div class="event-control__badges">
       {% if giorni_al_prossimo_evento is not none %}
       <span class="badge badge--primary">
         {% if giorni_al_prossimo_evento <= 0 %}
@@ -154,28 +159,106 @@
         {% endif %}
       </span>
       {% endif %}
+            <span class="badge badge--secondary">{{ prossimo_evento.stato_pubblico|capitalize }}</span>
+            {% if is_staff_operativo %}
+            <span class="badge badge--success">Operativo per staff</span>
+            {% elif prossimo_evento.is_staff_operativo %}
+            <span class="badge badge--warning">Pending staff</span>
+            {% endif %}
+          </div>
     </div>
-    <div class="evento-preview">
-      <h3>{{ prossimo_evento.nome_evento }}</h3>
-      <p class="card__meta">
+        <p class="event-control__meta">
         {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
         {% if prossimo_evento.dj_artista %}
           · {{ prossimo_evento.dj_artista }}
         {% endif %}
-      </p>
       {% if prossimo_evento.categoria %}
-      <p class="badge badge--secondary">{{ prossimo_evento.categoria|capitalize }}</p>
+          · {{ prossimo_evento.categoria|capitalize }}
       {% endif %}
-      <div class="evento-preview__meta">
+        </p>
+        <div class="event-control__tags">
         {% if prossimo_evento.capienza_max %}
         <span class="pill pill--outline">Capienza {{ prossimo_evento.capienza_max }}</span>
+          {% endif %}
+          <span class="pill pill--ghost">ID #{{ prossimo_evento.id_evento }}</span>
+        </div>
+      </div>
+      <div class="event-control__actions">
+        {% if not is_staff_operativo %}
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}">
+          <button type="submit" class="btn btn--primary btn--small" name="evento_id" value="{{ prossimo_evento.id_evento }}">
+            Apri allo staff
+          </button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}">
+          <input type="hidden" name="evento_id" value="clear">
+          <button type="submit" class="btn btn--ghost btn--small">
+            Chiudi accesso staff
+          </button>
+        </form>
         {% endif %}
-        <span class="pill pill--ghost">Stato {{ prossimo_evento.stato }}</span>
+        {% if prossimo_evento.stato_pubblico != 'chiuso' %}
+        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=prossimo_evento.id_evento) }}" onsubmit="return confirm('Confermi la chiusura dell\'evento? Le prenotazioni attive saranno marcate come no-show.');">
+          <button type="submit" class="btn btn--danger btn--small">
+            Chiudi evento
+          </button>
+        </form>
+        {% endif %}
       </div>
-      <div class="form__actions form__actions--space-between">
-        <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--primary">Gestisci</a>
-        <a href="{{ url_for('eventi.admin_analytics', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost">Analytics</a>
+    </div>
+
+    {% if prossimo_evento_stats %}
+    <div class="event-control__stats">
+      <div class="event-stat">
+        <span class="event-stat__label">Prenotazioni totali</span>
+        <span class="event-stat__value">{{ prossimo_evento_stats.prenotazioni_totali }}</span>
+        <span class="event-stat__meta">{{ prossimo_evento_stats.prenotazioni_attive }} attive · {{ prossimo_evento_stats.prenotazioni_usate }} utilizzate</span>
       </div>
+      <div class="event-stat">
+        <span class="event-stat__label">Ingressi registrati</span>
+        <span class="event-stat__value">{{ prossimo_evento_stats.ingressi_totali }}</span>
+        <span class="event-stat__meta">
+          {% if prossimo_evento_stats.capienza %}
+          {{ prossimo_evento_stats.occupancy_pct }}% capienza
+          {% else %}
+          Capienza non definita
+          {% endif %}
+        </span>
+      </div>
+      <div class="event-stat">
+        <span class="event-stat__label">Consumi totali</span>
+        <span class="event-stat__value">€{{ "%.2f"|format(prossimo_evento_stats.consumi_totali) }}</span>
+        <span class="event-stat__meta">Aggiornato in tempo reale</span>
+      </div>
+      <div class="event-stat">
+        <span class="event-stat__label">Carico prenotazioni</span>
+        <span class="event-stat__value">{{ prossimo_evento_stats.booking_load_pct }}%</span>
+        <span class="event-stat__meta">
+          {% if prossimo_evento_stats.capienza %}
+          su {{ prossimo_evento_stats.capienza }} posti
+          {% else %}
+          Capienza non definita
+          {% endif %}
+        </span>
+      </div>
+      <div class="event-stat">
+        <span class="event-stat__label">Feedback evento</span>
+        <span class="event-stat__value">{{ "%.1f"|format(prossimo_evento_stats.feedback_media_generale) }}</span>
+        <span class="event-stat__meta">{{ prossimo_evento_stats.feedback_samples }} feedback raccolti</span>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="event-control__footer">
+      <div class="event-control__links">
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">Dettaglio evento</a>
+        <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">Modifica</a>
+        <a href="{{ url_for('eventi.admin_analytics', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
+      </div>
+      <p class="event-control__hint">
+        Suggerimento: aprendo l'evento allo staff si aggiorna automaticamente la dashboard operativa nel backoffice staff.
+      </p>
     </div>
   </section>
   {% endif %}

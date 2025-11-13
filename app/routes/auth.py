@@ -75,6 +75,17 @@ def auth_register_submit():
     data_nascita = request.form.get("data_nascita") or None
     citta = request.form.get("citta", "").strip() or None
     password = request.form.get("password", "").strip()
+    termini_accettati = request.form.get("accetto_termini") == "on"
+    privacy_accettata = request.form.get("accetto_privacy") == "on"
+
+    if not termini_accettati or not privacy_accettata:
+        if not termini_accettati and not privacy_accettata:
+            flash("Per proseguire devi accettare i Termini e Condizioni e la Privacy Policy.", "warning")
+        elif not termini_accettati:
+            flash("Per proseguire devi accettare i Termini e Condizioni.", "warning")
+        else:
+            flash("Per proseguire devi accettare la Privacy Policy.", "warning")
+        return redirect(url_for("auth.auth_register_form"))
 
     if not all([nome, cognome, telefono, password]):
         flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
@@ -153,7 +164,7 @@ def auth_login_submit():
                 flash(f"Benvenuto, {staff.nome}! 🎯", "success")
                 if staff.ruolo == "admin":
                     return redirect(url_for("dashboard.admin_dashboard"))
-                return redirect(url_for("staff.dashboard"))
+                return redirect(url_for("staff.home"))
 
         # Se non è un cliente né staff, prova come ADMIN .env (cerca per username)
         env_user = os.getenv("ADMIN_USER")
