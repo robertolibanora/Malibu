@@ -1,0 +1,207 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Statistiche Ingressi{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Statistiche Ingressi",
+    subtitle="Analisi ingressi, trend e saturazione capienza",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Statistiche', 'url': url_for('stats.admin_hub')},
+      {'label': 'Ingressi'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card" style="margin-bottom: var(--spacing-5);">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Evento</label>
+        <select class="form__select" name="evento_id" onchange="this.form.submit()">
+          <option value="">Tutti gli eventi</option>
+          {% for e in eventi %}
+          <option value="{{ e.id_evento }}" {% if evento_selezionato_id == e.id_evento %}selected{% endif %}>
+            {{ e.nome_evento }} - {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Periodo</label>
+        <select class="form__select" name="giorni" onchange="this.form.submit()">
+          <option value="7" {% if giorni == 7 %}selected{% endif %}>Ultimi 7 giorni</option>
+          <option value="30" {% if giorni == 30 %}selected{% endif %}>Ultimi 30 giorni</option>
+          <option value="90" {% if giorni == 90 %}selected{% endif %}>Ultimi 90 giorni</option>
+        </select>
+      </div>
+      {% if evento_selezionato_id %}
+      <div class="form__group" style="margin-bottom: 0;">
+        <a href="{{ url_for('stats.admin_ingressi') }}" class="btn btn--ghost">Reset</a>
+      </div>
+      {% endif %}
+    </form>
+  </section>
+
+  <!-- KPI -->
+  <div class="grid grid--auto" style="margin-bottom: var(--spacing-6);">
+    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
+      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold);">{{ stats.totale }}</div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Ingressi Totali</div>
+    </div>
+  </div>
+
+  <!-- Grafici -->
+  <div class="grid grid--2" style="margin-bottom: var(--spacing-6);">
+    <section class="card chart-card">
+      <div class="card__header">
+        <h2 class="card__title">📈 Trend Ingressi</h2>
+        <p class="card__meta" style="margin: 0;">Andamento giornaliero</p>
+      </div>
+      <div class="card__content">
+        <canvas id="chartTrend"></canvas>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <div class="card__header">
+        <h2 class="card__title">🕐 Ingressi per Ora</h2>
+        <p class="card__meta" style="margin: 0;">Distribuzione oraria</p>
+      </div>
+      <div class="card__content">
+        <canvas id="chartOre"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <!-- Saturazione Capienza -->
+  {% if stats.saturazione_eventi %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">📊 Saturazione Capienza</h2>
+      <p class="card__meta" style="margin: 0;">Percentuale di occupazione per evento</p>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="admin-table__header">Evento</th>
+              <th class="admin-table__header">Ingressi</th>
+              <th class="admin-table__header">Capienza</th>
+              <th class="admin-table__header admin-table__header--actions">Saturazione</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for evento in stats.saturazione_eventi[:10] %}
+            <tr class="admin-table__row">
+              <td class="admin-table__cell" style="font-weight: var(--font-weight-medium);">{{ evento.evento }}</td>
+              <td class="admin-table__cell">{{ evento.ingressi }}</td>
+              <td class="admin-table__cell">{{ evento.capienza }}</td>
+              <td class="admin-table__cell admin-table__cell--actions">
+                <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                  <div style="flex: 1; height: 10px; background: rgba(255,255,255,0.1); border-radius: 5px; overflow: hidden;">
+                    <div style="height: 100%; width: {{ evento.percentuale }}%; background: {% if evento.percentuale >= 80 %}#ef4444{% elif evento.percentuale >= 50 %}#f59e0b{% else %}#10b981{% endif %}; transition: width 0.3s ease;"></div>
+                  </div>
+                  <span style="color: {% if evento.percentuale >= 80 %}#ef4444{% elif evento.percentuale >= 50 %}#f59e0b{% else %}#10b981{% endif %}; font-weight: var(--font-weight-semibold); min-width: 50px; text-align: right;">
+                    {{ evento.percentuale }}%
+                  </span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+// Trend Giornaliero
+const ctxTrend = document.getElementById('chartTrend');
+if (ctxTrend) {
+  new Chart(ctxTrend, {
+    type: 'line',
+    data: {
+      labels: {{ stats.trend_giornaliero | map(attribute='data') | list | tojson }},
+      datasets: [{
+        label: 'Ingressi',
+        data: {{ stats.trend_giornaliero | map(attribute='count') | list | tojson }},
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+// Ingressi per Ora
+const ctxOre = document.getElementById('chartOre');
+if (ctxOre) {
+  new Chart(ctxOre, {
+    type: 'bar',
+    data: {
+      labels: {{ stats.per_ora | map(attribute='ora') | list | tojson }},
+      datasets: [{
+        label: 'Ingressi',
+        data: {{ stats.per_ora | map(attribute='count') | list | tojson }},
+        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+        borderColor: '#3b82f6',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

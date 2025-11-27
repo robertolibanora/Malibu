@@ -285,37 +285,9 @@ def admin_evento_attivo():
 @eventi_bp.route("/admin/menu", methods=["GET"])
 @require_admin
 def admin_menu():
-    """Menu principale per la gestione eventi"""
-    db = SessionLocal()
-    try:
-        from datetime import date
-        oggi = date.today()
-        
-        # Statistiche rapide
-        tot_eventi = db.query(func.count(Evento.id_evento)).scalar() or 0
-        eventi_attivi = db.query(func.count(Evento.id_evento)).filter(Evento.stato_pubblico == "attivo").scalar() or 0
-        eventi_programmati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento >= oggi).scalar() or 0
-        eventi_passati = db.query(func.count(Evento.id_evento)).filter(Evento.data_evento < oggi).scalar() or 0
-        
-        # Prossimi 3 eventi
-        prossimi_eventi = db.query(Evento).filter(Evento.data_evento >= oggi).order_by(Evento.data_evento.asc()).limit(3).all()
-        
-        # Ultimi 3 eventi
-        ultimi_eventi = db.query(Evento).order_by(Evento.data_evento.desc()).limit(3).all()
-
-        evento_attivo = get_evento_operativo(db)
-        
-        return render_template("admin/eventi_menu.html",
-                             tot_eventi=tot_eventi,
-                             eventi_attivi=eventi_attivi,
-                             eventi_programmati=eventi_programmati,
-                             eventi_passati=eventi_passati,
-                             prossimi_eventi=prossimi_eventi,
-                             ultimi_eventi=ultimi_eventi,
-                             oggi=oggi,
-                             evento_attivo=evento_attivo)
-    finally:
-        db.close()
+    """Route deprecata: reindirizza alla lista eventi"""
+    flash("La pagina menu eventi è stata rimossa. Usa la lista eventi per gestire gli eventi.", "info")
+    return redirect(url_for("eventi.admin_list"))
 
 @eventi_bp.route("/admin", methods=["GET"])
 @require_admin
@@ -333,7 +305,7 @@ def admin_list():
             q = q.filter(Evento.data_evento >= oggi)
         elif periodo == "passati":
             q = q.filter(Evento.data_evento < oggi)
-        eventi = q.order_by(Evento.data_evento.desc()).all()
+        eventi = q.order_by(Evento.data_evento.asc()).all()
         evento_ids = [ev.id_evento for ev in eventi]
 
         ingressi_map = {}
@@ -345,8 +317,12 @@ def admin_list():
             ingressi_map = {eid: count for eid, count in counts}
         
         # Classifica automaticamente gli eventi in base alla data
-        eventi_programmati = [e for e in eventi if e.data_evento >= oggi]
-        eventi_passati = [e for e in eventi if e.data_evento < oggi]
+        # Eventi programmati: ordine crescente (prossimo in alto)
+        eventi_programmati = sorted([e for e in eventi if e.data_evento >= oggi], 
+                                   key=lambda e: e.data_evento)
+        # Eventi passati: ordine decrescente (più recente in alto)
+        eventi_passati = sorted([e for e in eventi if e.data_evento < oggi], 
+                               key=lambda e: e.data_evento, reverse=True)
         
         return render_template("admin/eventi_list.html", 
                              eventi=eventi, 

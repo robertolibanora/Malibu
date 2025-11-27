@@ -16,13 +16,13 @@ def admin_list():
     Manteniamo la route solo per evitare 404 su eventuali link vecchi.
     """
     flash("La gestione promozioni è stata semplificata: usa il campo 'Promozione' nella scheda evento.", "info")
-    return redirect(url_for("eventi.admin_menu"))
+    return redirect(url_for("eventi.admin_list"))
 
 @promozioni_bp.route("/admin/new", methods=["GET", "POST"])
 @require_admin
 def admin_new():
     flash("La creazione di promozioni dedicate non è più disponibile. Inserisci la promo direttamente nel campo 'Promozione' dell'evento.", "info")
-    return redirect(url_for("eventi.admin_menu"))
+    return redirect(url_for("eventi.admin_list"))
 
 @promozioni_bp.route("/admin/<int:promozione_id>", methods=["GET"])
 @require_admin

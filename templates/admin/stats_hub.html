@@ -1,0 +1,178 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Statistiche{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Statistiche e Analisi",
+    subtitle="Dashboard con le metriche più importanti · Filtra per evento",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Statistiche', 'url': url_for('stats.admin_hub')}
+    ]
+  ) }}
+
+  <!-- Filtro Evento -->
+  {% if eventi %}
+  <section class="card" style="margin-bottom: var(--spacing-5);">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 250px;">
+        <label class="form__label">Filtra per Evento</label>
+        <select class="form__select" name="evento_id" onchange="this.form.submit()">
+          <option value="">Tutti gli eventi</option>
+          {% for e in eventi %}
+          <option value="{{ e.id_evento }}" {% if evento_selezionato_id == e.id_evento %}selected{% endif %}>
+            {{ e.nome_evento }} - {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if evento_selezionato_id %}
+      <div class="form__group" style="margin-bottom: 0;">
+        <a href="{{ url_for('stats.admin_hub') }}" class="btn btn--ghost">Rimuovi Filtro</a>
+      </div>
+      {% endif %}
+    </form>
+  </section>
+  {% endif %}
+
+  <!-- KPI Cards Principali -->
+  <div class="grid grid--auto" style="margin-bottom: var(--spacing-6);">
+    <!-- Revenue - Più importante -->
+    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(12, 12, 12, 0.9) 100%);">
+      <div class="stat-card__value" style="color: var(--color-green-accent); font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-2);">
+        €{{ "%.0f"|format(stats.consumi.revenue_totale) }}
+      </div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-1);">Revenue Totale</div>
+      <div class="stat-card__meta" style="font-size: var(--font-size-sm);">Scontrino medio: €{{ "%.2f"|format(stats.consumi.scontrino_medio) }}</div>
+    </div>
+
+    <!-- Ingressi -->
+    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
+      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-2);">
+        {{ stats.ingressi.totale }}
+      </div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-1);">Ingressi Totali</div>
+      <div class="stat-card__meta" style="font-size: var(--font-size-sm);">Ultimi 7 giorni: {{ stats.ingressi.ultimi_7_giorni }}</div>
+    </div>
+
+    <!-- Prenotazioni -->
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold); margin-bottom: var(--spacing-2);">
+        {{ stats.prenotazioni.totale }}
+      </div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold); margin-bottom: var(--spacing-1);">Prenotazioni</div>
+      <div class="stat-card__meta" style="font-size: var(--font-size-sm);">
+        {% if stats.prenotazioni.tavoli_in_attesa > 0 %}
+        <span style="color: #ef4444; font-weight: var(--font-weight-semibold);">{{ stats.prenotazioni.tavoli_in_attesa }} tavoli in attesa</span>
+        {% else %}
+        <span style="color: var(--color-green-accent);">Tutte approvate</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links alle Sezioni -->
+  <div class="grid grid--auto">
+    <a href="{{ url_for('stats.admin_consumi', evento_id=evento_selezionato_id) }}" class="card" style="text-decoration: none; transition: all 0.3s ease;">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 2rem;">💰</span>
+          <div>
+            <h2 class="card__title" style="margin: 0; color: var(--admin-text);">Consumi</h2>
+            <p class="card__meta" style="margin: 0;">Revenue e prodotti top</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="padding: var(--spacing-3); background: rgba(16, 185, 129, 0.1); border-radius: var(--radius-sm);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-2);">
+            <span class="text--muted">Revenue:</span>
+            <strong style="color: var(--color-green-accent); font-size: var(--font-size-lg);">€{{ "%.0f"|format(stats.consumi.revenue_totale) }}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span class="text--muted">Ordini:</span>
+            <strong style="color: var(--color-green-accent);">{{ stats.consumi.num_ordini }}</strong>
+          </div>
+        </div>
+      </div>
+    </a>
+
+    <a href="{{ url_for('stats.admin_ingressi', evento_id=evento_selezionato_id) }}" class="card" style="text-decoration: none; transition: all 0.3s ease;">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 2rem;">🚪</span>
+          <div>
+            <h2 class="card__title" style="margin: 0; color: var(--admin-text);">Ingressi</h2>
+            <p class="card__meta" style="margin: 0;">Trend e saturazione</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="padding: var(--spacing-3); background: rgba(59, 130, 246, 0.1); border-radius: var(--radius-sm);">
+          <div style="display: flex; justify-content: space-between;">
+            <span class="text--muted">Totale:</span>
+            <strong style="color: #3b82f6; font-size: var(--font-size-lg);">{{ stats.ingressi.totale }}</strong>
+          </div>
+        </div>
+      </div>
+    </a>
+
+    <a href="{{ url_for('stats.admin_prenotazioni', evento_id=evento_selezionato_id) }}" class="card" style="text-decoration: none; transition: all 0.3s ease;">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 2rem;">📋</span>
+          <div>
+            <h2 class="card__title" style="margin: 0; color: var(--admin-text);">Prenotazioni</h2>
+            <p class="card__meta" style="margin: 0;">Conversioni e approvazioni</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="padding: var(--spacing-3); background: rgba(212, 175, 55, 0.1); border-radius: var(--radius-sm);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: var(--spacing-2);">
+            <span class="text--muted">Totale:</span>
+            <strong style="color: var(--admin-accent); font-size: var(--font-size-lg);">{{ stats.prenotazioni.totale }}</strong>
+          </div>
+          {% if stats.prenotazioni.tavoli_in_attesa > 0 %}
+          <div style="display: flex; justify-content: space-between;">
+            <span class="text--muted">In attesa:</span>
+            <strong style="color: #ef4444;">{{ stats.prenotazioni.tavoli_in_attesa }}</strong>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <!-- Link Overview -->
+  <section class="card" style="margin-top: var(--spacing-5); background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%); border: 1px solid rgba(212, 175, 55, 0.2);">
+    <div class="card__header">
+      <h2 class="card__title" style="margin: 0;">📊 Overview Completa</h2>
+      <p class="card__meta" style="margin: 0;">Visualizza tutte le statistiche con grafici e trend</p>
+    </div>
+    <div class="card__content">
+      <a href="{{ url_for('stats.admin_overview', evento_id=evento_selezionato_id) }}" class="btn btn--primary" style="width: 100%;">
+        📈 Vai all'Overview Completa
+      </a>
+    </div>
+  </section>
+</div>
+
+<style>
+.card:hover {
+  transform: translateY(-2px);
+}
+</style>
+{% endblock %}

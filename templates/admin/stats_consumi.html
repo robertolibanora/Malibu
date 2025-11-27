@@ -1,0 +1,210 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Statistiche Consumi{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Statistiche Consumi",
+    subtitle="Analisi revenue, prodotti top e trend vendite",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Statistiche', 'url': url_for('stats.admin_hub')},
+      {'label': 'Consumi'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card" style="margin-bottom: var(--spacing-5);">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Evento</label>
+        <select class="form__select" name="evento_id" onchange="this.form.submit()">
+          <option value="">Tutti gli eventi</option>
+          {% for e in eventi %}
+          <option value="{{ e.id_evento }}" {% if evento_selezionato_id == e.id_evento %}selected{% endif %}>
+            {{ e.nome_evento }} - {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% if evento_selezionato_id %}
+      <div class="form__group" style="margin-bottom: 0;">
+        <a href="{{ url_for('stats.admin_consumi') }}" class="btn btn--ghost">Reset</a>
+      </div>
+      {% endif %}
+    </form>
+  </section>
+
+  <!-- KPI -->
+  <div class="grid grid--auto" style="margin-bottom: var(--spacing-6);">
+    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(12, 12, 12, 0.9) 100%);">
+      <div class="stat-card__value" style="color: var(--color-green-accent); font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold);">€{{ "%.0f"|format(stats.revenue_totale) }}</div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Revenue Totale</div>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">€{{ "%.2f"|format(stats.scontrino_medio) }}</div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Scontrino Medio</div>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
+      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.num_ordini }}</div>
+      <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Numero Ordini</div>
+    </div>
+  </div>
+
+  <!-- Grafici -->
+  <div class="grid grid--2" style="margin-bottom: var(--spacing-6);">
+    <section class="card chart-card">
+      <div class="card__header">
+        <h2 class="card__title">💰 Trend Revenue</h2>
+        <p class="card__meta" style="margin: 0;">Andamento vendite giornaliero</p>
+      </div>
+      <div class="card__content">
+        <canvas id="chartTrend"></canvas>
+      </div>
+    </section>
+
+    <section class="card chart-card">
+      <div class="card__header">
+        <h2 class="card__title">📊 Revenue per Categoria</h2>
+        <p class="card__meta" style="margin: 0;">Distribuzione per categoria prodotto</p>
+      </div>
+      <div class="card__content">
+        <canvas id="chartCategorie"></canvas>
+      </div>
+    </section>
+  </div>
+
+  <!-- Top Prodotti -->
+  {% if stats.top_prodotti %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">🏆 Top Prodotti per Revenue</h2>
+      <p class="card__meta" style="margin: 0;">I prodotti più venduti</p>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="admin-table__header">#</th>
+              <th class="admin-table__header">Prodotto</th>
+              <th class="admin-table__header">Categoria</th>
+              <th class="admin-table__header">Quantità</th>
+              <th class="admin-table__header admin-table__header--actions">Revenue</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for prodotto in stats.top_prodotti[:15] %}
+            <tr class="admin-table__row">
+              <td class="admin-table__cell" style="color: var(--admin-accent); font-weight: var(--font-weight-semibold);">{{ loop.index }}</td>
+              <td class="admin-table__cell" style="font-weight: var(--font-weight-medium);">{{ prodotto.nome }}</td>
+              <td class="admin-table__cell">{{ prodotto.categoria }}</td>
+              <td class="admin-table__cell">{{ prodotto.quantita }}</td>
+              <td class="admin-table__cell admin-table__cell--actions" style="color: var(--color-green-accent); font-weight: var(--font-weight-semibold);">€{{ "%.2f"|format(prodotto.revenue) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+// Trend Revenue
+const ctxTrend = document.getElementById('chartTrend');
+if (ctxTrend) {
+  new Chart(ctxTrend, {
+    type: 'line',
+    data: {
+      labels: {{ stats.trend_revenue | map(attribute='data') | list | tojson }},
+      datasets: [{
+        label: 'Revenue (€)',
+        data: {{ stats.trend_revenue | map(attribute='revenue') | list | tojson }},
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        tension: 0.4,
+        fill: true,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '€' + value.toFixed(0);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// Revenue per Categoria
+const ctxCategorie = document.getElementById('chartCategorie');
+if (ctxCategorie) {
+  new Chart(ctxCategorie, {
+    type: 'bar',
+    data: {
+      labels: {{ stats.revenue_per_categoria | map(attribute='categoria') | list | tojson }},
+      datasets: [{
+        label: 'Revenue (€)',
+        data: {{ stats.revenue_per_categoria | map(attribute='revenue') | list | tojson }},
+        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+        borderColor: '#10b981',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '€' + value.toFixed(0);
+            }
+          }
+        }
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Statistiche Clienti{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('stats.admin_clienti'), 'endpoint': 'stats.admin_clienti', 'label': 'Clienti', 'icon': '👥'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Statistiche Clienti",
+    subtitle="Analisi distribuzione livelli fedeltà, retention e crescita",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Statistiche', 'url': url_for('stats.admin_hub')},
+      {'label': 'Clienti'}
+    ]
+  ) }}
+
+  <!-- KPI -->
+  <div class="grid grid--auto">
+    <div class="stat-card" style="border-left: 4px solid #a855f7; text-align: center;">
+      <div class="stat-card__value" style="color: #a855f7; font-size: var(--font-size-3xl);">{{ stats.totale }}</div>
+      <div class="stat-card__label">Totale Clienti</div>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
+      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-2xl);">{{ stats.nuovi_ultimi_30_giorni }}</div>
+      <div class="stat-card__label">Nuovi (30gg)</div>
+    </div>
+    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--color-green-accent); font-size: var(--font-size-2xl);">{{ stats.attivi_ultimi_90_giorni }}</div>
+      <div class="stat-card__label">Attivi (90gg)</div>
+    </div>
+  </div>
+
+  <!-- Distribuzione Livelli -->
+  {% if stats.distribuzione_livelli %}
+  <section class="card chart-card">
+    <div class="card__header">
+      <h2 class="card__title">Distribuzione Livelli Fedeltà</h2>
+    </div>
+    <div class="card__content">
+      <canvas id="chartLivelli"></canvas>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Tabella Distribuzione -->
+  {% if stats.distribuzione_livelli %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Dettaglio Distribuzione Livelli</h2>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th class="admin-table__header">Livello</th>
+              <th class="admin-table__header admin-table__header--actions">Numero Clienti</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for livello, count in stats.distribuzione_livelli.items() %}
+            <tr class="admin-table__row">
+              <td class="admin-table__cell">
+                <span class="badge badge--level-{{ livello }}">{{ livello|upper }}</span>
+              </td>
+              <td class="admin-table__cell admin-table__cell--actions">{{ count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+
+<script>
+// Distribuzione Livelli
+const ctxLivelli = document.getElementById('chartLivelli');
+if (ctxLivelli) {
+  const livelli = {{ stats.distribuzione_livelli.keys() | list | tojson }};
+  const counts = {{ stats.distribuzione_livelli.values() | list | tojson }};
+  
+  const colorMap = {
+    'base': 'rgba(148, 163, 184, 0.9)',
+    'loyal': 'rgba(59, 130, 246, 0.9)',
+    'premium': 'rgba(168, 85, 247, 0.92)',
+    'vip': 'rgba(212, 175, 55, 0.95)'
+  };
+  
+  new Chart(ctxLivelli, {
+    type: 'doughnut',
+    data: {
+      labels: livelli.map(l => l.toUpperCase()),
+      datasets: [{
+        data: counts,
+        backgroundColor: livelli.map(l => colorMap.get(l, 'rgba(148, 163, 184, 0.9)'))
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true
+    }
+  });
+}
+</script>
+{% endblock %}
+

@@ -64,7 +64,7 @@
     subtitle="Informazioni complete, dati operativi e analytics",
     actions=[
       {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
-      {'type': 'link', 'url': url_for('eventi.admin_gestione', evento_id=evento.id_evento) if url_for('eventi.admin_gestione', evento_id=evento.id_evento) else url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento), 'label': '⚡ Gestione Rapida', 'class': 'btn--secondary'}
+      {'type': 'link', 'url': url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento), 'label': '🪑 Gestione Tavoli', 'class': 'btn--secondary'}
     ],
     breadcrumbs=[
       {'label': 'Eventi', 'url': url_for('eventi.admin_list')},

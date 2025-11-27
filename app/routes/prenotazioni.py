@@ -153,6 +153,22 @@ def nuova_tavolo():
             flash("Evento non disponibile per prenotazioni.", "warning")
             return redirect(url_for("eventi.dettaglio_pubblico", evento_id=e.id_evento))
 
+        # Calcola tavoli disponibili
+        tavoli_attivi = db.query(TavoloEvento).filter(
+            TavoloEvento.evento_id == e.id_evento,
+            TavoloEvento.attivo == True
+        ).order_by(TavoloEvento.numero_tavolo.asc()).all()
+
+        prenotazioni_tavolo = db.query(Prenotazione.numero_tavolo).filter(
+            Prenotazione.evento_id == e.id_evento,
+            Prenotazione.stato == "attiva",
+            Prenotazione.numero_tavolo.isnot(None),
+            Prenotazione.stato_approvazione_tavolo.in_(["in_attesa", "approvata", None]),
+            Prenotazione.ruolo_tavolo != "aderente"
+        ).all()
+        tavoli_prenotati_ids = {p[0] for p in prenotazioni_tavolo}
+        tavoli_disponibili = [t for t in tavoli_attivi if t.id_tavolo not in tavoli_prenotati_ids]
+
         if request.method == "POST":
             cli = _get_current_cliente(db)
             if not cli:
@@ -644,13 +660,21 @@ def admin_hub():
         # Ultimi eventi per filtro rapido
         eventi_recenti = db.query(Evento).order_by(Evento.data_evento.desc()).limit(10).all()
         
+        # Conteggio prenotazioni tavolo in attesa
+        prenotazioni_tavolo_attesa_count = db.query(func.count(Prenotazione.id_prenotazione))\
+            .filter(
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato_approvazione_tavolo == "in_attesa"
+            ).scalar() or 0
+        
         return render_template("admin/operativo_hub.html",
                              evento_operativo=evento_operativo,
                              tot_prenotazioni_attive=tot_prenotazioni_attive,
                              tot_prenotazioni_oggi=tot_prenotazioni_oggi,
                              tot_ingressi_oggi=tot_ingressi_oggi,
                              tot_consumi_oggi=float(tot_consumi_oggi),
-                             eventi_recenti=eventi_recenti)
+                             eventi_recenti=eventi_recenti,
+                             prenotazioni_tavolo_attesa_count=prenotazioni_tavolo_attesa_count)
     finally:
         db.close()
 
@@ -702,6 +726,14 @@ def admin_list():
         pages_list = list(range(start_page, end_page + 1))
 
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
+        
+        # Conteggio prenotazioni tavolo in attesa
+        prenotazioni_tavolo_attesa_count = db.query(func.count(Prenotazione.id_prenotazione))\
+            .filter(
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato_approvazione_tavolo == "in_attesa"
+            ).scalar() or 0
+        
         return render_template("admin/prenotazioni_list.html", 
                              rows=rows, 
                              eventi=eventi,
@@ -710,7 +742,8 @@ def admin_list():
                              per_page=per_page,
                              total=total,
                              total_pages=total_pages,
-                             pages_list=pages_list)
+                             pages_list=pages_list,
+                             prenotazioni_tavolo_attesa_count=prenotazioni_tavolo_attesa_count)
     finally:
         db.close()
 
@@ -1048,6 +1081,64 @@ def admin_tavolo_delete(tavolo_id):
         db.close()
 
 
+@prenotazioni_bp.route("/admin/tavoli/evento/<int:evento_id>/bulk-create", methods=["POST"])
+@require_admin
+def admin_tavoli_bulk_create(evento_id):
+    """Crea tavoli da 1 a 20 per un evento"""
+    db = SessionLocal()
+    try:
+        evento = db.query(Evento).get(evento_id)
+        if not evento:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.admin_list"))
+        
+        num_tavoli = request.form.get("num_tavoli", type=int) or 20
+        capienza_default = request.form.get("capienza", type=int) or 4
+        
+        if num_tavoli < 1 or num_tavoli > 100:
+            flash("Il numero di tavoli deve essere tra 1 e 100.", "danger")
+            return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+        
+        tavoli_creati = 0
+        tavoli_esistenti = 0
+        
+        for numero in range(1, num_tavoli + 1):
+            # Verifica se il tavolo esiste già
+            esistente = db.query(TavoloEvento).filter(
+                TavoloEvento.evento_id == evento_id,
+                TavoloEvento.numero_tavolo == numero
+            ).first()
+            
+            if not esistente:
+                tavolo = TavoloEvento(
+                    evento_id=evento_id,
+                    numero_tavolo=numero,
+                    nome_tavolo=None,
+                    capienza=capienza_default,
+                    prezzo_minimo=None,
+                    attivo=True
+                )
+                db.add(tavolo)
+                tavoli_creati += 1
+            else:
+                tavoli_esistenti += 1
+        
+        db.commit()
+        
+        if tavoli_creati > 0:
+            flash(f"Creati {tavoli_creati} tavoli (da 1 a {num_tavoli}). {tavoli_esistenti} tavoli già esistenti sono stati saltati.", "success")
+        else:
+            flash(f"Tutti i tavoli da 1 a {num_tavoli} esistono già per questo evento.", "info")
+        
+        return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+    except Exception as e:
+        db.rollback()
+        flash(f"Errore durante la creazione dei tavoli: {str(e)}", "danger")
+        return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+    finally:
+        db.close()
+
+
 # ============================================
 # ✅ APPROVAZIONE PRENOTAZIONI TAVOLO (Admin)
 # ============================================
@@ -1069,7 +1160,10 @@ def admin_prenotazioni_tavolo_attesa():
             .order_by(Evento.data_evento.asc(), Prenotazione.id_prenotazione.asc())\
             .all()
         
-        return render_template("admin/prenotazioni_tavolo_attesa.html", prenotazioni=prenotazioni)
+        count = len(prenotazioni)
+        return render_template("admin/prenotazioni_tavolo_attesa.html", 
+                             prenotazioni=prenotazioni,
+                             prenotazioni_tavolo_attesa_count=count)
     finally:
         db.close()
 

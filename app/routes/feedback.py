@@ -165,6 +165,14 @@ def admin_list():
 
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
 
+        # Conteggio prenotazioni tavolo in attesa
+        from app.models.prenotazioni import Prenotazione
+        prenotazioni_tavolo_attesa_count = db.query(func.count(Prenotazione.id_prenotazione))\
+            .filter(
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato_approvazione_tavolo == "in_attesa"
+            ).scalar() or 0
+
         return render_template(
             "admin/feedback_list.html",
             rows=rows,
@@ -178,6 +186,7 @@ def admin_list():
             page=page,
             per_page=per_page,
             total=total,
+            prenotazioni_tavolo_attesa_count=prenotazioni_tavolo_attesa_count,
             total_pages=total_pages,
             pages_list=pages_list,
         )

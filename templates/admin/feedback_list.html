@@ -13,7 +13,7 @@
     {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
     {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
     {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
-  ], current_endpoint=request.endpoint) }}
+  ], current_endpoint=request.endpoint, prenotazioni_attesa_count=prenotazioni_tavolo_attesa_count) }}
 
   {{ render_page_header(
     title="Feedback",

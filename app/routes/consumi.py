@@ -558,9 +558,19 @@ def admin_list():
                 .all()
         eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
         staff_list = db.query(Staff).order_by(Staff.nome.asc()).all()
+        
+        # Conteggio prenotazioni tavolo in attesa
+        from app.models.prenotazioni import Prenotazione
+        prenotazioni_tavolo_attesa_count = db.query(func.count(Prenotazione.id_prenotazione))\
+            .filter(
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato_approvazione_tavolo == "in_attesa"
+            ).scalar() or 0
+        
         return render_template("admin/consumi_list.html", rows=rows, eventi=eventi, staff_list=staff_list,
                                filtro={"evento_id": evento_id, "staff_id": staff_id, "punto_vendita": punto,
-                                       "prodotto": qprod, "dal": dal, "al": al})
+                                       "prodotto": qprod, "dal": dal, "al": al},
+                               prenotazioni_tavolo_attesa_count=prenotazioni_tavolo_attesa_count)
     finally:
         db.close()
 

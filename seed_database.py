@@ -21,6 +21,7 @@ from app.models.clienti import Cliente
 from app.models.staff import Staff
 from app.models.eventi import Evento
 from app.models.prenotazioni import Prenotazione
+from app.models.tavoli_evento import TavoloEvento
 INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 
@@ -174,6 +175,43 @@ def seed_staff(db):
     db.commit()
     print(f"✅ Creati {len(staff_members)} membri dello staff")
     return credentials_staff
+
+def seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4):
+    """Crea tavoli da 1 a num_tavoli per un evento specifico"""
+    print(f"🪑 Creazione tavoli per evento_id={evento_id}...")
+    
+    # Verifica che l'evento esista
+    evento = db.query(Evento).get(evento_id)
+    if not evento:
+        print(f"❌ Evento con id {evento_id} non trovato")
+        return []
+    
+    tavoli_creati = []
+    
+    for numero in range(1, num_tavoli + 1):
+        # Verifica se il tavolo esiste già
+        esistente = db.query(TavoloEvento).filter(
+            TavoloEvento.evento_id == evento_id,
+            TavoloEvento.numero_tavolo == numero
+        ).first()
+        
+        if not esistente:
+            tavolo = TavoloEvento(
+                evento_id=evento_id,
+                numero_tavolo=numero,
+                nome_tavolo=None,  # Opzionale
+                capienza=capienza_default,
+                prezzo_minimo=None,  # Opzionale
+                attivo=True
+            )
+            db.add(tavolo)
+            tavoli_creati.append(tavolo)
+        else:
+            print(f"   ⚠️  Tavolo {numero} già esistente per evento {evento_id}")
+    
+    db.commit()
+    print(f"✅ Creati {len(tavoli_creati)} tavoli per evento {evento.nome_evento} (ID: {evento_id})")
+    return tavoli_creati
 
 def seed_eventi(db):
     """Crea eventi ricorrenti per Middle, El Moro, Attico"""
@@ -614,6 +652,10 @@ def main():
         # 3. Crea eventi
         eventi_ids = seed_eventi(db)
         
+        # 3.5. Crea tavoli per tutti gli eventi (da 1 a 20)
+        for evento_id in eventi_ids:
+            seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4)
+        
         # 4. Crea clienti
         clienti_ids, credentials_cliente = seed_clienti(db, num_clienti=100)
         
@@ -653,5 +695,21 @@ def main():
         db.close()
 
 if __name__ == "__main__":
+    import sys
+    # Se viene passato un evento_id come argomento, aggiungi solo i tavoli per quell'evento
+    if len(sys.argv) > 1 and sys.argv[1].isdigit():
+        evento_id = int(sys.argv[1])
+        db = SessionLocal()
+        try:
+            seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4)
+            print(f"\n✅ Tavoli aggiunti per evento_id={evento_id}")
+        except Exception as e:
+            print(f"\n❌ ERRORE: {e}")
+            import traceback
+            traceback.print_exc()
+            db.rollback()
+        finally:
+            db.close()
+    else:
     main()
 

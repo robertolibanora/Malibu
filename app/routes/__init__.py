@@ -11,6 +11,7 @@ from app.routes.log_attivita import log_bp
 from app.routes.promozioni import promozioni_bp
 from app.routes.prodotti import prodotti_bp
 from app.routes.format import format_bp
+from app.routes.stats import stats_bp
 
 # Esportiamo tutti i blueprint in una lista centralizzata
 # Nota: staff_bp e staff_admin_bp sono registrati manualmente in app/__init__.py
@@ -28,4 +29,5 @@ all_blueprints = [
     promozioni_bp,
     prodotti_bp,
     format_bp,
+    stats_bp,
 ]
