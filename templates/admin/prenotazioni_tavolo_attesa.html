@@ -1,0 +1,97 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Prenotazioni Tavolo in Attesa{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+  ], current_endpoint=request.endpoint) }}
+
+  {{ render_page_header(
+    title="Prenotazioni Tavolo in Attesa",
+    subtitle="Gestisci le richieste di prenotazione tavolo che necessitano approvazione",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Operativo', 'url': url_for('prenotazioni.admin_hub')},
+      {'label': 'Tavoli in Attesa'}
+    ]
+  ) }}
+
+  {% if prenotazioni %}
+  <section class="card">
+    <div class="table-responsive">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Evento</th>
+            <th>Tavolo</th>
+            <th>Nome Gruppo</th>
+            <th>Persone</th>
+            <th>Data Richiesta</th>
+            <th class="table__header--actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pren, cliente, evento, tavolo in prenotazioni %}
+          <tr>
+            <td>
+              <strong>{{ cliente.nome }} {{ cliente.cognome }}</strong><br>
+              <small class="text--muted">{{ cliente.telefono }}</small>
+            </td>
+            <td>
+              <strong>{{ evento.nome_evento }}</strong><br>
+              <small class="text--muted">{{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'N/A' }}</small>
+            </td>
+            <td>
+              {% if tavolo %}
+                <strong>Tavolo {{ tavolo.numero_tavolo }}</strong>
+                {% if tavolo.nome_tavolo %}<br><small class="text--muted">{{ tavolo.nome_tavolo }}</small>{% endif %}
+              {% else %}
+                <span class="text--muted">N/A</span>
+              {% endif %}
+            </td>
+            <td>{{ pren.nome_tavolo_gruppo or '-' }}</td>
+            <td>{{ pren.num_persone or '-' }}</td>
+            <td>
+              <small class="text--muted">{{ pren.data_creazione.strftime('%d/%m/%Y %H:%M') if pren.data_creazione else 'N/A' }}</small>
+            </td>
+            <td class="table__cell--actions">
+              <div class="table__actions">
+                <form method="post" action="{{ url_for('prenotazioni.admin_approva_prenotazione_tavolo', pren_id=pren.id_prenotazione) }}" style="display: inline;">
+                  <button type="submit" class="btn btn--primary btn--small" title="Approva">✅ Approva</button>
+                </form>
+                <form method="post" action="{{ url_for('prenotazioni.admin_rifiuta_prenotazione_tavolo', pren_id=pren.id_prenotazione) }}" 
+                      style="display: inline;"
+                      onsubmit="return confirm('Sei sicuro di voler rifiutare questa prenotazione? Il tavolo verrà liberato.');">
+                  <button type="submit" class="btn btn--danger btn--small" title="Rifiuta">❌ Rifiuta</button>
+                </form>
+                <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=pren.id_prenotazione) }}" 
+                   class="btn btn--ghost btn--small" title="Dettaglio">👁️</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% else %}
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">✅</span>
+      <p class="admin-empty-state__message">Nessuna prenotazione tavolo in attesa di approvazione.</p>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+

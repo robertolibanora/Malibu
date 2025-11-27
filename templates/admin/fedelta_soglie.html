@@ -1,32 +1,77 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Soglie Fedeltà{% endblock %}
-{% block admin_content %}
-<!-- Navigazione Secondaria Impostazioni -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
-  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost btn--small">👤 Staff</a>
-  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost btn--small">🍹 Listino</a>
-  <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost btn--small">🎭 Format</a>
-  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--primary btn--small">⭐ Soglie</a>
-  <a href="{{ url_for('log.list') }}" class="btn btn--ghost btn--small">📜 Log</a>
-</div>
 
-<section class="card">
-  <h1 class="card__title">Soglie livelli</h1>
-  {% if not editable %}
-    <p class="text--muted">Tabella <code>soglie_fedelta</code> assente: in uso valori di default.</p>
-  {% endif %}
-  <form class="form" method="post">
-    <div class="grid grid--2">
-      <div class="form__group"><label class="form__label">BASE (min)</label><input class="form__input" type="number" name="base" value="{{ soglie.base }}" {% if not editable %}disabled{% endif %}></div>
-      <div class="form__group"><label class="form__label">LOYAL (min)</label><input class="form__input" type="number" name="loyal" value="{{ soglie.loyal }}" {% if not editable %}disabled{% endif %}></div>
-      <div class="form__group"><label class="form__label">PREMIUM (min)</label><input class="form__input" type="number" name="premium" value="{{ soglie.premium }}" {% if not editable %}disabled{% endif %}></div>
-      <div class="form__group"><label class="form__label">VIP (min)</label><input class="form__input" type="number" name="vip" value="{{ soglie.vip }}" {% if not editable %}disabled{% endif %}></div>
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '🏠'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Listino', 'icon': '🍹'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '🎭'},
+    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': '⭐'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📜'},
+  ], current_endpoint=request.endpoint) }}
+
+  {{ render_page_header(
+    title="Soglie Livelli Fedeltà",
+    subtitle="Configurazione punti minimi per livello · Valori di default se non configurati",
+    actions=[
+      {'type': 'link', 'url': url_for('fedelta.admin_list'), 'label': 'Torna a Fedeltà', 'class': 'btn--ghost'}
+    ],
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Soglie Fedeltà'}
+    ]
+  ) }}
+
+  <section class="card">
+    {% if not editable %}
+    <div class="card__header">
+      <div class="card__content">
+        <p class="text--muted" style="margin: 0;">
+          <strong>Nota:</strong> Tabella <code>soglie_fedelta</code> assente: in uso valori di default.
+        </p>
+      </div>
     </div>
-    <div class="form__actions">
-      {% if editable %}<button class="btn btn--primary">Salva</button>{% endif %}
-      <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_list') }}">Torna</a>
-    </div>
-  </form>
-</section>
+    {% endif %}
+    
+    <form class="form" method="post">
+      <div class="card__content">
+        <div class="grid grid--2">
+          <div class="form__group">
+            <label class="form__label">BASE (min)</label>
+            <input class="form__input" type="number" name="base" value="{{ soglie.base }}" {% if not editable %}disabled{% endif %} min="0" step="1">
+            <small class="form__hint">Punti minimi per livello Base</small>
+          </div>
+          <div class="form__group">
+            <label class="form__label">LOYAL (min)</label>
+            <input class="form__input" type="number" name="loyal" value="{{ soglie.loyal }}" {% if not editable %}disabled{% endif %} min="0" step="1">
+            <small class="form__hint">Punti minimi per livello Loyal</small>
+          </div>
+          <div class="form__group">
+            <label class="form__label">PREMIUM (min)</label>
+            <input class="form__input" type="number" name="premium" value="{{ soglie.premium }}" {% if not editable %}disabled{% endif %} min="0" step="1">
+            <small class="form__hint">Punti minimi per livello Premium</small>
+          </div>
+          <div class="form__group">
+            <label class="form__label">VIP (min)</label>
+            <input class="form__input" type="number" name="vip" value="{{ soglie.vip }}" {% if not editable %}disabled{% endif %} min="0" step="1">
+            <small class="form__hint">Punti minimi per livello VIP</small>
+          </div>
+        </div>
+      </div>
+      <div class="card__footer">
+        <div class="form__actions">
+          {% if editable %}
+          <button class="btn btn--primary" type="submit">Salva Soglie</button>
+          {% endif %}
+          <a class="btn btn--ghost" href="{{ url_for('fedelta.admin_list') }}">Torna a Fedeltà</a>
+        </div>
+      </div>
+    </form>
+  </section>
+</div>
 {% endblock %}

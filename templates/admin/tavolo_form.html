@@ -1,0 +1,90 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ 'Modifica' if tavolo else 'Nuovo' }} Tavolo{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title=(('Modifica' if tavolo else 'Nuovo') ~ " Tavolo"),
+    subtitle=(evento.nome_evento ~ " - " ~ (evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'N/A') if evento else ""),
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
+      {'label': evento.nome_evento if evento else 'Eventi', 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) if evento else url_for('eventi.admin_list')},
+      {'label': 'Tavoli', 'url': url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento) if evento else '#'},
+      {'label': ('Modifica' if tavolo else 'Nuovo')}
+    ]
+  ) }}
+
+  <div class="card">
+    <form class="form" method="post">
+      <input type="hidden" name="evento_id" value="{{ evento.id_evento if evento else '' }}">
+      
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Evento *</label>
+          <select class="form__input" name="evento_id" required {% if evento %}disabled{% endif %}>
+            {% for e in eventi %}
+            <option value="{{ e.id_evento }}" {% if evento and evento.id_evento == e.id_evento %}selected{% endif %}>
+              {{ e.data_evento }} — {{ e.nome_evento }}
+            </option>
+            {% endfor %}
+          </select>
+          {% if evento %}<small class="form__hint">Non modificabile</small>{% endif %}
+        </div>
+
+        <div class="form__group">
+          <label class="form__label">Numero Tavolo *</label>
+          <input class="form__input" type="number" name="numero_tavolo" 
+                 value="{{ tavolo.numero_tavolo if tavolo else '' }}" 
+                 min="1" required>
+          <small class="form__hint">Numero fisico del tavolo nella discoteca</small>
+        </div>
+      </div>
+
+      <div class="form__group">
+        <label class="form__label">Nome Tavolo (opzionale)</label>
+        <input class="form__input" type="text" name="nome_tavolo" 
+               value="{{ tavolo.nome_tavolo if tavolo else '' }}" 
+               placeholder="Es: Tavolo VIP 1, Tavolo Centrale...">
+        <small class="form__hint">Nome descrittivo opzionale</small>
+      </div>
+
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Capienza *</label>
+          <input class="form__input" type="number" name="capienza" 
+                 value="{{ tavolo.capienza if tavolo else 4 }}" 
+                 min="1" required>
+          <small class="form__hint">Numero massimo di persone</small>
+        </div>
+
+        <div class="form__group">
+          <label class="form__label">Prezzo Minimo Consumo (opzionale)</label>
+          <input class="form__input" type="number" name="prezzo_minimo" 
+                 value="{{ tavolo.prezzo_minimo if tavolo and tavolo.prezzo_minimo else '' }}" 
+                 min="0" step="0.01">
+          <small class="form__hint">Prezzo minimo consumo richiesto</small>
+        </div>
+      </div>
+
+      <div class="form__group">
+        <label class="form__label">
+          <input type="checkbox" name="attivo" {% if not tavolo or tavolo.attivo %}checked{% endif %}>
+          Tavolo attivo (disponibile per prenotazioni)
+        </label>
+        <small class="form__hint">I tavoli disattivi non sono visibili nelle prenotazioni</small>
+      </div>
+
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">{{ 'Salva' if tavolo else 'Crea' }}</button>
+        <a class="btn btn--ghost" href="{{ url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento) if evento else url_for('eventi.admin_list') }}">
+          Annulla
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+

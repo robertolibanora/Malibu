@@ -1,0 +1,101 @@
+{% extends "clienti/base.html" %}
+{% block title %}Entra in un Tavolo{% endblock %}
+
+{% block cliente_content %}
+<section class="card">
+  <div style="margin-bottom: 1.5rem;">
+    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:0.5rem;">
+      <span style="font-size:2rem;">🤝</span>
+      <h1 class="card__title" style="margin:0;">Entra in un Tavolo Esistente</h1>
+    </div>
+    <div class="card__meta">{{ e.nome_evento }}</div>
+    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+  </div>
+
+  <div style="padding: 1rem; border-radius: 8px; border: 2px solid rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+      <span style="font-size: 1.5rem;">✅</span>
+      <div>
+        <p style="margin: 0 0 0.5rem; font-size: 0.95rem; line-height: 1.6; font-weight: 600; color: rgba(34,197,94,0.95);">
+          Solo tavoli approvati dallo staff
+        </p>
+        <p style="margin: 0; font-size: 0.9rem; line-height: 1.6; color: rgba(255,255,255,0.85);">
+          Inserisci il <strong>nome del tavolo</strong> o il <strong>codice invito</strong> che hai ricevuto dal referente. 
+          <strong>Puoi aderire solo a tavoli che lo staff ha già approvato</strong> e che hanno ancora capienza disponibile.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <form class="form" method="post" action="{{ url_for('prenotazioni.entra_tavolo') }}">
+    <input type="hidden" name="evento_id" value="{{ e.id_evento }}">
+
+    <div class="form__group">
+      <label class="form__label">
+        Nome tavolo o codice invito <span style="color: var(--gold-primary);">*</span>
+      </label>
+      <input class="form__input" name="identificatore" placeholder="Es: Tavolo Luna / CODICE" required style="font-size:1rem; padding:0.75rem;">
+      <small class="form__hint">
+        Il codice invito è composto da 6 caratteri (lettere e numeri). In alternativa usa il nome del tavolo esattamente come comunicato dal referente.
+      </small>
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit">
+        ✅ Entra nel Tavolo
+      </button>
+      <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Annulla</a>
+    </div>
+  </form>
+</section>
+
+{% if tavoli_aperti %}
+<section class="card" style="margin-top:1.5rem; border-left: 4px solid rgba(34,197,94,0.6);">
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+    <span style="font-size: 1.5rem;">✅</span>
+    <h2 class="card__title" style="margin:0; color: rgba(34,197,94,0.95);">Tavoli Approvati e Disponibili</h2>
+  </div>
+  <p class="text--muted" style="font-size:0.9rem; margin-bottom:1rem; padding-left: 2rem;">
+    Questi sono i <strong>tavoli già approvati dallo staff</strong> e aperti alle adesioni. 
+    Chiedi al referente il nome preciso o il codice invito per unirti.
+  </p>
+  <ul class="timeline timeline--compact">
+    {% for pren in tavoli_aperti %}
+    <li class="timeline__item">
+      <span class="timeline__date" style="color: rgba(34,197,94,0.9); font-weight: 600;">
+        Tavolo {{ pren.tavolo_evento.numero_tavolo if pren.tavolo_evento else '?' }}
+      </span>
+      <div class="timeline__content">
+        <h3 class="timeline__title">{{ pren.nome_tavolo_gruppo or 'Tavolo senza nome' }}</h3>
+        {% if pren.cliente %}
+        <p class="timeline__meta">Referente: {{ pren.cliente.nome }} {{ pren.cliente.cognome }}</p>
+        {% endif %}
+        {% if pren.codice_invito %}
+        <p class="timeline__meta" style="font-family: monospace; color: var(--gold-primary); font-weight: 600;">
+          Codice: {{ pren.codice_invito }}
+        </p>
+        {% endif %}
+        {% if pren.tavolo_evento %}
+        <p class="timeline__meta" style="font-size: 0.85rem;">
+          Capienza: {{ pren.num_persone or pren.tavolo_evento.capienza }} persone
+        </p>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% else %}
+<section class="card" style="margin-top:1.5rem; border-left: 4px solid rgba(245,158,11,0.6); background: rgba(245,158,11,0.05);">
+  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+    <span style="font-size: 1.5rem;">ℹ️</span>
+    <h2 class="card__title" style="margin:0;">Nessun tavolo disponibile al momento</h2>
+  </div>
+  <p class="text--muted" style="font-size:0.9rem; padding-left: 2rem;">
+    Al momento non ci sono tavoli <strong>approvati dallo staff</strong> disponibili per questo evento. 
+    I tavoli in attesa di approvazione non sono visibili qui. Contatta lo staff per maggiori informazioni.
+  </p>
+</section>
+{% endif %}
+{% endblock %}
+

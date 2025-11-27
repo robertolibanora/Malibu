@@ -1,22 +1,42 @@
 {% extends "clienti/base.html" %}
-{% block title %}Prenota Tavolo{% endblock %}
+{% block title %}Prenota un Tavolo{% endblock %}
 
 {% block cliente_content %}
 <section class="card">
   <div style="margin-bottom: 1.5rem;">
     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
       <span style="font-size: 2rem;">🪑</span>
-      <h1 class="card__title" style="margin: 0;">Prenota Tavolo</h1>
+      <h1 class="card__title" style="margin: 0;">Prenota un Tavolo</h1>
     </div>
     <div class="card__meta">{{ e.nome_evento }}</div>
     <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
   </div>
 
-  <div style="padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(212, 175, 55, 0.3);">
-    <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
-      <strong>Prenotazione Tavolo:</strong> Riserva un tavolo specifico per questa serata. 
-      Il numero di persone verrà confermato dall'amministrazione.
-    </p>
+  <div class="grid grid--2" style="gap: 1rem; margin-bottom: 1.5rem;">
+    <article class="card" style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.3);">
+      <h2 class="card__title">Diventa referente del tavolo</h2>
+      <p class="text--muted" style="font-size: 0.95rem;">
+        Seleziona il tavolo dalla piantina, assegna un nome al gruppo e indica il numero di persone previste.
+        Una volta approvata la richiesta riceverai un codice invito da condividere con gli amici.
+      </p>
+      <ul class="text--muted" style="margin: 0 0 0 1rem; font-size: 0.9rem;">
+        <li>Solo tavoli attivi e approvati dall’amministrazione</li>
+        <li>Capienza controllata automaticamente</li>
+        <li>Codice invito generato alla conferma</li>
+      </ul>
+    </article>
+    <article class="card" style="background: rgba(8, 8, 8, 0.6); border: 1px solid rgba(212, 175, 55, 0.2);">
+      <h2 class="card__title" style="color: var(--gold-primary);">📍 Piantina discoteca</h2>
+      <img 
+        src="{{ url_for('static', filename='img/piantina_discoteca.png') }}" 
+        alt="Piantina discoteca" 
+        style="max-width: 100%; height: auto; border-radius: 4px; border: 1px solid rgba(212, 175, 55, 0.2);" 
+        onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+      >
+      <div style="display:none; padding: 2rem; color: rgba(255,255,255,0.6); text-align:center;">
+        Piantina non disponibile
+      </div>
+    </article>
   </div>
 
   <form class="form" method="post" action="{{ url_for('prenotazioni.nuova_tavolo') }}">
@@ -24,31 +44,57 @@
 
     <div class="form__group">
       <label class="form__label">
-        <span style="font-size: 1.2rem; margin-right: 0.5rem;">🪑</span>
-        Nome Tavolo <span style="color: var(--gold-primary);">*</span>
+        Numero Tavolo <span style="color: var(--gold-primary);">*</span>
       </label>
-      <input 
-        class="form__input" 
-        name="note" 
-        id="note" 
-        placeholder="Es: Tavolo VIP lato consolle, Tavolo 5, Tavolo centrale..." 
-        required
-        autofocus
-        style="font-size: 1rem; padding: 0.75rem;"
-      >
-      <small class="form__hint">
-        Indica il nome o la posizione del tavolo che desideri prenotare. 
-        L'amministrazione confermerà la disponibilità e il numero di persone.
-      </small>
+      <select class="form__input" name="numero_tavolo" required style="font-size: 1rem; padding: 0.75rem;">
+        <option value="">— Seleziona un tavolo disponibile —</option>
+        {% for tavolo in tavoli_disponibili %}
+        <option value="{{ tavolo.id_tavolo }}">
+          Tavolo {{ tavolo.numero_tavolo }} {% if tavolo.nome_tavolo %}({{ tavolo.nome_tavolo }}){% endif %} — Capienza {{ tavolo.capienza }}
+        </option>
+        {% endfor %}
+      </select>
+      <small class="form__hint">Sono mostrati solo i tavoli liberi per questo evento.</small>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">
+        Nome del gruppo/tavolo <span style="color: var(--gold-primary);">*</span>
+      </label>
+      <input class="form__input" name="nome_tavolo_gruppo" placeholder="Es: Compleanno Marta, Team aziendale, Tavolo Vip 3" required style="font-size: 1rem; padding: 0.75rem;">
+      <small class="form__hint">Comparirà negli strumenti dello staff e nel codice invito.</small>
+    </div>
+
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Numero persone previste <span style="color: var(--gold-primary);">*</span></label>
+        <input class="form__input" type="number" min="1" name="num_persone" required placeholder="Es: 6" style="font-size: 1rem; padding: 0.75rem;">
+        <small class="form__hint">Non può superare la capienza del tavolo selezionato.</small>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Orario previsto (opzionale)</label>
+        <input class="form__input" type="time" name="orario_previsto" style="font-size: 1rem; padding: 0.75rem;">
+      </div>
+    </div>
+
+    <div class="form__group">
+      <label class="form__label">Note per lo staff (opzionali)</label>
+      <textarea class="form__input" name="note" rows="3" placeholder="Es: Richiesta bottiglia dedicata, esigenze particolari" style="resize: vertical;"></textarea>
     </div>
 
     <div class="form__actions">
       <button class="btn btn--primary" type="submit" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); border: 1px solid rgba(212, 175, 55, 0.4);">
-        🪑 Conferma Prenotazione Tavolo
+        🪑 Invia richiesta tavolo
       </button>
       <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Annulla</a>
     </div>
   </form>
 </section>
+
+{% if not tavoli_disponibili %}
+<section class="card" style="margin-top: 1rem;">
+  <p class="text--muted" style="margin: 0;">Tutti i tavoli risultano prenotati o in approvazione. Riprova più tardi o contatta lo staff.</p>
+</section>
+{% endif %}
 {% endblock %}
 

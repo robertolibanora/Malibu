@@ -1,86 +1,129 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Consumi{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Operativo -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('prenotazioni.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Operativo</a>
-  <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--ghost btn--small">📋 Prenotazioni</a>
-  <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--ghost btn--small">🚪 Ingressi</a>
-  <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary btn--small">💰 Consumi</a>
-  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+  ], current_endpoint=request.endpoint) }}
 
-<section class="card">
-  <h1 class="card__title">Consumi</h1>
-  <form class="form" method="get">
-    <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Evento</label>
-        <select class="form__input" name="evento_id">
-          <option value="">Tutti</option>
-          {% for ev in eventi %}
-          <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
-            {{ ev.data_evento }} — {{ ev.nome_evento }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Staff</label>
-        <select class="form__input" name="staff_id">
-          <option value="">Tutti</option>
-          {% for s in staff_list %}
-          <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Punto vendita</label>
-        <select class="form__input" name="punto_vendita">
-          <option value="">Tutti</option>
-          <option value="bar" {% if filtro.punto_vendita=='bar' %}selected{% endif %}>Bar</option>
-          <option value="tavolo" {% if filtro.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
-          <option value="privè" {% if filtro.punto_vendita=='privè' %}selected{% endif %}>Privè</option>
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Prodotto contiene</label>
-        <input class="form__input" type="text" name="prodotto" value="{{ filtro.prodotto or '' }}" placeholder="Es. Vodka">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Dal</label>
-        <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Al</label>
-        <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
-      </div>
-    </div>
-    <div class="form__actions">
-      <button class="btn btn--primary">Filtra</button>
-      <a class="btn btn--secondary" href="{{ url_for('consumi.admin_new') }}">Nuovo</a>
-    </div>
-  </form>
-</section>
+  {{ render_page_header(
+    title="Consumi",
+    subtitle="Ordini e vendite · Tracciamento consumi e punti fedeltà",
+    actions=[
+      {'type': 'link', 'url': url_for('consumi.admin_new'), 'label': '+ Nuovo Consumo', 'class': 'btn--secondary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Operativo', 'url': url_for('prenotazioni.admin_hub')},
+      {'label': 'Consumi'}
+    ]
+  ) }}
 
-<section class="list">
-  {% for c, cli, ev in rows %}
-  <article class="card list__item">
-    <div class="card__title">{{ ev.data_evento }} — {{ ev.nome_evento }}</div>
-    <div class="card__meta">{{ cli.cognome }} {{ cli.nome }} • {{ c.punto_vendita|capitalize }} • {{ c.data_consumo }}</div>
-    <div>{{ c.prodotto }}</div>
-    <div><strong>€ {{ '%.2f'|format(c.importo) }}</strong></div>
-    {% if c.note %}<div class="text--muted">Note: {{ c.note }}</div>{% endif %}
-    <div class="form__actions">
-      <a class="btn btn--primary" href="{{ url_for('consumi.admin_edit', consumo_id=c.id_consumo) }}">Modifica</a>
-      <form method="post" action="{{ url_for('consumi.admin_delete', consumo_id=c.id_consumo) }}" style="display:inline" onsubmit="return confirm('Eliminare questo consumo?');">
-        <button class="btn btn--danger">Elimina</button>
-      </form>
-    </div>
-  </article>
+  <!-- Filtri -->
+  <section class="card">
+    <form class="form" method="get">
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Evento</label>
+          <select class="form__select" name="evento_id">
+            <option value="">Tutti</option>
+            {% for ev in eventi %}
+            <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
+              {{ ev.data_evento }} — {{ ev.nome_evento }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Staff</label>
+          <select class="form__select" name="staff_id">
+            <option value="">Tutti</option>
+            {% for s in staff_list %}
+            <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Punto vendita</label>
+          <select class="form__select" name="punto_vendita">
+            <option value="">Tutti</option>
+            <option value="bar" {% if filtro.punto_vendita=='bar' %}selected{% endif %}>Bar</option>
+            <option value="tavolo" {% if filtro.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
+            <option value="privè" {% if filtro.punto_vendita=='privè' %}selected{% endif %}>Privè</option>
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Prodotto contiene</label>
+          <input class="form__input" type="text" name="prodotto" value="{{ filtro.prodotto or '' }}" placeholder="Es. Vodka">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Dal</label>
+          <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Al</label>
+          <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
+        </div>
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Filtra</button>
+        {% if filtro.evento_id or filtro.staff_id or filtro.punto_vendita or filtro.prodotto or filtro.dal or filtro.al %}
+        <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista Consumi -->
+  {% if rows %}
+  <section class="list">
+    {% for c, cli, ev in rows %}
+    <article class="card list__item">
+      <div class="list__item-header">
+        <div>
+          <div class="list__item-title-link">
+            <strong>{{ ev.data_evento }} — {{ ev.nome_evento }}</strong>
+          </div>
+          <div class="list__item-meta">
+            {{ cli.cognome }} {{ cli.nome }} • {{ c.punto_vendita|capitalize }} • {{ c.data_consumo.strftime('%d/%m/%Y %H:%M') if c.data_consumo else c.data_consumo }}
+          </div>
+          <div class="list__item-badges">
+            <span class="badge badge--primary">{{ c.prodotto }}</span>
+            <span class="badge badge--success">€ {{ '%.2f'|format(c.importo) }}</span>
+          </div>
+          {% if c.note %}
+          <div class="text--muted" style="margin-top: var(--spacing-2); font-size: var(--font-size-sm);">
+            {{ c.note }}
+          </div>
+          {% endif %}
+        </div>
+        <div class="list__item-actions">
+          <a href="{{ url_for('consumi.admin_edit', consumo_id=c.id_consumo) }}" class="btn btn--primary btn--small">Modifica</a>
+          <form method="post" action="{{ url_for('consumi.admin_delete', consumo_id=c.id_consumo) }}" 
+                style="display:inline" 
+                onsubmit="return confirm('Eliminare questo consumo?');">
+            <button class="btn btn--danger btn--small" type="submit">Elimina</button>
+          </form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
   {% else %}
-    <div class="card"><p class="text--muted">Nessun consumo.</p></div>
-  {% endfor %}
-</section>
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">💰</span>
+      <p class="admin-empty-state__message">Nessun consumo trovato.</p>
+    </div>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}

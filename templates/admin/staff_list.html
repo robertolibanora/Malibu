@@ -1,100 +1,113 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Staff{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Impostazioni -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
-  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--primary btn--small">👤 Staff</a>
-  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost btn--small">🍹 Listino</a>
-  <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost btn--small">🎭 Format</a>
-  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost btn--small">⭐ Soglie</a>
-  <a href="{{ url_for('log.list') }}" class="btn btn--ghost btn--small">📜 Log</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '🏠'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Listino', 'icon': '🍹'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '🎭'},
+    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': '⭐'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📜'},
+  ], current_endpoint=request.endpoint) }}
 
-{% set totale_staff = staff_list|length %}
-{% set staff_attivi = staff_list|selectattr('attivo')|list|length %}
-{% set staff_disattivi = totale_staff - staff_attivi %}
-{% set role_counts = {} %}
-{% for member in staff_list %}
-  {% if member.ruolo in role_counts %}
-    {% set _ = role_counts.update({member.ruolo: role_counts[member.ruolo] + 1}) %}
-  {% else %}
-    {% set _ = role_counts.update({member.ruolo: 1}) %}
-  {% endif %}
-{% endfor %}
+  {% set totale_staff = staff_list|length %}
+  {% set staff_attivi = staff_list|selectattr('attivo')|list|length %}
+  {% set staff_disattivi = totale_staff - staff_attivi %}
+  {% set role_counts = {} %}
+  {% for member in staff_list %}
+    {% if member.ruolo in role_counts %}
+      {% set _ = role_counts.update({member.ruolo: role_counts[member.ruolo] + 1}) %}
+    {% else %}
+      {% set _ = role_counts.update({member.ruolo: 1}) %}
+    {% endif %}
+  {% endfor %}
 
-<div class="staff-hub">
-  <header class="staff-hub__header fade-in">
-    <div class="staff-hub__intro">
-      <h1 class="staff-hub__title">Team Operativo</h1>
-      <p class="staff-hub__subtitle">Gestisci ruoli, abilitazioni e accessi del personale interno.</p>
-  </div>
-    <div class="staff-hub__actions">
-      <form class="staff-hub__filters" method="get">
-        <label class="staff-filter">
-          <span>Ruolo</span>
-          <select class="form__select form__select--dense" name="ruolo" onchange="this.form.submit()">
-            <option value="" {% if not filtro.ruolo %}selected{% endif %}>Tutti</option>
-            {% for code in filter_roles %}
-            <option value="{{ code }}" {% if filtro.ruolo==code %}selected{% endif %}>
-              {{ role_labels.get(code, code|capitalize) }}
-            </option>
-            {% endfor %}
-          </select>
-        </label>
-        <label class="staff-filter">
-          <span>Stato</span>
-          <select class="form__select form__select--dense" name="attivo" onchange="this.form.submit()">
-            <option value="" {% if not filtro.attivo %}selected{% endif %}>Tutti</option>
+  {{ render_page_header(
+    title="Team Operativo",
+    subtitle="Gestisci ruoli, abilitazioni e accessi del personale interno",
+    actions=[
+      {'type': 'link', 'url': url_for('staff_admin.admin_new'), 'label': '+ Nuovo membro staff', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Staff'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Ruolo</label>
+        <select class="form__select" name="ruolo" onchange="this.form.submit()">
+          <option value="" {% if not filtro.ruolo %}selected{% endif %}>Tutti</option>
+          {% for code in filter_roles %}
+          <option value="{{ code }}" {% if filtro.ruolo==code %}selected{% endif %}>
+            {{ role_labels.get(code, code|capitalize) }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Stato</label>
+        <select class="form__select" name="attivo" onchange="this.form.submit()">
+          <option value="" {% if not filtro.attivo %}selected{% endif %}>Tutti</option>
           <option value="true" {% if filtro.attivo=='true' %}selected{% endif %}>Attivi</option>
           <option value="false" {% if filtro.attivo=='false' %}selected{% endif %}>Disattivi</option>
         </select>
-        </label>
-        {% if filtro.ruolo or filtro.attivo %}
-        <a class="btn btn--ghost btn--small" href="{{ url_for('staff_admin.admin_list') }}">Reset</a>
-        {% endif %}
-      </form>
-      <a href="{{ url_for('staff_admin.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo membro staff</a>
-    </div>
-  </header>
+      </div>
+      {% if filtro.ruolo or filtro.attivo %}
+      <div class="form__group" style="margin-bottom: 0;">
+        <a class="btn btn--ghost" href="{{ url_for('staff_admin.admin_list') }}">Reset</a>
+      </div>
+      {% endif %}
+    </form>
+  </section>
 
-  <section class="staff-hub__stats fade-in" style="animation-delay: 120ms;">
-    <article class="profile-metric">
+  <!-- Statistiche -->
+  <div class="grid grid--auto">
+    <div class="profile-metric">
       <span class="profile-metric__label">Totale membri</span>
       <span class="profile-metric__value">{{ totale_staff }}</span>
-    </article>
-    <article class="profile-metric">
+    </div>
+    <div class="profile-metric">
       <span class="profile-metric__label">Attivi</span>
       <span class="profile-metric__value">{{ staff_attivi }}</span>
       <span class="profile-metric__meta">Disponibili in turno</span>
-    </article>
-    <article class="profile-metric">
+    </div>
+    <div class="profile-metric">
       <span class="profile-metric__label">Disattivi</span>
       <span class="profile-metric__value">{{ staff_disattivi }}</span>
       <span class="profile-metric__meta">In pausa o fuori organico</span>
-    </article>
-    <article class="profile-metric">
+    </div>
+    <div class="profile-metric">
       <span class="profile-metric__label">Ruoli coperti</span>
       <span class="profile-metric__value">{{ role_counts|length }}</span>
       <span class="profile-metric__meta">Admin, Ingressista, Barista…</span>
-    </article>
-</section>
+    </div>
+  </div>
 
-  <section class="staff-grid fade-in" style="animation-delay: 180ms;">
+  <!-- Lista Staff -->
+  <section>
     {% if staff_list %}
-  {% for s in staff_list %}
+    <div class="staff-grid">
+      {% for s in staff_list %}
       <article class="staff-card">
         <header class="staff-card__header">
-      <div>
+          <div>
             <h2 class="staff-card__name">{{ s.nome }}</h2>
             <div class="staff-card__tags">
               <span class="badge badge--{{ 'success' if s.attivo else 'secondary' }}">
                 {{ role_labels.get(s.ruolo, s.ruolo|capitalize) }}
               </span>
               {% if not s.attivo %}<span class="badge badge--secondary">Disattivo</span>{% endif %}
-      </div>
-    </div>
+            </div>
+          </div>
           <div class="staff-card__status {{ 'staff-card__status--active' if s.attivo else 'staff-card__status--inactive' }}">
             {{ 'Disponibile' if s.attivo else 'Non attivo' }}
           </div>
@@ -114,18 +127,21 @@
         <footer class="staff-card__footer">
           <div class="staff-card__actions">
             <a href="{{ url_for('staff_admin.admin_edit', staff_id=s.id_staff) }}" class="btn btn--primary btn--small">Modifica</a>
-            <form method="post" action="{{ url_for('staff_admin.admin_delete', staff_id=s.id_staff) }}" onsubmit="return confirm('Eliminare definitivamente questo membro dello staff? L’operazione non è reversibile.');">
+            <form method="post" action="{{ url_for('staff_admin.admin_delete', staff_id=s.id_staff) }}" onsubmit="return confirm('Eliminare definitivamente questo membro dello staff? L\'operazione non è reversibile.');" style="display: inline;">
               <button class="btn btn--danger btn--small" type="submit">Elimina</button>
             </form>
-    </div>
+          </div>
           <small class="staff-card__hint">Aggiorna ruolo e credenziali prima di ogni evento operativo.</small>
         </footer>
-  </article>
+      </article>
       {% endfor %}
-  {% else %}
-      <div class="empty-state">Nessun membro dello staff trovato con i filtri selezionati.</div>
+    </div>
+    {% else %}
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">👤</span>
+      <p class="admin-empty-state__message">Nessun membro dello staff trovato con i filtri selezionati.</p>
+    </div>
     {% endif %}
-</section>
+  </section>
 </div>
 {% endblock %}
-

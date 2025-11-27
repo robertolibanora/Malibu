@@ -1,72 +1,94 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Listino Prodotti{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Impostazioni -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
-  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost btn--small">👤 Staff</a>
-  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--primary btn--small">🍹 Listino</a>
-  <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost btn--small">🎭 Format</a>
-  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost btn--small">⭐ Soglie</a>
-  <a href="{{ url_for('log.list') }}" class="btn btn--ghost btn--small">📜 Log</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '⚙️'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': '🍹'},
+    {'url': url_for('promozioni.admin_list'), 'endpoint': 'promozioni.admin_list', 'label': 'Promozioni', 'icon': '🎁'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '📋'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📊'},
+  ], current_endpoint=request.endpoint) }}
 
-<div class="products-hub">
-  <header class="products-hub__header fade-in">
-    <div class="products-hub__intro">
-      <h1 class="products-hub__title">Listino Prodotti</h1>
-      <p class="products-hub__subtitle">Gestisci disponibilità, prezzi e categorie per lo staff operativo.</p>
-    </div>
-    <div class="products-hub__actions">
-      <form method="get" class="products-hub__filters">
-        <label class="products-hub__filter-field">
-          <span>Categoria</span>
-          <input type="text" name="categoria" value="{{ filtro.categoria }}" placeholder="Es. Drink, Privé" class="form__input">
-        </label>
+  {{ render_page_header(
+    title="Listino Prodotti",
+    subtitle="Gestisci disponibilità, prezzi e categorie per lo staff operativo",
+    actions=[
+      {'type': 'link', 'url': url_for('prodotti.admin_new'), 'label': '+ Nuovo prodotto', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Prodotti'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label">Categoria</label>
+        <input type="text" name="categoria" value="{{ filtro.categoria }}" placeholder="Es. Drink, Privé" class="form__input">
+      </div>
       {% if filtro.categoria %}
-        <a class="btn btn--ghost btn--small" href="{{ url_for('prodotti.admin_list') }}">Reset</a>
+      <div class="form__group" style="margin-bottom: 0;">
+        <a class="btn btn--ghost" href="{{ url_for('prodotti.admin_list') }}">Reset</a>
+      </div>
       {% endif %}
-      </form>
-      <a href="{{ url_for('prodotti.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo prodotto</a>
-    </div>
-  </header>
+      <div class="form__group" style="margin-bottom: 0;">
+        <button type="submit" class="btn btn--secondary">Filtra</button>
+      </div>
+    </form>
+  </section>
 
-  <section class="products-grid fade-in" style="animation-delay: 120ms;">
-{% if prodotti %}
-  {% for p in prodotti %}
-      <article class="product-card">
-        <div class="product-card__header">
+  <!-- Lista Prodotti -->
+  <section>
+    {% if prodotti %}
+    <div class="grid grid--auto">
+      {% for p in prodotti %}
+      <article class="card">
+        <div class="card__header">
           <div>
-            <h2 class="product-card__title">{{ p.nome }}</h2>
-            <div class="product-card__tags">
+            <h2 class="card__title">{{ p.nome }}</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); margin-top: var(--spacing-2);">
               {% if p.categoria %}
-              <span class="badge badge--category">{{ p.categoria }}</span>
+              <span class="badge badge--secondary">{{ p.categoria }}</span>
               {% endif %}
             </div>
+          </div>
+          <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); color: var(--admin-accent);">
+            €{{ "%.2f"|format(p.prezzo) }}
+          </div>
         </div>
-          <div class="product-card__price">€{{ "%.2f"|format(p.prezzo) }}</div>
-        </div>
-
         {% if p.descrizione %}
-        <p class="product-card__description">{{ p.descrizione }}</p>
+        <div class="card__content">
+          <p style="margin: 0; font-size: var(--font-size-sm); color: var(--admin-text);">{{ p.descrizione }}</p>
+        </div>
         {% endif %}
-
-        <footer class="product-card__footer">
-          <div class="product-card__actions">
-        <a href="{{ url_for('prodotti.admin_edit', prodotto_id=p.id_prodotto) }}" class="btn btn--primary btn--small">Modifica</a>
-            <form method="post" action="{{ url_for('prodotti.admin_delete', prodotto_id=p.id_prodotto) }}" onsubmit="return confirm('Eliminare questo prodotto?');">
-              <button class="btn btn--ghost btn--small">Elimina</button>
-        </form>
-      </div>
-          <small class="product-card__hint">Ricordati di aggiornare i prezzi quando pubblichi nuove promozioni.</small>
-        </footer>
-  </article>
-  {% endfor %}
-{% else %}
-      <div class="empty-state">Il listino è vuoto. Aggiungi i primi prodotti per renderli disponibili allo staff.</div>
+        <div class="card__footer">
+          <div style="display: flex; gap: var(--spacing-2);">
+            <a href="{{ url_for('prodotti.admin_edit', prodotto_id=p.id_prodotto) }}" class="btn btn--primary btn--small">Modifica</a>
+            <form method="post" action="{{ url_for('prodotti.admin_delete', prodotto_id=p.id_prodotto) }}" onsubmit="return confirm('Eliminare questo prodotto?');" style="display: inline;">
+              <button class="btn btn--danger btn--small" type="submit">Elimina</button>
+            </form>
+          </div>
+          <small class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-2); display: block;">
+            Ricordati di aggiornare i prezzi quando pubblichi nuove promozioni.
+          </small>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">🍹</span>
+      <p class="admin-empty-state__message">Il listino è vuoto. Aggiungi i primi prodotti per renderli disponibili allo staff.</p>
+    </div>
     {% endif %}
-</section>
+  </section>
 </div>
 {% endblock %}
-

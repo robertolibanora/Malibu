@@ -1,4 +1,4 @@
-{# Page Header Component - Header unificato per pagine admin #}
+{# Page Header Component - Pulito, standardizzato, con pulsanti sempre nella stessa posizione #}
 {% macro render_page_header(title, subtitle=None, actions=None, breadcrumbs=None) %}
   {% if breadcrumbs %}
     {% from "admin/_breadcrumb.html" import render_breadcrumb %}
@@ -32,7 +32,7 @@
 .admin-page-header {
   margin-bottom: var(--spacing-6);
   padding-bottom: var(--spacing-4);
-  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.12);
 }
 
 .admin-page-header__content {
@@ -40,25 +40,25 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--spacing-4);
-  flex-wrap: wrap;
 }
 
 .admin-page-header__text {
   flex: 1;
-  min-width: 200px;
+  min-width: 0;
 }
 
 .admin-page-header__title {
-  font-size: var(--font-size-2xl);
+  font-size: 1.75rem;
   font-weight: var(--font-weight-bold);
   color: var(--admin-text);
   margin: 0 0 var(--spacing-2);
-  line-height: 1.2;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
 }
 
 .admin-page-header__subtitle {
   font-size: var(--font-size-sm);
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.55);
   margin: 0;
   line-height: 1.5;
 }
@@ -66,13 +66,14 @@
 .admin-page-header__actions {
   display: flex;
   gap: var(--spacing-2);
-  flex-wrap: wrap;
-  align-items: center;
+  flex-shrink: 0;
+  align-items: flex-start;
 }
 
 @media (max-width: 768px) {
   .admin-page-header__content {
     flex-direction: column;
+    gap: var(--spacing-3);
   }
   
   .admin-page-header__actions {
@@ -83,6 +84,9 @@
     flex: 1;
     min-width: 0;
   }
+  
+  .admin-page-header__title {
+    font-size: 1.5rem;
+  }
 }
 </style>
-

@@ -23,164 +23,162 @@
     ]
   ) }}
 
-<div class="management">
-  <header class="management__header fade-in" style="display: none;">
-    <div class="management__intro">
-      <h1 class="management__title">Anagrafica Clienti</h1>
-      <p class="management__subtitle">
-        Gestione completa dei profili fidelizzazione · risultati aggiornati su base live
-      </p>
-      {% if stats %}
-      <div class="management__summary">
-        <span class="management__summary-item">
-          Totali
-          <strong>{{ stats.total }}</strong>
-        </span>
-        <span class="management__summary-item">
-          Attivi
-          <strong class="text--gold">{{ stats.attivi }}</strong>
-        </span>
-        <span class="management__summary-item">
-          Disattivati
-          <strong>{{ stats.disattivati }}</strong>
-        </span>
+  <div class="management">
+    <header class="management__header">
+      <div class="management__intro">
+        {% if stats %}
+        <div class="management__summary">
+          <span class="management__summary-item">
+            Totali
+            <strong>{{ stats.total }}</strong>
+          </span>
+          <span class="management__summary-item">
+            Attivi
+            <strong class="text--gold">{{ stats.attivi }}</strong>
+          </span>
+          <span class="management__summary-item">
+            Disattivati
+            <strong>{{ stats.disattivati }}</strong>
+          </span>
+        </div>
+        {% endif %}
       </div>
-      {% endif %}
-    </div>
-    <div class="management__toolbar">
-      <form method="get" class="management__filters">
-        <div class="management__filters-grid">
-          <label class="management__field">
-            <span class="management__field-label">Cerca</span>
-            <input type="text" name="q" value="{{ search }}" placeholder="Nome, cognome o telefono" class="form__input">
-          </label>
-          <label class="management__field">
-            <span class="management__field-label">Stato</span>
-            <select name="stato" class="form__select">
-          <option value="">Tutti</option>
-          <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivi</option>
-          <option value="disattivato" {% if stato=='disattivato' %}selected{% endif %}>Disattivati</option>
-        </select>
-          </label>
-          <label class="management__field">
-            <span class="management__field-label">Livello</span>
-            <select name="livello" class="form__select">
-          <option value="">Tutti</option>
-          <option value="base" {% if livello=='base' %}selected{% endif %}>Base</option>
-          <option value="loyal" {% if livello=='loyal' %}selected{% endif %}>Loyal</option>
-          <option value="premium" {% if livello=='premium' %}selected{% endif %}>Premium</option>
-          <option value="vip" {% if livello=='vip' %}selected{% endif %}>VIP</option>
-        </select>
-          </label>
-      </div>
-        <div class="management__actions">
-          <button type="submit" class="btn btn--secondary">Applica filtri</button>
-      {% if search or stato or livello %}
-      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost">Reset</a>
-      {% endif %}
-    </div>
-  </form>
-      <form method="get" class="management__per-page">
-        <input type="hidden" name="q" value="{{ search }}">
-        <input type="hidden" name="stato" value="{{ stato }}">
-        <input type="hidden" name="livello" value="{{ livello }}">
-        <label for="per-page" class="management__field-label">Per pagina</label>
-        <select id="per-page" name="per_page" class="form__select form__select--dense" onchange="this.form.submit()">
-        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
-      </select>
-      </form>
-    </div>
-  </header>
-
-  <section class="management__list fade-in" style="animation-delay: 120ms;">
-    {% if total > 0 %}
-    {% for c in clienti %}
-      {% set livello = (c.livello or 'base')|lower %}
-      <article class="entity-card entity-card--level-{{ livello }}" id="cliente-{{ c.id_cliente }}">
-        <div class="entity-card__header">
-        <div>
-            <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="entity-card__title">
-              {{ c.nome }} {{ c.cognome }}
-            </a>
-            <div class="entity-card__tags">
-              <span class="badge badge--level badge--level-{{ livello }}">{{ c.livello|capitalize or 'N/D' }}</span>
+      <div class="management__toolbar">
+        <form method="get" class="management__filters">
+          <div class="management__filters-grid">
+            <div class="management__field">
+              <label class="management__field-label">Cerca</label>
+              <input type="text" name="q" value="{{ search }}" placeholder="Nome, cognome o telefono" class="form__input">
+            </div>
+            <div class="management__field">
+              <label class="management__field-label">Stato</label>
+              <select name="stato" class="form__select">
+                <option value="">Tutti</option>
+                <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivi</option>
+                <option value="disattivato" {% if stato=='disattivato' %}selected{% endif %}>Disattivati</option>
+              </select>
+            </div>
+            <div class="management__field">
+              <label class="management__field-label">Livello</label>
+              <select name="livello" class="form__select">
+                <option value="">Tutti</option>
+                <option value="base" {% if livello=='base' %}selected{% endif %}>Base</option>
+                <option value="loyal" {% if livello=='loyal' %}selected{% endif %}>Loyal</option>
+                <option value="premium" {% if livello=='premium' %}selected{% endif %}>Premium</option>
+                <option value="vip" {% if livello=='vip' %}selected{% endif %}>VIP</option>
+              </select>
             </div>
           </div>
-          <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="btn btn--primary btn--small">Dettagli</a>
-        </div>
-        <dl class="entity-card__grid">
-          <div>
-            <dt>Telefono</dt>
-            <dd>{{ c.telefono or '—' }}</dd>
+          <div class="management__actions">
+            <button type="submit" class="btn btn--secondary">Applica filtri</button>
+            {% if search or stato or livello %}
+            <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost">Reset</a>
+            {% endif %}
           </div>
-          <div>
-            <dt>Punti fedeltà</dt>
-            <dd>{{ c.punti_fedelta or 0 }}</dd>
-          </div>
-          <div>
-            <dt>Registrato</dt>
-            <dd>{{ c.data_registrazione.strftime('%d/%m/%Y') if c.data_registrazione else '—' }}</dd>
-          </div>
-          <div>
-            <dt>Stato account</dt>
-            <dd>{{ c.stato_account|capitalize }}</dd>
-          </div>
-          <div>
-            {% set last_ingresso = ultimo_ingressi.get(c.id_cliente) %}
-            <dt>Ultimo ingresso</dt>
-            <dd>
-              {% if last_ingresso %}
-                {{ last_ingresso.strftime('%d/%m/%Y %H:%M') }}
-              {% else %}
-                Mai registrato
-              {% endif %}
-            </dd>
-          </div>
-        </dl>
-        <div class="entity-card__footer">
-          <span>ID cliente • {{ c.id_cliente }}</span>
-          <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ c.id_cliente }}" class="entity-card__anchor">Copy anchor</a>
+        </form>
+        <form method="get" class="management__per-page">
+          <input type="hidden" name="q" value="{{ search }}">
+          <input type="hidden" name="stato" value="{{ stato }}">
+          <input type="hidden" name="livello" value="{{ livello }}">
+          <label for="per-page" class="management__field-label">Per pagina</label>
+          <select id="per-page" name="per_page" class="form__select form__select--dense" onchange="this.form.submit()">
+            <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+            <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+          </select>
+        </form>
       </div>
-    </article>
-      {% endfor %}
-    {% else %}
-    <div class="empty-state">
-      Nessun cliente corrisponde ai criteri selezionati. Prova ad ampliare i filtri o verificare la query.
-    </div>
-    {% endif %}
-  </section>
+    </header>
 
-  {% if total_pages > 1 %}
-  <nav class="management__pagination fade-in" style="animation-delay: 200ms;">
-    <div class="pagination__info">
-      Mostrando {{ ((page - 1) * per_page) + 1 }} – {{ (page * per_page if page * per_page < total else total) }} di {{ total }} clienti
-    </div>
-    <div class="pagination__controls">
-      {% if page > 1 %}
-      <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=1, per_page=per_page, q=search, stato=stato, livello=livello) }}">« Prima</a>
-      <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=page-1, per_page=per_page, q=search, stato=stato, livello=livello) }}">‹ Indietro</a>
-      {% endif %}
-      
-      <span class="pagination__pages">
-      {% for p in pages_list %}
-      {% if p == page %}
-          <span class="pagination__page pagination__page--active">{{ p }}</span>
+    <section class="management__list">
+      {% if total > 0 %}
+      {% for c in clienti %}
+        {% set livello = (c.livello or 'base')|lower %}
+        <article class="entity-card entity-card--level-{{ livello }}" id="cliente-{{ c.id_cliente }}">
+          <div class="entity-card__header">
+            <div>
+              <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="entity-card__title">
+                {{ c.nome }} {{ c.cognome }}
+              </a>
+              <div class="entity-card__tags">
+                <span class="badge badge--level badge--level-{{ livello }}">{{ c.livello|capitalize or 'N/D' }}</span>
+              </div>
+            </div>
+            <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=c.id_cliente) }}" class="btn btn--primary btn--small">Dettagli</a>
+          </div>
+          <dl class="entity-card__grid">
+            <div>
+              <dt>Telefono</dt>
+              <dd>{{ c.telefono or '—' }}</dd>
+            </div>
+            <div>
+              <dt>Punti fedeltà</dt>
+              <dd>{{ c.punti_fedelta or 0 }}</dd>
+            </div>
+            <div>
+              <dt>Registrato</dt>
+              <dd>{{ c.data_registrazione.strftime('%d/%m/%Y') if c.data_registrazione else '—' }}</dd>
+            </div>
+            <div>
+              <dt>Stato account</dt>
+              <dd>{{ c.stato_account|capitalize }}</dd>
+            </div>
+            <div>
+              {% set last_ingresso = ultimo_ingressi.get(c.id_cliente) %}
+              <dt>Ultimo ingresso</dt>
+              <dd>
+                {% if last_ingresso %}
+                  {{ last_ingresso.strftime('%d/%m/%Y %H:%M') }}
+                {% else %}
+                  Mai registrato
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+          <div class="entity-card__footer">
+            <span>ID cliente • {{ c.id_cliente }}</span>
+            <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ c.id_cliente }}" class="entity-card__anchor">Copy anchor</a>
+          </div>
+        </article>
+      {% endfor %}
       {% else %}
-          <a class="pagination__page" href="{{ url_for('clienti.admin_lista_clienti', page=p, per_page=per_page, q=search, stato=stato, livello=livello) }}">{{ p }}</a>
+      <div class="admin-empty-state">
+        <span class="admin-empty-state__icon">👥</span>
+        <p class="admin-empty-state__message">Nessun cliente corrisponde ai criteri selezionati. Prova ad ampliare i filtri o verificare la query.</p>
+      </div>
       {% endif %}
-      {% endfor %}
-      </span>
+    </section>
 
-      {% if page < total_pages %}
-      <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=page+1, per_page=per_page, q=search, stato=stato, livello=livello) }}">Avanti ›</a>
-      <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=total_pages, per_page=per_page, q=search, stato=stato, livello=livello) }}">Ultima »</a>
-      {% endif %}
-    </div>
-    <small class="pagination__meta">Pagina {{ page }} di {{ total_pages }}</small>
-  </nav>
+    {% if total_pages > 1 %}
+    <nav class="management__pagination">
+      <div class="pagination__info">
+        Mostrando {{ ((page - 1) * per_page) + 1 }} – {{ (page * per_page if page * per_page < total else total) }} di {{ total }} clienti
+      </div>
+      <div class="pagination__controls">
+        {% if page > 1 %}
+        <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=1, per_page=per_page, q=search, stato=stato, livello=livello) }}">« Prima</a>
+        <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=page-1, per_page=per_page, q=search, stato=stato, livello=livello) }}">‹ Indietro</a>
+        {% endif %}
+        
+        <span class="pagination__pages">
+        {% for p in pages_list %}
+        {% if p == page %}
+            <span class="pagination__page pagination__page--active">{{ p }}</span>
+        {% else %}
+            <a class="pagination__page" href="{{ url_for('clienti.admin_lista_clienti', page=p, per_page=per_page, q=search, stato=stato, livello=livello) }}">{{ p }}</a>
+        {% endif %}
+        {% endfor %}
+        </span>
+
+        {% if page < total_pages %}
+        <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=page+1, per_page=per_page, q=search, stato=stato, livello=livello) }}">Avanti ›</a>
+        <a class="btn btn--ghost btn--small" href="{{ url_for('clienti.admin_lista_clienti', page=total_pages, per_page=per_page, q=search, stato=stato, livello=livello) }}">Ultima »</a>
+        {% endif %}
+      </div>
+      <small class="pagination__meta">Pagina {{ page }} di {{ total_pages }}</small>
+    </nav>
     {% endif %}
   </div>
+</div>
 {% endblock %}

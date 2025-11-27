@@ -1,58 +1,144 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Analytics Fedeltà{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Clienti -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">👥 Anagrafica</a>
-  <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">⭐ Punti Fedeltà</a>
-  <a href="{{ url_for('fedelta.admin_movimenti') }}" class="btn btn--ghost btn--small">📊 Movimenti</a>
-  <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--primary btn--small">📈 Analytics</a>
-  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+    {'url': url_for('fedelta.admin_movimenti'), 'endpoint': 'fedelta.admin_movimenti', 'label': 'Movimenti', 'icon': '📊'},
+    {'url': url_for('fedelta.admin_analytics'), 'endpoint': 'fedelta.admin_analytics', 'label': 'Analytics', 'icon': '📈'},
+  ], current_endpoint=request.endpoint) }}
+
+  {{ render_page_header(
+    title="Analytics Fedeltà",
+    subtitle="Statistiche e analisi del programma fedeltà · Distribuzione livelli e performance",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
+      {'label': 'Analytics'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card">
+    <form class="form" method="get">
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Dal</label>
+          <input class="form__input" type="date" name="dal" value="{{ dal or '' }}">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Al</label>
+          <input class="form__input" type="date" name="al" value="{{ al or '' }}">
+        </div>
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Applica</button>
+        {% if dal or al %}
+        <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--ghost">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <!-- Top Clienti -->
+  {% if top %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Top clienti per punti</h2>
+      <p class="card__subtitle">Classifica dei clienti con più punti fedeltà</p>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="table table--compact">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Cliente</th>
+              <th>Punti</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for c, pts in top %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>
+                <strong>{{ c.cognome }} {{ c.nome }}</strong>
+                {% if c.telefono %}
+                <br><small class="text--muted">{{ c.telefono }}</small>
+                {% endif %}
+              </td>
+              <td><strong class="text--gold">{{ pts }} pt</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Distribuzione Livelli -->
+  {% if dist %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Distribuzione livelli</h2>
+      <p class="card__subtitle">Ripartizione clienti per livello fedeltà</p>
+    </div>
+    <div class="card__content">
+      <div class="grid grid--auto">
+        {% for lvl, count in dist.items() %}
+        <div class="stat-card">
+          <div class="stat-card__value">{{ count }}</div>
+          <div class="stat-card__label">{{ lvl|upper }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Punti Medi per Evento -->
+  {% if per_evento %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Punti medi per evento</h2>
+      <p class="card__subtitle">Media punti assegnati per evento nel periodo selezionato</p>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="table table--compact">
+          <thead>
+            <tr>
+              <th>Evento</th>
+              <th>Punti medi</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for ev_id, avgp in per_evento.items() %}
+            <tr>
+              <td>Evento #{{ ev_id }}</td>
+              <td><strong class="text--gold">{{ '%.2f'|format(avgp) }} pt</strong></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if not top and not dist and not per_evento %}
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">📈</span>
+      <p class="admin-empty-state__message">Nessun dato disponibile per il periodo selezionato.</p>
+    </div>
+  </section>
+  {% endif %}
 </div>
-
-<section class="card">
-  <h1 class="card__title">Analytics Fedeltà</h1>
-  <form class="form" method="get">
-    <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Dal</label>
-        <input class="form__input" type="date" name="dal" value="{{ dal or '' }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Al</label>
-        <input class="form__input" type="date" name="al" value="{{ al or '' }}">
-      </div>
-    </div>
-    <div class="form__actions">
-      <button class="btn btn--primary">Applica</button>
-    </div>
-  </form>
-</section>
-
-<section class="card">
-  <h2 class="card__title">Top clienti</h2>
-  <ul class="list">
-    {% for c, pts in top %}
-    <li class="list__item">{{ c.cognome }} {{ c.nome }} — <strong>{{ pts }} pt</strong></li>
-    {% endfor %}
-  </ul>
-</section>
-
-<section class="card">
-  <h2 class="card__title">Distribuzione livelli</h2>
-  <ul class="list">
-    {% for lvl, count in dist.items() %}
-    <li class="list__item">{{ lvl|upper }} — <strong>{{ count }}</strong></li>
-    {% endfor %}
-  </ul>
-</section>
-
-<section class="card">
-  <h2 class="card__title">Punti medi per evento</h2>
-  <ul class="list">
-    {% for ev_id, avgp in per_evento.items() %}
-    <li class="list__item">Evento — <strong>{{ '%.2f'|format(avgp) }}</strong> pt</li>
-    {% endfor %}
-  </ul>
-</section>
 {% endblock %}

@@ -53,6 +53,27 @@
               <span><strong>Tavolo:</strong> {{ p.note }}</span>
             </p>
           {% endif %}
+          {% if p.ruolo_tavolo == 'referente' %}
+            {% set stats = tavolo_stats.get(p.id_prenotazione) %}
+            {% if stats %}
+            <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+              <span>🔐</span>
+              <span>Codice invito: <strong>{{ stats.codice }}</strong></span>
+            </p>
+            <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+              <span>👤</span>
+              <span>Occupazione: {{ stats.occupati }}/{{ stats.max_posti }}</span>
+            </p>
+            {% endif %}
+          {% elif p.ruolo_tavolo == 'aderente' %}
+            {% set parent = adesioni_info.get(p.id_prenotazione) %}
+            {% if parent and parent.cliente %}
+            <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+              <span>🤝</span>
+              <span>Parte del tavolo <strong>{{ parent.nome_tavolo_gruppo or 'senza nome' }}</strong> (referente {{ parent.cliente.nome }} {{ parent.cliente.cognome }})</span>
+            </p>
+            {% endif %}
+          {% endif %}
         {% elif p.note %}
           <p class="event-card__promo">Note: {{ p.note }}</p>
         {% endif %}
@@ -114,6 +135,23 @@
               <span>🪑</span>
               <span><strong>Tavolo:</strong> {{ pren.note }}</span>
             </p>
+          {% endif %}
+          {% if pren.ruolo_tavolo == 'referente' %}
+            {% set stats = tavolo_stats.get(pren.id_prenotazione) %}
+            {% if stats %}
+              <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+                <span>🔐</span>
+                <span>Codice invito: <strong>{{ stats.codice }}</strong></span>
+              </p>
+            {% endif %}
+          {% elif pren.ruolo_tavolo == 'aderente' %}
+            {% set parent = adesioni_info.get(pren.id_prenotazione) %}
+            {% if parent %}
+              <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+                <span>🤝</span>
+                <span>Parte del tavolo {{ parent.nome_tavolo_gruppo or 'senza nome' }}</span>
+              </p>
+            {% endif %}
           {% endif %}
         {% elif pren.note %}
           <p class="event-card__promo">Note: {{ pren.note }}</p>
@@ -199,6 +237,15 @@
               <span>🪑</span>
               <span><strong>Tavolo:</strong> {{ p.note }}</span>
             </p>
+          {% endif %}
+          {% if p.ruolo_tavolo == 'aderente' %}
+            {% set parent = adesioni_info.get(p.id_prenotazione) %}
+            {% if parent %}
+            <p class="event-card__promo" style="display:flex; align-items:center; gap:0.5rem;">
+              <span>🤝</span>
+              <span>Parte del tavolo {{ parent.nome_tavolo_gruppo or 'senza nome' }}</span>
+            </p>
+            {% endif %}
           {% endif %}
         {% elif p.note %}
           <p class="event-card__promo">Note: {{ p.note }}</p>

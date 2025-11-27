@@ -1,187 +1,231 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Fedeltà Clienti{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Clienti -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">👥 Anagrafica</a>
-  <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--primary btn--small">⭐ Punti Fedeltà</a>
-  <a href="{{ url_for('fedelta.admin_movimenti') }}" class="btn btn--ghost btn--small">📊 Movimenti</a>
-  <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--ghost btn--small">📈 Analytics</a>
-  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+    {'url': url_for('fedelta.admin_movimenti'), 'endpoint': 'fedelta.admin_movimenti', 'label': 'Movimenti', 'icon': '📊'},
+    {'url': url_for('fedelta.admin_analytics'), 'endpoint': 'fedelta.admin_analytics', 'label': 'Analytics', 'icon': '📈'},
+  ], current_endpoint=request.endpoint) }}
 
-<div class="loyalty-hub">
-  <header class="loyalty-hub__header fade-in">
-    <div class="loyalty-hub__intro">
-      <h1 class="loyalty-hub__title">Programma Fedeltà</h1>
-      <p class="loyalty-hub__subtitle">Monitora punti, soglie di livello e le attività più recenti dei clienti fidelizzati.</p>
-    </div>
-    <div class="loyalty-hub__actions">
-      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Movimenti completi</a>
-      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_analytics') }}">Analytics fedeltà</a>
-      <a class="btn btn--primary" href="{{ url_for('fedelta.admin_movimenti') }}">Gestisci movimenti</a>
-    </div>
-  </header>
+  {{ render_page_header(
+    title="Programma Fedeltà",
+    subtitle="Monitora punti, soglie di livello e le attività più recenti dei clienti fidelizzati",
+    actions=[
+      {'type': 'link', 'url': url_for('fedelta.admin_movimenti'), 'label': 'Gestisci movimenti', 'class': 'btn--primary'},
+      {'type': 'link', 'url': url_for('fedelta.admin_analytics'), 'label': 'Analytics fedeltà', 'class': 'btn--ghost'}
+    ],
+    breadcrumbs=[
+      {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
+      {'label': 'Punti Fedeltà'}
+    ]
+  ) }}
 
-  <section class="loyalty-hub__stats fade-in" style="animation-delay: 80ms;">
-    <article class="profile-metric">
+  <!-- Statistiche -->
+  <div class="grid grid--auto">
+    <div class="profile-metric">
       <span class="profile-metric__label">Clienti nel programma</span>
       <span class="profile-metric__value">{{ stats.totale_clienti }}</span>
       <span class="profile-metric__meta">Clienti con profilo fedeltà attivo</span>
-  </article>
-    <article class="profile-metric">
+    </div>
+    <div class="profile-metric">
       <span class="profile-metric__label">Punti complessivi</span>
       <span class="profile-metric__value">{{ stats.punti_totali }}</span>
       <span class="profile-metric__meta">Somma dei punti attualmente assegnati</span>
-  </article>
-    <article class="profile-metric">
+    </div>
+    <div class="profile-metric">
       <span class="profile-metric__label">Media punti per cliente</span>
       <span class="profile-metric__value">{{ stats.punti_medi }}</span>
       <span class="profile-metric__meta">Valore medio arrotondato</span>
-  </article>
-</section>
-
-  <section class="loyalty-grid fade-in" style="animation-delay: 140ms;">
-    <article class="loyalty-card loyalty-card--wide">
-      <div class="loyalty-card__header">
-        <h2 class="loyalty-card__title">Top clienti per punti</h2>
-        <span class="loyalty-card__meta">Prime {{ top_clienti|length }} posizioni</span>
-  </div>
-      {% if top_clienti %}
-      <div class="table-responsive loyalty-table">
-        <table class="table table--compact">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Cliente</th>
-          <th>Contatto</th>
-          <th>Punti</th>
-          <th>Livello</th>
-          <th>Prossimo livello</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for item in top_clienti %}
-        <tr>
-          <td>{{ loop.index }}</td>
-              <td>
-                <strong>{{ item.cliente.cognome }} {{ item.cliente.nome }}</strong>
-              </td>
-          <td>
-            {% if item.cliente.telefono %}
-              <a href="tel:{{ item.cliente.telefono }}">{{ item.cliente.telefono }}</a>
-            {% else %}
-              <span class="text--muted">n/d</span>
-            {% endif %}
-          </td>
-          <td><strong>{{ item.points }}</strong></td>
-          <td>{{ item.level|capitalize }}</td>
-          <td>
-            {% if item.next_level %}
-              {{ item.next_level|capitalize }} tra {{ item.points_to_next }} pt
-            {% else %}
-              <span class="text--muted">Livello massimo</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-      {% else %}
-      <div class="empty-state">Non ci sono ancora clienti con punti da mostrare.</div>
-      {% endif %}
-    </article>
-
-    <article class="loyalty-card">
-      <div class="loyalty-card__header">
-        <h2 class="loyalty-card__title">Soglie di livello</h2>
-      {% if not can_edit_thresholds %}
-      <span class="badge badge--warning">Sola lettura</span>
-      {% endif %}
     </div>
-    {% if can_edit_thresholds %}
-      <form class="profile-form" method="post">
-        <div class="loyalty-thresholds">
-          <label>
-            <span>Base</span>
-            <input class="form__input" type="number" min="0" value="{{ thresholds.base }}" readonly>
-          </label>
-          <label>
-            <span>Loyal</span>
-          <input class="form__input" type="number" name="loyal" min="0" value="{{ thresholds.loyal }}" required>
-          </label>
-          <label>
-            <span>Premium</span>
-          <input class="form__input" type="number" name="premium" min="0" value="{{ thresholds.premium }}" required>
-          </label>
-          <label>
-            <span>VIP</span>
-            <input class="form__input" type="number" name="vip" min="0" value="{{ thresholds.vip }}" required>
-          </label>
+  </div>
+
+  <!-- Top Clienti e Soglie -->
+  <div class="grid grid--auto">
+    <!-- Top Clienti -->
+    <section class="card" style="grid-column: span 2;">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">Top clienti per punti</h2>
+          <p class="card__meta">Prime {{ top_clienti|length }} posizioni</p>
         </div>
-        <div class="profile-form__actions">
-          <button class="btn btn--primary btn--small" type="submit">Aggiorna soglie</button>
-          <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_list') }}">Annulla</a>
       </div>
-    </form>
-    {% else %}
-      <ul class="loyalty-list">
-      {% for lvl, pts in thresholds_sorted %}
-      <li><strong>{{ lvl|capitalize }}</strong>: {{ pts }} pt</li>
-      {% endfor %}
-    </ul>
-      <small class="profile-form__hint">Attiva la tabella <code>soglie_fedelta</code> per rendere le soglie modificabili.</small>
-    {% endif %}
-  </article>
-
-    <article class="loyalty-card">
-      <div class="loyalty-card__header">
-        <h2 class="loyalty-card__title">Distribuzione livelli</h2>
-        <span class="loyalty-card__meta">Aggiornata automaticamente</span>
-    </div>
-      {% if distribuzione %}
-      <ul class="loyalty-list">
-      {% for lvl, count in distribuzione %}
-      <li><strong>{{ lvl|capitalize }}</strong>: {{ count }} clienti</li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <div class="empty-state">Nessun dato disponibile per i livelli.</div>
-      {% endif %}
-    </article>
-  </section>
-
-  <section class="loyalty-card loyalty-card--timeline fade-in" style="animation-delay: 200ms;">
-    <div class="loyalty-card__header">
-      <h2 class="loyalty-card__title">Ultimi movimenti registrati</h2>
-      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Vai all’elenco →</a>
-    </div>
-    {% if recent_movimenti %}
-    <ul class="timeline-list">
-      {% for mov in recent_movimenti %}
-      {% set movimento = mov.movimento %}
-      {% set cliente = mov.cliente %}
-      {% set evento = mov.evento %}
-      <li class="timeline-item">
-        <div class="timeline-item__header">
-          <strong>{{ cliente.cognome }} {{ cliente.nome }}</strong>
-          <span class="badge">{{ movimento.punti }} pt</span>
+      <div class="card__content">
+        {% if top_clienti %}
+        <div class="table-responsive">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th class="admin-table__header">#</th>
+                <th class="admin-table__header">Cliente</th>
+                <th class="admin-table__header">Contatto</th>
+                <th class="admin-table__header" style="text-align: right;">Punti</th>
+                <th class="admin-table__header">Livello</th>
+                <th class="admin-table__header">Prossimo livello</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in top_clienti %}
+              <tr class="admin-table__row">
+                <td class="admin-table__cell">{{ loop.index }}</td>
+                <td class="admin-table__cell">
+                  <strong>{{ item.cliente.cognome }} {{ item.cliente.nome }}</strong>
+                </td>
+                <td class="admin-table__cell">
+                  {% if item.cliente.telefono %}
+                    <a href="tel:{{ item.cliente.telefono }}">{{ item.cliente.telefono }}</a>
+                  {% else %}
+                    <span class="text--muted">n/d</span>
+                  {% endif %}
+                </td>
+                <td class="admin-table__cell" style="text-align: right; font-weight: var(--font-weight-semibold);">{{ item.points }}</td>
+                <td class="admin-table__cell">
+                  <span class="badge badge--level badge--level-{{ item.level|lower }}">{{ item.level|capitalize }}</span>
+                </td>
+                <td class="admin-table__cell">
+                  {% if item.next_level %}
+                    {{ item.next_level|capitalize }} tra {{ item.points_to_next }} pt
+                  {% else %}
+                    <span class="text--muted">Livello massimo</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-        <div class="timeline-item__meta">
-          {{ movimento.data_assegnazione.strftime('%d/%m/%Y %H:%M') if movimento.data_assegnazione else 'Data n/d' }}
-          {% if evento %}• {{ evento.nome_evento }}{% endif %}
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">⭐</span>
+          <p class="admin-empty-state__message">Non ci sono ancora clienti con punti da mostrare.</p>
         </div>
-        {% if movimento.motivo %}
-        <p class="timeline-item__note">{{ movimento.motivo }}</p>
         {% endif %}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <div class="empty-state">Ancora nessun movimento registrato di recente.</div>
-    {% endif %}
-  </section>
+      </div>
+    </section>
+
+    <!-- Soglie di livello -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">Soglie di livello</h2>
+          {% if not can_edit_thresholds %}
+          <span class="badge badge--warning">Sola lettura</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card__content">
+        {% if can_edit_thresholds %}
+        <form method="post" class="form">
+          <div class="grid grid--auto">
+            <div class="form__group">
+              <label class="form__label">Base</label>
+              <input class="form__input" type="number" min="0" value="{{ thresholds.base }}" readonly>
+            </div>
+            <div class="form__group">
+              <label class="form__label">Loyal</label>
+              <input class="form__input" type="number" name="loyal" min="0" value="{{ thresholds.loyal }}" required>
+            </div>
+            <div class="form__group">
+              <label class="form__label">Premium</label>
+              <input class="form__input" type="number" name="premium" min="0" value="{{ thresholds.premium }}" required>
+            </div>
+            <div class="form__group">
+              <label class="form__label">VIP</label>
+              <input class="form__input" type="number" name="vip" min="0" value="{{ thresholds.vip }}" required>
+            </div>
+          </div>
+          <div class="form__actions">
+            <button class="btn btn--primary btn--small" type="submit">Aggiorna soglie</button>
+            <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_list') }}">Annulla</a>
+          </div>
+        </form>
+        {% else %}
+        <ul class="info-list">
+          {% for lvl, pts in thresholds_sorted %}
+          <li class="info-item">
+            <span class="info-label">{{ lvl|capitalize }}</span>
+            <span class="info-value">{{ pts }} pt</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <p class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-3);">
+          Attiva la tabella <code>soglie_fedelta</code> per rendere le soglie modificabili.
+        </p>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Distribuzione livelli -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">Distribuzione livelli</h2>
+          <p class="card__meta">Aggiornata automaticamente</p>
+        </div>
+      </div>
+      <div class="card__content">
+        {% if distribuzione %}
+        <ul class="info-list">
+          {% for lvl, count in distribuzione %}
+          <li class="info-item">
+            <span class="info-label">{{ lvl|capitalize }}</span>
+            <span class="info-value">{{ count }} clienti</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">📊</span>
+          <p class="admin-empty-state__message">Nessun dato disponibile per i livelli.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
   </div>
+
+  <!-- Ultimi movimenti -->
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">Ultimi movimenti registrati</h2>
+        <p class="card__meta">Attività recenti del programma fedeltà</p>
+      </div>
+      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Vai all'elenco →</a>
+    </div>
+    <div class="card__content">
+      {% if recent_movimenti %}
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+        {% for mov in recent_movimenti %}
+        {% set movimento = mov.movimento %}
+        {% set cliente = mov.cliente %}
+        {% set evento = mov.evento %}
+        <div style="padding: var(--spacing-3); background: rgba(255,255,255,0.05); border-radius: var(--radius-md); border-left: 3px solid var(--admin-accent);">
+          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
+            <strong style="font-size: var(--font-size-sm);">{{ cliente.cognome }} {{ cliente.nome }}</strong>
+            <span class="badge badge--primary">{{ movimento.punti }} pt</span>
+          </div>
+          <div class="text--muted" style="font-size: var(--font-size-xs);">
+            {{ movimento.data_assegnazione.strftime('%d/%m/%Y %H:%M') if movimento.data_assegnazione else 'Data n/d' }}
+            {% if evento %} • {{ evento.nome_evento }}{% endif %}
+          </div>
+          {% if movimento.motivo %}
+          <p style="margin: var(--spacing-2) 0 0; font-size: var(--font-size-sm); color: var(--admin-text);">{{ movimento.motivo }}</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="admin-empty-state">
+        <span class="admin-empty-state__icon">📊</span>
+        <p class="admin-empty-state__message">Ancora nessun movimento registrato di recente.</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
 {% endblock %}

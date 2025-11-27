@@ -1,86 +1,104 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Ingressi{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Operativo -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('prenotazioni.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Operativo</a>
-  <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--ghost btn--small">📋 Prenotazioni</a>
-  <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary btn--small">🚪 Ingressi</a>
-  <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost btn--small">💰 Consumi</a>
-  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+  ], current_endpoint=request.endpoint) }}
 
-<section class="card">
-  <h1 class="card__title">Ingressi</h1>
-  <form class="form" method="get">
-    <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Evento</label>
-        <select class="form__input" name="evento_id">
-          <option value="">Tutti</option>
-          {% for ev in eventi %}
-          <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
-            {{ ev.data_evento }} — {{ ev.nome_evento }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Tipo</label>
-        <select class="form__input" name="tipo_ingresso">
-          <option value="">Tutti</option>
-          <option value="lista" {% if filtro.tipo=='lista' %}selected{% endif %}>Lista</option>
-          <option value="tavolo" {% if filtro.tipo=='tavolo' %}selected{% endif %}>Tavolo</option>
-          <option value="omaggio" {% if filtro.tipo=='omaggio' %}selected{% endif %}>Omaggio</option>
-          <option value="prevendita" {% if filtro.tipo=='prevendita' %}selected{% endif %}>Prevendita</option>
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Staff</label>
-        <select class="form__input" name="staff_id">
-          <option value="">Tutti</option>
-          {% for s in staff_list %}
-          <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="form__group">
-        <label class="form__label">Dal</label>
-        <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
-      </div>
-      <div class="form__group">
-        <label class="form__label">Al</label>
-        <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
-      </div>
-    </div>
-    <div class="form__actions">
-      <button class="btn btn--primary">Filtra</button>
-      {% if filtro.evento_id or filtro.tipo or filtro.staff_id or filtro.dal or filtro.al %}
-      <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--ghost">Reset</a>
-      {% endif %}
-      <a class="btn btn--secondary" href="{{ url_for('ingressi.admin_new') }}">Nuovo</a>
-    </div>
-  </form>
-</section>
+  {{ render_page_header(
+    title="Ingressi",
+    subtitle="Check-in e registro accessi · Gestione ingressi in tempo reale",
+    actions=[
+      {'type': 'link', 'url': url_for('ingressi.admin_new'), 'label': '+ Nuovo Ingresso', 'class': 'btn--secondary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Operativo', 'url': url_for('prenotazioni.admin_hub')},
+      {'label': 'Ingressi'}
+    ]
+  ) }}
 
-<!-- Info paginazione -->
-{% if total > 0 %}
-<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} ingressi</strong>
+  <!-- Filtri -->
+  <section class="card">
+    <form class="form" method="get">
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Evento</label>
+          <select class="form__select" name="evento_id">
+            <option value="">Tutti</option>
+            {% for ev in eventi %}
+            <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
+              {{ ev.data_evento }} — {{ ev.nome_evento }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Tipo</label>
+          <select class="form__select" name="tipo_ingresso">
+            <option value="">Tutti</option>
+            <option value="lista" {% if filtro.tipo=='lista' %}selected{% endif %}>Lista</option>
+            <option value="tavolo" {% if filtro.tipo=='tavolo' %}selected{% endif %}>Tavolo</option>
+            <option value="omaggio" {% if filtro.tipo=='omaggio' %}selected{% endif %}>Omaggio</option>
+            <option value="prevendita" {% if filtro.tipo=='prevendita' %}selected{% endif %}>Prevendita</option>
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Staff</label>
+          <select class="form__select" name="staff_id">
+            <option value="">Tutti</option>
+            {% for s in staff_list %}
+            <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Dal</label>
+          <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Al</label>
+          <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
+        </div>
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Filtra</button>
+        {% if filtro.evento_id or filtro.tipo or filtro.staff_id or filtro.dal or filtro.al %}
+        <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--ghost">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <!-- Info paginazione -->
+  {% if total > 0 %}
+  <section class="card">
+    <div class="card__content">
+      <div class="management">
+        <div class="management__info">
+          <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} ingressi</strong>
+        </div>
+        <div class="management__actions">
+          <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
+          <select class="form__select" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
+            <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+            <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+          </select>
+        </div>
+      </div>
     </div>
-    <div style="display: flex; gap: 0.75rem; align-items: center;">
-      <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
-      <select class="form__input" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
-        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
-      </select>
-    </div>
-  </div>
+  </section>
   <script>
     function updatePerPage(value) {
       const url = new URL(window.location.href);
@@ -89,96 +107,105 @@
       window.location.href = url.toString();
     }
   </script>
-</section>
-{% endif %}
+  {% endif %}
 
-<section class="list">
-  {% for i, c, e in rows %}
-  <article class="card list__item">
-    <div class="list__item-header">
-      <div>
-        <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" style="text-decoration: none; display: block;">
-          <strong style="font-size: 1.125rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 600;">
-            {{ c.nome }} {{ c.cognome }}
-          </strong>
-        </a>
-        <div style="margin-top: 0.25rem; color: var(--text-muted); font-size: 0.875rem;">
-          {{ e.data_evento }} — {{ e.nome_evento }}
+  <!-- Lista Ingressi -->
+  {% if rows %}
+  <section class="list">
+    {% for i, c, e in rows %}
+    <article class="card list__item">
+      <div class="list__item-header">
+        <div>
+          <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="list__item-title-link">
+            <strong>{{ c.nome }} {{ c.cognome }}</strong>
+          </a>
+          <div class="list__item-meta">
+            {{ e.data_evento }} — {{ e.nome_evento }}
+          </div>
+          <div class="list__item-badges">
+            <span class="badge badge--{{ 'success' if i.tipo_ingresso == 'lista' else 'primary' if i.tipo_ingresso == 'tavolo' else 'warning' if i.tipo_ingresso == 'omaggio' else 'secondary' }}">
+              {{ i.tipo_ingresso|capitalize }}
+            </span>
+            {% if i.prenotazione_id %}
+            <span class="badge badge--success">Via prenotazione</span>
+            {% endif %}
+            {% if i.note and 'Capienza superata' in i.note %}
+            <span class="badge badge--danger">Overbooking autorizzato</span>
+            {% endif %}
+          </div>
         </div>
-        <div style="margin-top:0.5rem; display:flex; flex-wrap:wrap; gap:0.5rem;">
-          <span class="badge badge--muted">{{ i.tipo_ingresso|capitalize }}</span>
-          {% if i.prenotazione_id %}
-          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
-            Via prenotazione
-          </span>
-          {% endif %}
-          {% if i.note and 'Capienza superata' in i.note %}
-          <span class="badge badge--danger">Overbooking autorizzato</span>
-          {% endif %}
+        <div class="list__item-actions">
+          <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="btn btn--primary btn--small">Dettagli</a>
+          <small class="text--muted">{{ i.orario_ingresso.strftime('%d/%m/%Y %H:%M') if i.orario_ingresso else '—' }}</small>
         </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end;">
-        <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=i.id_ingresso) }}" class="btn btn--primary btn--small">Dettagli</a>
-        <small class="text--muted">{{ i.orario_ingresso.strftime('%d/%m/%Y %H:%M') if i.orario_ingresso else '—' }}</small>
+      <div class="card__meta">
+        <span><strong>Registrato da:</strong> {{ i.staff.nome if i.staff else '—' }}</span>
+        {% if i.note %}
+        <span class="text--muted">{{ i.note }}</span>
+        {% endif %}
       </div>
-    </div>
-    <div class="card__meta" style="margin-top:0.75rem; display:flex; flex-direction:column; gap:0.35rem;">
-      <span><strong>Registrato da:</strong> {{ i.staff.nome if i.staff else '—' }}</span>
-      {% if i.note %}
-      <span class="text--muted">{{ i.note }}</span>
-      {% endif %}
-    </div>
-  </article>
+    </article>
+    {% endfor %}
+  </section>
   {% else %}
-    <div class="card"><p class="text--muted">Nessun ingresso.</p></div>
-  {% endfor %}
-</section>
-
-<!-- Paginazione -->
-{% if total_pages > 1 %}
-<section class="card" style="padding: 1.5rem; margin-top: 2rem;">
-  <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-    {% if page > 1 %}
-    <a href="{{ url_for('ingressi.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">« Prima</a>
-    <a href="{{ url_for('ingressi.admin_list', page=page-1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
-    {% endif %}
-    
-    <div style="display: flex; gap: 0.25rem; align-items: center; margin: 0 1rem;">
-      {% set start_page = pages_list[0] if pages_list else 1 %}
-      {% set end_page = pages_list[-1] if pages_list else total_pages %}
-      
-      {% if start_page > 1 %}
-      <a href="{{ url_for('ingressi.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">1</a>
-      {% if start_page > 2 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      {% endif %}
-      
-      {% for p in pages_list %}
-      {% if p == page %}
-      <span class="btn btn--primary btn--small" style="pointer-events: none;">{{ p }}</span>
-      {% else %}
-      <a href="{{ url_for('ingressi.admin_list', page=p, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">{{ p }}</a>
-      {% endif %}
-      {% endfor %}
-      
-      {% if end_page < total_pages %}
-      {% if end_page < total_pages - 1 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      <a href="{{ url_for('ingressi.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">{{ total_pages }}</a>
-      {% endif %}
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">🚪</span>
+      <p class="admin-empty-state__message">Nessun ingresso trovato.</p>
     </div>
-    
-    {% if page < total_pages %}
-    <a href="{{ url_for('ingressi.admin_list', page=page+1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Successiva ›</a>
-    <a href="{{ url_for('ingressi.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Ultima »</a>
-    {% endif %}
-  </div>
-  
-  <div style="text-align: center; margin-top: 1rem;">
-    <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
-  </div>
-</section>
-{% endif %}
+  </section>
+  {% endif %}
+
+  <!-- Paginazione -->
+  {% if total_pages > 1 %}
+  <section class="card">
+    <div class="card__content">
+      <nav class="management__pagination">
+        <div class="pagination__controls">
+          {% if page > 1 %}
+          <a href="{{ url_for('ingressi.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">« Prima</a>
+          <a href="{{ url_for('ingressi.admin_list', page=page-1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
+          {% endif %}
+          
+          <span class="pagination__pages">
+            {% set start_page = pages_list[0] if pages_list else 1 %}
+            {% set end_page = pages_list[-1] if pages_list else total_pages %}
+            
+            {% if start_page > 1 %}
+            <a href="{{ url_for('ingressi.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="pagination__page">1</a>
+            {% if start_page > 2 %}
+            <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
+            {% endif %}
+            {% endif %}
+            
+            {% for p in pages_list %}
+            {% if p == page %}
+            <span class="pagination__page pagination__page--active">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('ingressi.admin_list', page=p, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="pagination__page">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+            
+            {% if end_page < total_pages %}
+            {% if end_page < total_pages - 1 %}
+            <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
+            {% endif %}
+            <a href="{{ url_for('ingressi.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="pagination__page">{{ total_pages }}</a>
+            {% endif %}
+          </span>
+          
+          {% if page < total_pages %}
+          <a href="{{ url_for('ingressi.admin_list', page=page+1, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Successiva ›</a>
+          <a href="{{ url_for('ingressi.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo_ingresso=filtro.tipo, staff_id=filtro.staff_id, dal=filtro.dal, al=filtro.al) }}" class="btn btn--ghost btn--small">Ultima »</a>
+          {% endif %}
+        </div>
+        <div style="text-align: center; margin-top: var(--spacing-3);">
+          <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
+        </div>
+      </nav>
+    </div>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}

@@ -1,0 +1,139 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Gestione {{ evento.nome_evento }}{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_evento_header.html" import render_evento_header %}
+{% from "admin/_evento_kpi.html" import render_evento_kpi %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title="Gestione Evento",
+    subtitle="Navigazione rapida alle sezioni operative",
+    actions=[
+      {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
+      {'type': 'link', 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento), 'label': '📊 Dettaglio Completo', 'class': 'btn--secondary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
+      {'label': evento.nome_evento, 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento)},
+      {'label': 'Gestione'}
+    ]
+  ) }}
+
+  <!-- Header Evento Unificato -->
+  {{ render_evento_header(evento) }}
+
+  <!-- KPI Card -->
+  {{ render_evento_kpi(
+    tot_prenotazioni=tot_prenotazioni|default(0),
+    tot_ingressi=tot_ingressi|default(0),
+    tot_consumi=tot_consumi|default(0),
+    tot_feedback=tot_feedback|default(0),
+    avg_feedback=((avg_musica|default(0) + avg_ingresso|default(0) + avg_ambiente|default(0) + avg_servizio|default(0)) / 4) if (tot_feedback|default(0)) > 0 else None,
+    capienza_max=evento.capienza_max,
+    scontrino_medio=scontrino_medio|default(0)
+  ) }}
+
+  <!-- Navigazione Rapida -->
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Navigazione Rapida</h2>
+      <p class="card__subtitle">Accesso diretto alle sezioni operative</p>
+    </div>
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-prenotazioni" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">📋</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Prenotazioni</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Gestione liste e tavoli</span>
+        </a>
+
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-ingressi" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">🚪</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Ingressi</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Check-in e registro accessi</span>
+        </a>
+
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-consumi" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">💰</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Consumi</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Ordini e vendite</span>
+        </a>
+
+        <a href="{{ url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento) }}" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">🪑</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Tavoli</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Configurazione tavoli evento</span>
+        </a>
+
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-feedback" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">💬</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Feedback</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Valutazioni clienti</span>
+        </a>
+
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-analytics" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
+          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">📈</div>
+          <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Analytics</strong>
+          <span class="text--muted" style="font-size: var(--font-size-xs);">Statistiche e grafici</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Riepilogo Tavoli -->
+  {% if tavoli %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Tavoli Evento</h2>
+      <a href="{{ url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Gestisci →</a>
+    </div>
+    <div class="card__content">
+      <div class="table-responsive">
+        <table class="table table--compact">
+          <thead>
+            <tr>
+              <th>Numero</th>
+              <th>Nome</th>
+              <th>Capienza</th>
+              <th>Prezzo Minimo</th>
+              <th>Stato</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for tavolo in tavoli %}
+            <tr>
+              <td><strong>{{ tavolo.numero_tavolo }}</strong></td>
+              <td>{{ tavolo.nome_tavolo or '—' }}</td>
+              <td>{{ tavolo.capienza }} persone</td>
+              <td>{% if tavolo.prezzo_minimo %}€{{ tavolo.prezzo_minimo }}{% else %}—{% endif %}</td>
+              <td>
+                <span class="badge badge--{{ 'success' if tavolo.attivo else 'secondary' }}">
+                  {{ 'Attivo' if tavolo.attivo else 'Disattivo' }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+  {% else %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Tavoli Evento</h2>
+      <a href="{{ url_for('prenotazioni.admin_tavolo_new', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">+ Crea Tavolo</a>
+    </div>
+    <div class="card__content">
+      <div class="admin-empty-state">
+        <span class="admin-empty-state__icon">🪑</span>
+        <p class="admin-empty-state__message">Nessun tavolo configurato per questo evento.</p>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
+

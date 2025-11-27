@@ -1,84 +1,71 @@
-{# Breadcrumb Component per navigazione admin #}
+{# Breadcrumb Component - Singolo, leggero, coerente #}
 {% macro render_breadcrumb(items) %}
+{% if items and items|length > 0 %}
 <nav class="admin-breadcrumb" aria-label="Breadcrumb">
   <ol class="admin-breadcrumb__list">
-    <li class="admin-breadcrumb__item">
-      <a href="{{ url_for('dashboard.admin_dashboard') }}" class="admin-breadcrumb__link">
-        <span class="admin-breadcrumb__icon">🏠</span>
-        <span>Dashboard</span>
-      </a>
-    </li>
     {% for item in items %}
     <li class="admin-breadcrumb__item {% if loop.last %}admin-breadcrumb__item--current{% endif %}">
-      <span class="admin-breadcrumb__separator">›</span>
       {% if item.url and not loop.last %}
         <a href="{{ item.url }}" class="admin-breadcrumb__link">{{ item.label }}</a>
       {% else %}
         <span class="admin-breadcrumb__current">{{ item.label }}</span>
       {% endif %}
+      {% if not loop.last %}
+        <span class="admin-breadcrumb__separator">/</span>
+      {% endif %}
     </li>
     {% endfor %}
   </ol>
 </nav>
+{% endif %}
 {% endmacro %}
 
 <style>
 .admin-breadcrumb {
-  margin-bottom: var(--spacing-6);
-  padding: var(--spacing-2) 0;
+  margin-bottom: var(--spacing-5);
 }
 
 .admin-breadcrumb__list {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
   list-style: none;
   margin: 0;
   padding: 0;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.5);
 }
 
 .admin-breadcrumb__item {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
 
 .admin-breadcrumb__separator {
-  color: rgba(255, 255, 255, 0.3);
-  font-weight: normal;
+  color: rgba(255, 255, 255, 0.25);
   margin: 0 var(--spacing-1);
+  font-weight: normal;
 }
 
 .admin-breadcrumb__link {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-sm);
-  transition: all var(--transition-fast);
+  transition: color 0.15s ease;
 }
 
 .admin-breadcrumb__link:hover {
   color: var(--admin-accent);
-  background-color: rgba(212, 175, 55, 0.1);
-}
-
-.admin-breadcrumb__icon {
-  font-size: var(--font-size-base);
 }
 
 .admin-breadcrumb__current {
-  color: var(--admin-accent);
+  color: rgba(255, 255, 255, 0.8);
   font-weight: var(--font-weight-medium);
-  padding: var(--spacing-1) var(--spacing-2);
 }
 
 .admin-breadcrumb__item--current .admin-breadcrumb__link {
-  color: var(--admin-accent);
+  color: rgba(255, 255, 255, 0.8);
   pointer-events: none;
 }
 </style>

@@ -2,82 +2,43 @@
 {% block admin_title %}{{ evento.nome_evento }}{% endblock %}
 
 {% from "admin/_page_header.html" import render_page_header %}
-{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+{% from "admin/_evento_header.html" import render_evento_header %}
+{% from "admin/_evento_kpi.html" import render_evento_kpi %}
 
 {% block extra_head %}
   {{ super() }}
   <style>
-    .tabs {
-      display: flex;
-      gap: 0.5rem;
-      border-bottom: 2px solid rgba(212, 175, 55, 0.2);
-      margin-bottom: 2rem;
-      overflow-x: auto;
-      flex-wrap: wrap;
-    }
-    .tabs__item {
-      padding: 0.75rem 1.5rem;
-      background: transparent;
-      border: none;
-      border-bottom: 3px solid transparent;
-      color: rgba(255,255,255,0.7);
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      white-space: nowrap;
-    }
-    .tabs__item:hover {
-      color: var(--gold-primary);
-      background: rgba(212, 175, 55, 0.05);
-    }
-    .tabs__item.active {
-      color: var(--gold-primary);
-      border-bottom-color: var(--gold-primary);
-      background: rgba(212, 175, 55, 0.08);
-    }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-      animation: fadeIn 0.3s ease-in;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
     .chart-card {
-      border-radius: 16px;
-      padding: 1.5rem;
-      background: rgba(17, 24, 39, 0.6);
-      border: 1px solid rgba(255,255,255,0.08);
-      backdrop-filter: blur(12px);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-5);
+      background: rgba(12, 12, 12, 0.6);
+      border: 1px solid rgba(212, 175, 55, 0.1);
+      backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      min-height: 300px;
+      gap: var(--spacing-4);
+      min-height: 280px;
     }
     .chart-card__title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin: 0 0 0.5rem;
-      color: var(--gold-primary);
+      font-size: var(--font-size-base);
+      font-weight: var(--font-weight-semibold);
+      margin: 0 0 var(--spacing-2);
+      color: var(--admin-text);
     }
     .chart-card canvas {
-      max-height: 300px;
+      max-height: 280px;
     }
     .chart-card__empty {
       display: none;
-      margin: 2rem 0;
-      color: rgba(255,255,255,0.5);
-      font-size: 0.9rem;
+      margin: var(--spacing-8) 0;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: var(--font-size-sm);
       text-align: center;
     }
     .evento-analytics-grid {
       display: grid;
-      gap: 1.5rem;
-      margin-top: 1.5rem;
+      gap: var(--spacing-5);
+      margin-top: var(--spacing-5);
     }
     @media (min-width: 1024px) {
       .evento-analytics-grid {
@@ -93,498 +54,520 @@
         grid-column: span 12;
       }
     }
-    .stat-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 2rem;
-    }
   </style>
 {% endblock %}
 
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_page_header(
-    title=evento.nome_evento,
-    subtitle="Data: " ~ (evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'N/A') ~ (" · " ~ evento.dj_artista if evento.dj_artista else ""),
+    title="Dettaglio Evento",
+    subtitle="Informazioni complete, dati operativi e analytics",
     actions=[
       {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
-      {'type': 'link', 'url': url_for('eventi.admin_edit', evento_id=evento.id_evento), 'label': '✏️ Modifica', 'class': 'btn--secondary'}
+      {'type': 'link', 'url': url_for('eventi.admin_gestione', evento_id=evento.id_evento) if url_for('eventi.admin_gestione', evento_id=evento.id_evento) else url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento), 'label': '⚡ Gestione Rapida', 'class': 'btn--secondary'}
     ],
     breadcrumbs=[
       {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
       {'label': evento.nome_evento}
     ]
   ) }}
-  
-  <div class="evento-detail">
-    <!-- Badge e info principali -->
-    <section class="card" style="margin-bottom:1.5rem;">
-      <div class="cliente-header">
-        <div class="cliente-header__main">
-          <div class="cliente-header__meta">
-            <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">
-              {{ evento.stato_pubblico|capitalize }}
-            </span>
-            <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
-            {% if evento.template %}
-            <span class="badge">Format: {{ evento.template.nome }}</span>
-            {% endif %}
-            {% if evento.is_staff_operativo %}
-            <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
-              🟢 Evento operativo staff
-            </span>
-            {% endif %}
-          </div>
-        </div>
-        <div class="cliente-header__actions">
-          {% if not evento.is_staff_operativo %}
-          <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display:inline;">
-            <button class="btn btn--primary btn--small" type="submit" name="evento_id" value="{{ evento.id_evento }}">🟢 Attiva Staff</button>
-          </form>
-          {% endif %}
-        </div>
-      </div>
-    <div style="margin-top: 1rem; padding: 1rem; background: rgba(212,175,55,0.06); border-radius: 12px;">
-      <p style="margin:0; font-size:0.95rem;">
-        <strong>Nota:</strong> chiudendo l'evento tutte le prenotazioni ancora attive saranno marcate come <em>no-show</em> e verranno scalati 5 punti fedeltà.
-      </p>
-    </div>
-  </section>
 
-  <!-- Statistiche rapide -->
-  <div class="dashboard__stats">
-    <div class="stat-card">
-      <div class="stat-card__value">{{ tot_prenotazioni }}</div>
-      <div class="stat-card__label">Prenotazioni</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card__value">{{ tot_ingressi }}</div>
-      <div class="stat-card__label">Ingressi</div>
-      <div class="stat-card__meta">Capienza: {{ evento.capienza_max }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card__value">€{{ "%.2f"|format(tot_consumi) }}</div>
-      <div class="stat-card__label">Totale Consumi</div>
-      <div class="stat-card__meta">Media: €{{ "%.2f"|format(scontrino_medio) }}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-card__value">{{ tot_punti_fedelta }}</div>
-      <div class="stat-card__label">Punti Assegnati</div>
-    </div>
-      <div class="stat-card">
-      <div class="stat-card__value">{{ tot_feedback }}</div>
-      <div class="stat-card__label">Feedback</div>
-      {% if tot_feedback > 0 %}
-      <div class="stat-card__meta">M: {{ avg_musica }} • I: {{ avg_ingresso }} • A: {{ avg_ambiente }} • S: {{ avg_servizio }}</div>
-      {% endif %}
-    </div>
-  </div>
+  <!-- Header Evento Unificato -->
+  {{ render_evento_header(evento) }}
+
+  <!-- KPI Card -->
+  {{ render_evento_kpi(
+    tot_prenotazioni=tot_prenotazioni,
+    tot_ingressi=tot_ingressi,
+    tot_consumi=tot_consumi,
+    tot_feedback=tot_feedback,
+    avg_feedback=(avg_musica + avg_ingresso + avg_ambiente + avg_servizio) / 4 if tot_feedback > 0 else None,
+    capienza_max=evento.capienza_max,
+    scontrino_medio=scontrino_medio
+  ) }}
 
   <!-- Navigazione Tab -->
   <div class="tabs" id="eventoTabs">
-    <button class="tabs__item active" onclick="showTab('overview')">📊 Overview</button>
-    <button class="tabs__item" onclick="showTab('prenotazioni')">📋 Prenotazioni</button>
-    <button class="tabs__item" onclick="showTab('ingressi')">🚪 Ingressi</button>
-    <button class="tabs__item" onclick="showTab('consumi')">💰 Consumi</button>
-    <button class="tabs__item" onclick="showTab('analytics')">📈 Analytics</button>
-    <button class="tabs__item" onclick="showTab('feedback')">💬 Feedback</button>
+    <button class="tabs__item active" onclick="showTab('informazioni', event)">📋 Informazioni</button>
+    <button class="tabs__item" onclick="showTab('prenotazioni', event)">📋 Prenotazioni</button>
+    <button class="tabs__item" onclick="showTab('ingressi', event)">🚪 Ingressi</button>
+    <button class="tabs__item" onclick="showTab('consumi', event)">💰 Consumi</button>
+    <button class="tabs__item" onclick="showTab('feedback', event)">💬 Feedback</button>
+    <button class="tabs__item" onclick="showTab('analytics', event)">📈 Analytics</button>
   </div>
 
-  <!-- Tab Content: Overview -->
-  <div id="tab-overview" class="tab-content active">
-  <!-- Informazioni evento e gestione -->
-  <div class="grid grid--2">
-    <section class="card">
-      <h2 class="card__title">Informazioni Evento</h2>
-      <div class="info-list">
-        <div class="info-item">
-          <span class="info-label">Data:</span>
-          <span class="info-value">{{ evento.data_evento }}</span>
+  <!-- Tab: Informazioni -->
+  <div id="tab-informazioni" class="tab-content active">
+    <div class="grid grid--2">
+      <section class="card">
+        <div class="card__header">
+          <h2 class="card__title">Informazioni Evento</h2>
         </div>
-        {% if evento.dj_artista %}
-        <div class="info-item">
-          <span class="info-label">DJ/Artista:</span>
-          <span class="info-value">{{ evento.dj_artista }}</span>
+        <div class="card__content">
+          <dl class="info-list">
+            <div class="info-list__item">
+              <dt class="info-list__label">Data</dt>
+              <dd class="info-list__value">{{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}</dd>
+            </div>
+            {% if evento.dj_artista %}
+            <div class="info-list__item">
+              <dt class="info-list__label">DJ/Artista</dt>
+              <dd class="info-list__value">{{ evento.dj_artista }}</dd>
+            </div>
+            {% endif %}
+            {% if evento.tipo_musica %}
+            <div class="info-list__item">
+              <dt class="info-list__label">Tipo musica</dt>
+              <dd class="info-list__value">{{ evento.tipo_musica }}</dd>
+            </div>
+            {% endif %}
+            <div class="info-list__item">
+              <dt class="info-list__label">Categoria</dt>
+              <dd class="info-list__value">{{ evento.categoria|capitalize }}</dd>
+            </div>
+            <div class="info-list__item">
+              <dt class="info-list__label">Capienza max</dt>
+              <dd class="info-list__value">{{ evento.capienza_max }}</dd>
+            </div>
+            {% if evento.promozione %}
+            <div class="info-list__item">
+              <dt class="info-list__label">Promozione</dt>
+              <dd class="info-list__value">{{ evento.promozione }}</dd>
+            </div>
+            {% endif %}
+            {% if evento.template %}
+            <div class="info-list__item">
+              <dt class="info-list__label">Format</dt>
+              <dd class="info-list__value">{{ evento.template.nome }}</dd>
+            </div>
+            {% endif %}
+            {% if evento.cover_url %}
+            <div class="info-list__item" style="flex-direction: column; align-items: flex-start;">
+              <dt class="info-list__label" style="margin-bottom: var(--spacing-2);">Immagine Copertina</dt>
+              <dd class="info-list__value" style="width: 100%;">
+                <img src="{{ url_for('static', filename='uploads/eventi/' + evento.cover_url) }}" alt="Cover {{ evento.nome_evento }}" style="max-width: 100%; max-height: 300px; border-radius: var(--radius-md); border: 1px solid rgba(212, 175, 55, 0.2);">
+              </dd>
+            </div>
+            {% endif %}
+          </dl>
         </div>
-        {% endif %}
-        {% if evento.tipo_musica %}
-        <div class="info-item">
-          <span class="info-label">Tipo musica:</span>
-          <span class="info-value">{{ evento.tipo_musica }}</span>
-        </div>
-        {% endif %}
-        <div class="info-item">
-          <span class="info-label">Categoria:</span>
-          <span class="info-value">{{ evento.categoria|capitalize }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">Capienza max:</span>
-          <span class="info-value">{{ evento.capienza_max }}</span>
-        </div>
-        {% if evento.promozione %}
-        <div class="info-item">
-          <span class="info-label">Promozione:</span>
-          <span class="info-value">{{ evento.promozione }}</span>
-        </div>
-        {% endif %}
-        {% if evento.cover_url %}
-        <div class="info-item" style="flex-direction: column; align-items: flex-start;">
-          <span class="info-label" style="margin-bottom: 0.5rem;">Immagine Copertina:</span>
-          <img src="{{ url_for('static', filename='uploads/eventi/' + evento.cover_url) }}" alt="Cover {{ evento.nome_evento }}" style="max-width: 100%; max-height: 300px; border-radius: 8px; border: 1px solid rgba(212, 175, 55, 0.2);">
-        </div>
-        {% endif %}
-      </div>
-    </section>
+      </section>
 
-    <section class="card">
-      <h2 class="card__title">Gestione Evento</h2>
-      <div class="form__actions" style="margin-bottom: 1.5rem;">
-        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary">Modifica Evento</a>
-        <button type="button" onclick="showTab('analytics'); window.location.hash='#analytics';" class="btn btn--secondary">Analytics evento</button>
-      </div>
-      <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
-        <div class="form__group">
-          <label class="form__label">Duplica Evento</label>
-          <div class="form__inline">
-            <input class="form__input" type="date" name="data_evento" value="" required>
-            <label style="display:flex;align-items:center;gap:8px;margin-left:0.5rem;">
-              <input type="checkbox" name="duplica_cover" value="1">
-              <span>Duplica copertina</span>
-            </label>
-            <button type="submit" class="btn btn--secondary">Duplica</button>
+      <section class="card">
+        <div class="card__header">
+          <h2 class="card__title">Azioni Evento</h2>
+        </div>
+        <div class="card__content">
+          <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+            <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: center;">✏️ Modifica Evento</a>
+            <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
+              <div class="form__group">
+                <label class="form__label">Duplica Evento</label>
+                <div style="display: flex; gap: var(--spacing-2);">
+                  <input class="form__input" type="date" name="data_evento" value="" required style="flex: 1;">
+                  <button type="submit" class="btn btn--secondary btn--small">Duplica</button>
+                </div>
+                <small class="form__hint">La copia avrà stato <strong>programmato</strong></small>
+              </div>
+            </form>
+            <div style="padding-top: var(--spacing-3); border-top: 1px solid var(--admin-border);">
+              {% if evento.stato_pubblico != 'chiuso' %}
+              <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
+                    onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
+                <button class="btn btn--danger" style="width: 100%;" type="submit">🔒 Chiudi Evento</button>
+              </form>
+              {% endif %}
+              <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" 
+                    style="margin-top: var(--spacing-2);"
+                    onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">
+                <button class="btn btn--danger" style="width: 100%;" type="submit">🗑️ Elimina Evento</button>
+              </form>
+            </div>
           </div>
-          <small>La copia avrà stato <strong>programmato</strong> e potrai attivarla quando pronta.</small>
         </div>
-      </form>
-      <div class="form__actions" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.1);">
-        {% if evento.stato_pubblico != 'chiuso' %}
-        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
-          <button class="btn btn--secondary">Chiudi Evento</button>
-        </form>
-        {% endif %}
-        <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" style="display:inline" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">
-          <button class="btn btn--danger">Elimina Evento</button>
-        </form>
-      </div>
-    </section>
-  </div>
+      </section>
+    </div>
   </div>
 
-  <!-- Tab Content: Prenotazioni -->
+  <!-- Tab: Prenotazioni -->
   <div id="tab-prenotazioni" class="tab-content">
-  <section class="card">
-    <h2 class="card__title">Prenotazioni</h2>
-    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Tipo</h3>
-        <ul class="info-list">
-          {% for tipo, count in pren_by_tipo.items() %}
-          <li class="info-item">
-            <span class="info-label">{{ tipo|capitalize }}:</span>
-            <span class="info-value">{{ count }}</span>
-          </li>
-          {% endfor %}
-        </ul>
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Prenotazioni</h2>
+        <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Vedi tutte →</a>
       </div>
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Stato</h3>
-        <ul class="info-list">
-          {% for stato, count in pren_by_stato.items() %}
-          <li class="info-item">
-            <span class="info-label">{{ stato|capitalize }}:</span>
-            <span class="info-value">{{ count }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-        {% if tavolo_persone > 0 %}
-        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-radius: 6px;">
-          <strong>Totale persone tavoli:</strong> {{ tavolo_persone }}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-
-    {% if prenotazioni_evento %}
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Tipo</th>
-            <th>Stato</th>
-            <th>Persone</th>
-            <th>Orario previsto</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for pren, cli in prenotazioni_evento %}
-          <tr>
-            <td>{{ cli.nome }} {{ cli.cognome }}</td>
-            <td>
-              {% if pren.tipo == 'tavolo' %}
-                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                  <span>🪑</span>
-                  <strong style="color: var(--gold-primary);">Tavolo</strong>
-                </span>
-              {% elif pren.tipo == 'lista' %}
-                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                  <span>📋</span>
-                  <span>Lista</span>
-                </span>
-              {% else %}
-                {{ pren.tipo|capitalize }}
+      <div class="card__content">
+        <div class="grid grid--2" style="margin-bottom: var(--spacing-5);">
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Per Tipo</h3>
+              <dl class="info-list">
+                {% for tipo, count in pren_by_tipo.items() %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ tipo|capitalize }}</dt>
+                  <dd class="info-list__value">{{ count }}</dd>
+                </div>
+                {% endfor %}
+              </dl>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Per Stato</h3>
+              <dl class="info-list">
+                {% for stato, count in pren_by_stato.items() %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ stato|capitalize }}</dt>
+                  <dd class="info-list__value">{{ count }}</dd>
+                </div>
+                {% endfor %}
+              </dl>
+              {% if tavolo_persone > 0 %}
+              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid #d4af37;">
+                <strong>Totale persone tavoli:</strong> <span class="text--gold">{{ tavolo_persone }}</span>
+              </div>
               {% endif %}
-            </td>
-            <td>
-              <span class="badge badge--{% if pren.stato == 'attiva' %}warning{% elif pren.stato == 'usata' %}success{% elif pren.stato == 'no-show' %}secondary{% else %}muted{% endif %}">
-                {{ pren.stato|replace('_',' ') }}
-              </span>
-            </td>
-            <td>
-              {% if pren.tipo == 'tavolo' %}
-                {% if pren.num_persone %}
-                  <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
-                    <span>👥</span>
-                    <strong>{{ pren.num_persone }}</strong>
+            </div>
+          </div>
+        </div>
+
+        {% if prenotazioni_evento %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Stato</th>
+                <th>Persone</th>
+                <th>Orario previsto</th>
+                <th>Note</th>
+                <th class="table__header--actions">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pren, cli in prenotazioni_evento %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cli.id_cliente) }}" style="text-decoration: none; color: inherit; font-weight: var(--font-weight-medium);">
+                    {{ cli.nome }} {{ cli.cognome }}
+                  </a>
+                </td>
+                <td>
+                  {% if pren.tipo == 'tavolo' %}
+                    <span class="badge badge--primary">🪑 Tavolo</span>
+                  {% elif pren.tipo == 'lista' %}
+                    <span class="badge badge--secondary">📋 Lista</span>
+                  {% else %}
+                    <span class="badge badge--secondary">{{ pren.tipo|capitalize }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  <span class="badge badge--{% if pren.stato == 'attiva' %}warning{% elif pren.stato == 'usata' %}success{% elif pren.stato == 'no-show' %}secondary{% else %}secondary{% endif %}">
+                    {{ pren.stato|replace('_',' ')|capitalize }}
                   </span>
-                {% else %}
-                  <span class="text--muted">Da confermare</span>
-                {% endif %}
-              {% else %}
-                {{ pren.num_persone or '—' }}
-              {% endif %}
-            </td>
-            <td>{{ pren.orario_previsto.strftime('%H:%M') if pren.orario_previsto else '—' }}</td>
-            <td>
-              {% if pren.tipo == 'tavolo' and pren.note %}
-                <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
-                  <span>🪑</span>
-                  <strong style="color: var(--gold-primary);">{{ pren.note }}</strong>
-                </span>
-              {% else %}
-                {{ pren.note or '—' }}
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text--muted">Nessuna prenotazione per questo evento.</p>
-    {% endif %}
-  </section>
-  </div>
-
-  <!-- Tab Content: Ingressi -->
-  <div id="tab-ingressi" class="tab-content">
-  <section class="card">
-    <h2 class="card__title">Ingressi</h2>
-    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Tipo</h3>
-        <ul class="info-list">
-          {% for tipo, count in ingressi_by_tipo.items() %}
-          <li class="info-item">
-            <span class="info-label">{{ tipo|capitalize }}:</span>
-            <span class="info-value">{{ count }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% if ingressi_by_staff %}
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Staff (Top 10)</h3>
-        <ul class="info-list">
-          {% for nome, count in ingressi_by_staff %}
-          <li class="info-item">
-            <span class="info-label">{{ nome }}:</span>
-            <span class="info-value">{{ count }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-    </div>
-
-    {% if ingressi_evento %}
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Tipo</th>
-            <th>Orario</th>
-            <th>Staff</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for ing, cli, staff in ingressi_evento %}
-          <tr>
-            <td>{{ cli.nome }} {{ cli.cognome }}</td>
-            <td><span class="badge">{{ ing.tipo_ingresso|capitalize }}</span></td>
-            <td>{{ ing.orario_ingresso.strftime('%d/%m/%Y %H:%M') if ing.orario_ingresso else '—' }}</td>
-            <td>{{ staff.nome if staff else '—' }}</td>
-            <td>{{ ing.note or '—' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text--muted">Nessun ingresso registrato per questo evento.</p>
-    {% endif %}
-  </section>
-  </div>
-
-  <!-- Tab Content: Consumi -->
-  <div id="tab-consumi" class="tab-content">
-  <section class="card">
-    <h2 class="card__title">Consumi</h2>
-    <div class="grid grid--2" style="margin-bottom: 1.5rem;">
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Per Punto Vendita</h3>
-        <ul class="info-list">
-          {% for punto, importo in consumi_by_punto.items() %}
-          <li class="info-item">
-            <span class="info-label">{{ punto|capitalize }}:</span>
-            <span class="info-value">€{{ "%.2f"|format(importo) }}</span>
-          </li>
-          {% endfor %}
-        </ul>
-        <div style="margin-top: 1rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-radius: 6px;">
-          <strong>Clienti unici:</strong> {{ clienti_consumi }}<br>
-          <strong>Scontrino medio:</strong> €{{ "%.2f"|format(scontrino_medio) }}
+                </td>
+                <td>
+                  {% if pren.tipo == 'tavolo' %}
+                    {% if pren.num_persone %}
+                      <strong>{{ pren.num_persone }}</strong>
+                    {% else %}
+                      <span class="text--muted">Da confermare</span>
+                    {% endif %}
+                  {% else %}
+                    {{ pren.num_persone or '—' }}
+                  {% endif %}
+                </td>
+                <td>{{ pren.orario_previsto.strftime('%H:%M') if pren.orario_previsto else '—' }}</td>
+                <td>
+                  {% if pren.tipo == 'tavolo' and pren.note %}
+                    <span class="text--gold">{{ pren.note }}</span>
+                  {% else %}
+                    {{ pren.note or '—' }}
+                  {% endif %}
+                </td>
+                <td class="table__cell--actions">
+                  <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=pren.id_prenotazione) }}" class="btn btn--ghost btn--small">Dettagli</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      </div>
-      {% if consumi_by_prodotto %}
-      <div>
-        <h3 style="color: var(--gold-primary); margin-bottom: 0.75rem;">Top Prodotti</h3>
-        <ul class="info-list">
-          {% for prodotto, importo, count in consumi_by_prodotto %}
-          <li class="info-item">
-            <span class="info-label">{{ prodotto }}:</span>
-            <span class="info-value">€{{ "%.2f"|format(importo) }} ({{ count }})</span>
-          </li>
-          {% endfor %}
-        </ul>
-      </div>
-      {% endif %}
-    </div>
-
-    {% if consumi_evento %}
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Prodotto</th>
-            <th>Importo</th>
-            <th>Punto Vendita</th>
-            <th>Staff</th>
-            <th>Note</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for cons, cli, staff in consumi_evento %}
-          <tr>
-            <td>{{ cli.nome }} {{ cli.cognome }}</td>
-            <td>{{ cons.prodotto }}</td>
-            <td>€{{ "%.2f"|format(cons.importo) }}</td>
-            <td>{{ cons.punto_vendita|capitalize }}</td>
-            <td>{{ staff.nome if staff else '—' }}</td>
-            <td>{{ cons.note or '—' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <p class="text--muted">Nessun consumo registrato per questo evento.</p>
-    {% endif %}
-  </section>
-  </div>
-
-  <!-- Tab Content: Analytics -->
-  <div id="tab-analytics" class="tab-content">
-  <section class="card">
-    <h2 class="card__title">Analytics evento</h2>
-    <p class="text--muted" style="margin-bottom: 1rem;">Panoramica visiva di ingressi, prenotazioni, prodotti e feedback per questo evento.</p>
-    <div class="evento-analytics-grid">
-      <!-- Grafico ingressi temporali -->
-      <article class="chart-card chart-card--wide">
-        <h3 class="chart-card__title">Andamento ingressi (per ora)</h3>
-        <canvas id="chartIngressiTemporali"></canvas>
-        <p class="chart-card__empty">Nessun dato di ingresso orario disponibile per questo evento.</p>
-      </article>
-
-      <!-- Prenotazioni per tipo -->
-      <article class="chart-card chart-card--tall">
-        <h3 class="chart-card__title">Prenotazioni per tipologia</h3>
-        <canvas id="chartPrenotazioni"></canvas>
-        <p class="chart-card__empty">Nessuna prenotazione registrata.</p>
-      </article>
-
-      <!-- Prodotti più venduti -->
-      <article class="chart-card chart-card--wide">
-        <h3 class="chart-card__title">Top prodotti</h3>
-        <canvas id="chartProdotti"></canvas>
-        <p class="chart-card__empty">Nessun consumo registrato per questo evento.</p>
-      </article>
-
-      <!-- Feedback -->
-      <article class="chart-card chart-card--tall">
-        <h3 class="chart-card__title">Feedback (media voti)</h3>
-        <canvas id="chartFeedback"></canvas>
-        <p class="chart-card__empty">Nessun feedback disponibile.</p>
-      </article>
-    </div>
-  </section>
-  </div>
-
-  <!-- Tab Content: Feedback -->
-  <div id="tab-feedback" class="tab-content">
-  <section class="card">
-    <h2 class="card__title">Feedback</h2>
-    {% if feedback_evento %}
-    <div class="list">
-      {% for fb, cliente in feedback_evento %}
-      <div class="list__item">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
-          <div>
-            <strong>{{ cliente.nome }} {{ cliente.cognome }}</strong><br>
-            <small class="text--muted">{{ fb.data_feedback.strftime('%d/%m/%Y %H:%M') if fb.data_feedback else '—' }}</small>
-          </div>
-          <div class="badge-group">
-            <span class="badge">Musica: {{ fb.voto_musica }}</span>
-            <span class="badge">Ingresso: {{ fb.voto_ingresso }}</span>
-            <span class="badge">Ambiente: {{ fb.voto_ambiente }}</span>
-            <span class="badge">Servizio: {{ fb.voto_servizio }}</span>
-          </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">📋</span>
+          <p class="admin-empty-state__message">Nessuna prenotazione per questo evento.</p>
         </div>
-        {% if fb.note %}
-        <p class="text--muted" style="margin-top: 0.75rem;">{{ fb.note }}</p>
         {% endif %}
-        <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}" style="margin-top: 0.75rem;">
-          <input type="hidden" name="next" value="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}">
-          <button class="btn btn--danger btn--small" onclick="return confirm('Eliminare il feedback selezionato?');" type="submit">Elimina</button>
-        </form>
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text--muted">Nessun feedback registrato per questo evento.</p>
-    {% endif %}
-  </section>
+    </section>
+  </div>
+
+  <!-- Tab: Ingressi -->
+  <div id="tab-ingressi" class="tab-content">
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Ingressi</h2>
+        <a href="{{ url_for('ingressi.admin_list', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
+      </div>
+      <div class="card__content">
+        <div class="grid grid--2" style="margin-bottom: var(--spacing-5);">
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Per Tipo</h3>
+              <dl class="info-list">
+                {% for tipo, count in ingressi_by_tipo.items() %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ tipo|capitalize }}</dt>
+                  <dd class="info-list__value">{{ count }}</dd>
+                </div>
+                {% endfor %}
+              </dl>
+            </div>
+          </div>
+          {% if ingressi_by_staff %}
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Per Staff (Top 10)</h3>
+              <dl class="info-list">
+                {% for nome, count in ingressi_by_staff %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ nome }}</dt>
+                  <dd class="info-list__value">{{ count }}</dd>
+                </div>
+                {% endfor %}
+              </dl>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if ingressi_evento %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Orario</th>
+                <th>Staff</th>
+                <th>Note</th>
+                <th class="table__header--actions">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for ing, cli, staff in ingressi_evento %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cli.id_cliente) }}" style="text-decoration: none; color: inherit; font-weight: var(--font-weight-medium);">
+                    {{ cli.nome }} {{ cli.cognome }}
+                  </a>
+                </td>
+                <td><span class="badge badge--secondary">{{ ing.tipo_ingresso|capitalize }}</span></td>
+                <td>{{ ing.orario_ingresso.strftime('%d/%m/%Y %H:%M') if ing.orario_ingresso else '—' }}</td>
+                <td>{{ staff.nome if staff else '—' }}</td>
+                <td>{{ ing.note or '—' }}</td>
+                <td class="table__cell--actions">
+                  <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=ing.id_ingresso) }}" class="btn btn--ghost btn--small">Dettagli</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">🚪</span>
+          <p class="admin-empty-state__message">Nessun ingresso registrato per questo evento.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Tab: Consumi -->
+  <div id="tab-consumi" class="tab-content">
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Consumi</h2>
+        <a href="{{ url_for('consumi.admin_list', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
+      </div>
+      <div class="card__content">
+        <div class="grid grid--2" style="margin-bottom: var(--spacing-5);">
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Per Punto Vendita</h3>
+              <dl class="info-list">
+                {% for punto, importo in consumi_by_punto.items() %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ punto|capitalize }}</dt>
+                  <dd class="info-list__value"><strong class="text--gold">€{{ "%.2f"|format(importo) }}</strong></dd>
+                </div>
+                {% endfor %}
+              </dl>
+              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid #d4af37;">
+                <div style="margin-bottom: var(--spacing-1);"><strong>Clienti unici:</strong> <span class="text--gold">{{ clienti_consumi }}</span></div>
+                <div><strong>Scontrino medio:</strong> <span class="text--gold">€{{ "%.2f"|format(scontrino_medio) }}</span></div>
+              </div>
+            </div>
+          </div>
+          {% if consumi_by_prodotto %}
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.02);">
+            <div class="card__content">
+              <h3 class="card__title" style="font-size: var(--font-size-base); margin-bottom: var(--spacing-3);">Top Prodotti</h3>
+              <dl class="info-list">
+                {% for prodotto, importo, count in consumi_by_prodotto %}
+                <div class="info-list__item">
+                  <dt class="info-list__label">{{ prodotto }}</dt>
+                  <dd class="info-list__value"><strong class="text--gold">€{{ "%.2f"|format(importo) }}</strong> <span class="text--muted">({{ count }})</span></dd>
+                </div>
+                {% endfor %}
+              </dl>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if consumi_evento %}
+        <div class="table-responsive">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th>Prodotto</th>
+                <th>Importo</th>
+                <th>Punto Vendita</th>
+                <th>Staff</th>
+                <th>Note</th>
+                <th class="table__header--actions">Azioni</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for cons, cli, staff in consumi_evento %}
+              <tr>
+                <td>
+                  <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cli.id_cliente) }}" style="text-decoration: none; color: inherit; font-weight: var(--font-weight-medium);">
+                    {{ cli.nome }} {{ cli.cognome }}
+                  </a>
+                </td>
+                <td>{{ cons.prodotto }}</td>
+                <td><strong class="text--gold">€{{ "%.2f"|format(cons.importo) }}</strong></td>
+                <td>{{ cons.punto_vendita|capitalize }}</td>
+                <td>{{ staff.nome if staff else '—' }}</td>
+                <td>{{ cons.note or '—' }}</td>
+                <td class="table__cell--actions">
+                  <a href="{{ url_for('consumi.admin_edit', consumo_id=cons.id_consumo) }}" class="btn btn--ghost btn--small">Modifica</a>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">💰</span>
+          <p class="admin-empty-state__message">Nessun consumo registrato per questo evento.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Tab: Feedback -->
+  <div id="tab-feedback" class="tab-content">
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Feedback</h2>
+      </div>
+      <div class="card__content">
+        {% if feedback_evento %}
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
+          {% for fb, cliente in feedback_evento %}
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.03); border-left: 3px solid #d4af37;">
+            <div class="card__header">
+              <div>
+                <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cliente.id_cliente) }}" style="text-decoration: none; color: inherit;">
+                  <strong style="font-size: var(--font-size-base);">{{ cliente.nome }} {{ cliente.cognome }}</strong>
+                </a>
+                <p class="card__meta" style="margin: 0;">{{ fb.data_feedback.strftime('%d/%m/%Y %H:%M') if fb.data_feedback else '—' }}</p>
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2);">
+                <span class="badge badge--primary">🎵 {{ fb.voto_musica }}/10</span>
+                <span class="badge badge--primary">🚪 {{ fb.voto_ingresso }}/10</span>
+                <span class="badge badge--primary">🌟 {{ fb.voto_ambiente }}/10</span>
+                <span class="badge badge--primary">🍽️ {{ fb.voto_servizio }}/10</span>
+              </div>
+            </div>
+            {% if fb.note %}
+            <div class="card__content">
+              <p class="text--muted" style="margin: 0; font-style: italic;">"{{ fb.note }}"</p>
+            </div>
+            {% endif %}
+            <div class="card__footer">
+              <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}" style="display: inline;">
+                <input type="hidden" name="next" value="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}">
+                <button class="btn btn--danger btn--small" onclick="return confirm('Eliminare il feedback selezionato?');" type="submit">Elimina</button>
+              </form>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">💬</span>
+          <p class="admin-empty-state__message">Nessun feedback registrato per questo evento.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Tab: Analytics -->
+  <div id="tab-analytics" class="tab-content">
+    <section class="card">
+      <div class="card__header">
+        <h2 class="card__title">Analytics Evento</h2>
+        <p class="card__subtitle">Panoramica visiva di ingressi, prenotazioni, prodotti e feedback</p>
+      </div>
+      <div class="card__content">
+        <div class="evento-analytics-grid">
+          <!-- Grafico ingressi temporali -->
+          <article class="chart-card chart-card--wide">
+            <h3 class="chart-card__title">Andamento ingressi (per ora)</h3>
+            <canvas id="chartIngressiTemporali"></canvas>
+            <p class="chart-card__empty">Nessun dato di ingresso orario disponibile per questo evento.</p>
+          </article>
+
+          <!-- Prenotazioni per tipo -->
+          <article class="chart-card chart-card--tall">
+            <h3 class="chart-card__title">Prenotazioni per tipologia</h3>
+            <canvas id="chartPrenotazioni"></canvas>
+            <p class="chart-card__empty">Nessuna prenotazione registrata.</p>
+          </article>
+
+          <!-- Prodotti più venduti -->
+          <article class="chart-card chart-card--wide">
+            <h3 class="chart-card__title">Top prodotti</h3>
+            <canvas id="chartProdotti"></canvas>
+            <p class="chart-card__empty">Nessun consumo registrato per questo evento.</p>
+          </article>
+
+          <!-- Feedback -->
+          <article class="chart-card chart-card--tall">
+            <h3 class="chart-card__title">Feedback (media voti)</h3>
+            <canvas id="chartFeedback"></canvas>
+            <p class="chart-card__empty">Nessun feedback disponibile.</p>
+          </article>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
 <script>
   // Tab navigation
-  function showTab(tabName) {
+  function showTab(tabName, event) {
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
       tab.classList.remove('active');
@@ -595,24 +578,31 @@
     
     // Show selected tab
     document.getElementById('tab-' + tabName).classList.add('active');
-    event.target.classList.add('active');
+    
+    // Activate button
+    if (event && event.target) {
+      event.target.classList.add('active');
+    } else {
+      const btn = document.querySelector(`.tabs__item[onclick*="${tabName}"]`);
+      if (btn) btn.classList.add('active');
+    }
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
     // Update URL hash
-    if (tabName === 'analytics') {
-      window.location.hash = '#analytics';
-    }
+    window.location.hash = tabName;
   }
   
   // Check URL hash on load
-  if (window.location.hash === '#analytics') {
-    setTimeout(() => {
-      const analyticsTab = document.querySelector('.tabs__item[onclick*="analytics"]');
-      if (analyticsTab) analyticsTab.click();
-    }, 100);
-  }
+  window.addEventListener('DOMContentLoaded', function() {
+    const hash = window.location.hash.replace('#', '');
+    if (hash && ['informazioni', 'prenotazioni', 'ingressi', 'consumi', 'analytics', 'feedback'].includes(hash)) {
+      setTimeout(() => {
+        showTab(hash);
+      }, 100);
+    }
+  });
 </script>
 {% endblock %}
 
@@ -805,7 +795,4 @@
       document.querySelector('#chartFeedback').parentElement.querySelector('.chart-card__empty').style.display = 'block';
     }
   </script>
-  </div>
-</div>
 {% endblock %}
-

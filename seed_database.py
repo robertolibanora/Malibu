@@ -21,6 +21,14 @@ from app.models.clienti import Cliente
 from app.models.staff import Staff
 from app.models.eventi import Evento
 from app.models.prenotazioni import Prenotazione
+INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def generate_invite_code(db):
+    while True:
+        code = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
+        if not db.query(Prenotazione.id_prenotazione).filter(Prenotazione.codice_invito == code).first():
+            return code
 from app.models.ingressi import Ingresso
 from app.models.feedback import Feedback
 from app.models.prodotti import Prodotto
@@ -380,6 +388,7 @@ def seed_prenotazioni(db, clienti_ids, eventi_ids):
             if randint(0, 1):
                 ora_prevista = time(hour=0, minute=randint(0, 59))
             
+            codice_invito = generate_invite_code(db) if tipo == "tavolo" else None
             prenotazione = Prenotazione(
                 cliente_id=cliente_id,
                 evento_id=evento.id_evento,
@@ -387,7 +396,9 @@ def seed_prenotazioni(db, clienti_ids, eventi_ids):
                 num_persone=num_persone,
                 orario_previsto=ora_prevista,
                 stato=stato,
-                note=choice([None, "Compleanno", "Anniversario", "Tavolo preferito", None, None])
+                note=choice([None, "Compleanno", "Anniversario", "Tavolo preferito", None, None]),
+                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
+                codice_invito=codice_invito
             )
             
             db.add(prenotazione)
@@ -409,13 +420,16 @@ def seed_prenotazioni(db, clienti_ids, eventi_ids):
             tipo = choice(["lista", "tavolo", "prevendita"])
             num_persone = randint(1, 8) if tipo == "tavolo" else randint(1, 4)
             
+            codice_invito = generate_invite_code(db) if tipo == "tavolo" else None
             prenotazione = Prenotazione(
                 cliente_id=cliente_id,
                 evento_id=evento.id_evento,
                 tipo=tipo,
                 num_persone=num_persone,
                 orario_previsto=time(hour=randint(22, 23), minute=randint(0, 59)),
-                stato="attiva"
+                stato="attiva",
+                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
+                codice_invito=codice_invito
             )
             
             db.add(prenotazione)

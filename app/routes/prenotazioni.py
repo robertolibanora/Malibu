@@ -1,6 +1,8 @@
 # app/routes/prenotazioni.py
+import secrets
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
 from sqlalchemy import func, and_
+from sqlalchemy.orm import joinedload
 from datetime import datetime, date, time
 from collections import defaultdict
 from app.database import SessionLocal
@@ -11,6 +13,7 @@ from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.models.fedeltà import Fedelta
 from app.models.ingressi import Ingresso
+from app.models.tavoli_evento import TavoloEvento
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.fedelta import award_on_no_show, PUNTI_NO_SHOW
 from app.utils.limiter import limiter
@@ -25,6 +28,16 @@ STATI = ("attiva", "no-show", "usata", "cancellata")
 # Helpers (usano modulo centralizzato)
 # ---------------------------
 from app.utils.helpers import get_current_cliente as _get_current_cliente
+
+INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+def _generate_unique_invite_code(db):
+    for _ in range(20):
+        candidate = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
+        if not db.query(Prenotazione.id_prenotazione).filter(Prenotazione.codice_invito == candidate).first():
+            return candidate
+    raise RuntimeError("Impossibile generare un codice invito univoco.")
 
 def _has_active_for_event(db, cliente_id, evento_id):
     return db.query(Prenotazione).filter(
@@ -63,6 +76,22 @@ def nuova():
             flash("Evento non disponibile per prenotazioni.", "warning")
             return redirect(url_for("eventi.dettaglio_pubblico", evento_id=e.id_evento))
 
+        # Calcola tavoli disponibili per GET
+        tavoli_attivi = db.query(TavoloEvento).filter(
+            TavoloEvento.evento_id == e.id_evento,
+            TavoloEvento.attivo == True
+        ).order_by(TavoloEvento.numero_tavolo.asc()).all()
+
+        prenotazioni_tavolo = db.query(Prenotazione.numero_tavolo).filter(
+            Prenotazione.evento_id == e.id_evento,
+            Prenotazione.stato == "attiva",
+            Prenotazione.numero_tavolo.isnot(None),
+            Prenotazione.stato_approvazione_tavolo.in_(["in_attesa", "approvata", None]),
+            Prenotazione.ruolo_tavolo != "aderente"
+        ).all()
+        tavoli_prenotati_ids = {p[0] for p in prenotazioni_tavolo}
+        tavoli_disponibili = [t for t in tavoli_attivi if t.id_tavolo not in tavoli_prenotati_ids]
+
         if request.method == "POST":
             cli = _get_current_cliente(db)
             if not cli:
@@ -73,38 +102,38 @@ def nuova():
                 flash("Hai già una prenotazione attiva per questo evento.", "warning")
                 return redirect(url_for("prenotazioni.mie"))
 
-            tipo = request.form.get("tipo") or tipo_param
+            tipo = request.form.get("tipo") or tipo_param or "lista"
             if tipo not in TIPI_CONSENTITI_CLIENTE:
                 flash("Tipo prenotazione non valido.", "danger")
                 return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
 
-            num_persone = request.form.get("num_persone", type=int)
-            note = (request.form.get("note") or "").strip()
-            orario_previsto = request.form.get("orario_previsto")  # opzionale (non usiamo prevendita)
-
-            # Vincoli: tavolo -> solo nome tavolo obbligatorio (num_persone calcolato dal sistema)
             if tipo == "tavolo":
-                if not note:
-                    flash("Per il tavolo è obbligatorio indicare il nome del tavolo.", "danger")
-                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento, tipo="tavolo"))
+                flash("Per prenotare un tavolo usa il percorso dedicato.", "warning")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            note = (request.form.get("note") or "").strip()
+            orario_previsto = request.form.get("orario_previsto")
 
             pren = Prenotazione(
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
                 tipo=tipo,
-                num_persone=None,  # Non più obbligatorio, calcolato dal sistema admin
+                num_persone=None,
                 orario_previsto=orario_previsto or None,
                 note=note or None,
-                stato="attiva"
+                stato="attiva",
+                numero_tavolo=None,
+                nome_tavolo_gruppo=None,
+                stato_approvazione_tavolo=None,
+                ruolo_tavolo="none"
             )
             db.add(pren)
             db.commit()
+
             flash("Prenotazione creata correttamente.", "success")
             return redirect(url_for("prenotazioni.mie"))
 
-        # GET
-        tipo_default = tipo_param if tipo_param in TIPI_CONSENTITI_CLIENTE else None
-        return render_template("clienti/prenotazioni_new.html", e=e, TIPI=TIPI_CONSENTITI_CLIENTE, tipo_default=tipo_default)
+        return render_template("clienti/prenotazioni_new.html", e=e)
     finally:
         db.close()
 
@@ -134,27 +163,223 @@ def nuova_tavolo():
                 flash("Hai già una prenotazione attiva per questo evento.", "warning")
                 return redirect(url_for("prenotazioni.mie"))
 
+            numero_tavolo_id = request.form.get("numero_tavolo", type=int)
+            nome_tavolo_gruppo = (request.form.get("nome_tavolo_gruppo") or "").strip()
+            num_persone = request.form.get("num_persone", type=int)
+            orario_previsto = request.form.get("orario_previsto") or None
             note = (request.form.get("note") or "").strip()
-            if not note:
-                flash("È obbligatorio indicare il nome del tavolo.", "danger")
+
+            if not numero_tavolo_id:
+                flash("Seleziona un tavolo disponibile.", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            if not nome_tavolo_gruppo:
+                flash("Indica il nome del gruppo o del tavolo.", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            if not num_persone or num_persone < 1:
+                flash("Specifica il numero di persone previste.", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            tavolo = next((t for t in tavoli_attivi if t.id_tavolo == numero_tavolo_id), None)
+            if not tavolo:
+                flash("Tavolo non disponibile per questo evento.", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            if num_persone > tavolo.capienza:
+                flash(f"Numero superiore alla capienza del tavolo (max {tavolo.capienza}).", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
+
+            prenotazione_esistente = db.query(Prenotazione).filter(
+                Prenotazione.evento_id == e.id_evento,
+                Prenotazione.numero_tavolo == numero_tavolo_id,
+                Prenotazione.stato == "attiva",
+                Prenotazione.stato_approvazione_tavolo.in_(["in_attesa", "approvata", None]),
+                Prenotazione.ruolo_tavolo != "aderente"
+            ).first()
+
+            if prenotazione_esistente:
+                flash("Questo tavolo è già stato richiesto da un altro referente.", "warning")
                 return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
 
             pren = Prenotazione(
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
                 tipo="tavolo",
-                num_persone=None,  # Calcolato dal sistema admin
-                orario_previsto=None,
-                note=note,
-                stato="attiva"
+                num_persone=num_persone,
+                orario_previsto=orario_previsto,
+                note=note or None,
+                stato="attiva",
+                stato_approvazione_tavolo="in_attesa",
+                numero_tavolo=numero_tavolo_id,
+                nome_tavolo_gruppo=nome_tavolo_gruppo,
+                ruolo_tavolo="referente",
+                codice_invito=_generate_unique_invite_code(db)
             )
             db.add(pren)
             db.commit()
-            flash("Prenotazione tavolo creata correttamente.", "success")
+            flash("Richiesta tavolo inviata. Attendi approvazione dallo staff.", "success")
             return redirect(url_for("prenotazioni.mie"))
 
         # GET
-        return render_template("clienti/prenotazioni_new_tavolo.html", e=e)
+        return render_template("clienti/prenotazioni_new_tavolo.html", e=e, tavoli_disponibili=tavoli_disponibili)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/entra-tavolo", methods=["GET", "POST"])
+@require_cliente
+def entra_tavolo():
+    db = SessionLocal()
+    try:
+        evento_id = request.args.get("evento_id", type=int) or request.form.get("evento_id", type=int)
+        e = db.query(Evento).get(evento_id) if evento_id else None
+        if not e:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.lista_pubblica"))
+        if e.stato_pubblico not in ("programmato", "attivo"):
+            flash("Evento non disponibile per adesioni.", "warning")
+            return redirect(url_for("eventi.dettaglio_pubblico", evento_id=e.id_evento))
+
+        # ⚠️ IMPORTANTE: Mostra SOLO tavoli con stato_approvazione_tavolo == "approvata"
+        # I tavoli "in_attesa" o "rifiutati" NON devono essere visibili per le adesioni
+        tavoli_aperti = db.query(Prenotazione)\
+            .options(
+                joinedload(Prenotazione.tavolo_evento),
+                joinedload(Prenotazione.cliente)
+            )\
+            .filter(
+                Prenotazione.evento_id == e.id_evento,
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato == "attiva",
+                Prenotazione.stato_approvazione_tavolo == "approvata",  # ⚠️ SOLO APPROVATI
+                Prenotazione.ruolo_tavolo.in_(["referente", "none"])
+            )\
+            .order_by(Prenotazione.nome_tavolo_gruppo.asc())\
+            .all()
+
+        if request.method == "POST":
+            cli = _get_current_cliente(db)
+            if not cli:
+                abort(401)
+
+            if _has_active_for_event(db, cli.id_cliente, e.id_evento):
+                flash("Hai già una prenotazione attiva per questo evento.", "warning")
+                return redirect(url_for("prenotazioni.mie"))
+
+            identificatore = (request.form.get("identificatore") or "").strip()
+            if not identificatore:
+                flash("Inserisci il nome tavolo o il codice invito.", "danger")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+
+            # Query base: SOLO tavoli approvati dall'admin
+            base_query = db.query(Prenotazione)\
+                .options(joinedload(Prenotazione.tavolo_evento), joinedload(Prenotazione.aderenti))\
+                .filter(
+                    Prenotazione.evento_id == e.id_evento,
+                    Prenotazione.tipo == "tavolo",
+                    Prenotazione.stato == "attiva",
+                    Prenotazione.stato_approvazione_tavolo == "approvata",  # ⚠️ SOLO APPROVATI
+                    Prenotazione.ruolo_tavolo.in_(["referente", "none"])
+                )
+
+            target = None
+            if len(identificatore) == 6:
+                target = base_query.filter(Prenotazione.codice_invito == identificatore.upper()).first()
+            if not target:
+                target = base_query.filter(
+                    func.lower(Prenotazione.nome_tavolo_gruppo) == identificatore.lower()
+                ).first()
+
+            # Verifica aggiuntiva: controlla se esiste un tavolo con questo nome/codice ma NON approvato
+            if not target:
+                # Query senza filtro approvazione per verificare se esiste ma non è approvato
+                check_non_approvato = db.query(Prenotazione)\
+                    .filter(
+                        Prenotazione.evento_id == e.id_evento,
+                        Prenotazione.tipo == "tavolo",
+                        Prenotazione.stato == "attiva",
+                        Prenotazione.stato_approvazione_tavolo != "approvata",
+                        Prenotazione.ruolo_tavolo.in_(["referente", "none"])
+                    )
+                
+                if len(identificatore) == 6:
+                    check_non_approvato = check_non_approvato.filter(
+                        Prenotazione.codice_invito == identificatore.upper()
+                    ).first()
+                else:
+                    check_non_approvato = check_non_approvato.filter(
+                        func.lower(Prenotazione.nome_tavolo_gruppo) == identificatore.lower()
+                    ).first()
+                
+                if check_non_approvato:
+                    if check_non_approvato.stato_approvazione_tavolo == "in_attesa":
+                        flash("Questo tavolo è in attesa di approvazione da parte dello staff. Non è ancora possibile aderire.", "warning")
+                    elif check_non_approvato.stato_approvazione_tavolo == "rifiutata":
+                        flash("Questo tavolo non è stato approvato dallo staff. Non è possibile aderire.", "warning")
+                    else:
+                        flash("Questo tavolo non è disponibile per le adesioni.", "warning")
+                    return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+                
+                flash("Nessun tavolo approvato trovato con questo nome o codice. Verifica di aver inserito correttamente il nome o il codice invito.", "warning")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+
+            if target.cliente_id == cli.id_cliente:
+                flash("Sei già il referente di questo tavolo.", "info")
+                return redirect(url_for("prenotazioni.mie"))
+
+            if any(a.cliente_id == cli.id_cliente for a in target.aderenti if a.stato != "cancellata"):
+                flash("Sei già associato a questo tavolo.", "info")
+                return redirect(url_for("prenotazioni.mie"))
+
+            # ⚠️ CONTROLLO FINALE DI SICUREZZA: verifica che il tavolo sia ancora approvato
+            # (protezione contro race conditions o modifiche simultanee)
+            db.refresh(target)
+            if target.stato_approvazione_tavolo != "approvata":
+                flash("Il tavolo non è più disponibile per le adesioni. Lo stato è cambiato.", "danger")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+            
+            if target.stato != "attiva":
+                flash("Il tavolo non è più attivo.", "danger")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+
+            tavolo = target.tavolo_evento
+            if not tavolo:
+                flash("Il tavolo non è più disponibile.", "danger")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+
+            max_capienza = min(tavolo.capienza, target.num_persone or tavolo.capienza)
+            aderenti_attivi = [a for a in target.aderenti if a.stato == "attiva"]
+            occupati = 1 + sum(a.num_persone or 1 for a in aderenti_attivi)
+
+            if occupati >= max_capienza:
+                flash("Il tavolo ha raggiunto la capienza massima.", "warning")
+                return redirect(url_for("prenotazioni.entra_tavolo", evento_id=e.id_evento))
+
+            pren = Prenotazione(
+                cliente_id=cli.id_cliente,
+                evento_id=e.id_evento,
+                tipo="tavolo",
+                num_persone=1,
+                orario_previsto=target.orario_previsto,
+                note=f"Aderente tavolo {target.nome_tavolo_gruppo}",
+                stato="attiva",
+                numero_tavolo=target.numero_tavolo,
+                nome_tavolo_gruppo=target.nome_tavolo_gruppo,
+                stato_approvazione_tavolo="approvata",
+                ruolo_tavolo="aderente",
+                prenotazione_padre_id=target.id_prenotazione
+            )
+            db.add(pren)
+            db.commit()
+            flash("Adesione al tavolo completata. Presentati con il gruppo alla serata.", "success")
+            return redirect(url_for("prenotazioni.mie"))
+
+        return render_template(
+            "clienti/prenotazioni_join_tavolo.html",
+            e=e,
+            tavoli_aperti=tavoli_aperti
+        )
     finally:
         db.close()
 
@@ -176,7 +401,12 @@ def mie():
 
         # Query ottimizzata con eager loading per evento
         pren = db.query(Prenotazione)\
-            .options(joinedload(Prenotazione.evento))\
+            .options(
+                joinedload(Prenotazione.evento),
+                joinedload(Prenotazione.tavolo_evento),
+                joinedload(Prenotazione.aderenti),
+                joinedload(Prenotazione.prenotazione_padre).joinedload(Prenotazione.cliente)
+            )\
             .filter(
                 Prenotazione.cliente_id == cli.id_cliente,
                 Prenotazione.stato != "cancellata"
@@ -241,8 +471,31 @@ def mie():
 
         # Workflow state map per visualizzare lo stato completo
         workflow_map = {}
+        tavolo_stats = {}
+        adesioni_info = {}
         for p in pren:
             workflow_map[p.id_prenotazione] = get_workflow_state(db, cli.id_cliente, p.evento_id)
+            is_referente = p.tipo == "tavolo" and (p.ruolo_tavolo == "referente" or (p.ruolo_tavolo == "none" and not p.prenotazione_padre_id))
+            if is_referente:
+                tavolo = p.tavolo_evento
+                capienza_tavolo = tavolo.capienza if tavolo else None
+                if capienza_tavolo and p.num_persone:
+                    max_posti = min(capienza_tavolo, p.num_persone)
+                elif p.num_persone:
+                    max_posti = p.num_persone
+                else:
+                    max_posti = capienza_tavolo or 0
+                aderenti_attivi = [a for a in p.aderenti if a.stato == "attiva"]
+                occupati = 1 + sum(a.num_persone or 1 for a in aderenti_attivi)
+                tavolo_stats[p.id_prenotazione] = {
+                    "codice": p.codice_invito,
+                    "occupati": occupati,
+                    "max_posti": max_posti or occupati,
+                    "aderenti": aderenti_attivi
+                }
+            is_aderente = p.prenotazione_padre_id is not None and (p.ruolo_tavolo == "aderente" or p.tipo == "tavolo")
+            if is_aderente and p.prenotazione_padre:
+                adesioni_info[p.id_prenotazione] = p.prenotazione_padre
 
         return render_template(
             "clienti/prenotazioni_list.html",
@@ -254,7 +507,9 @@ def mie():
             punti_evento=fedelta_map,
             workflow_map=workflow_map,
             show_all_usate=show_all_usate,
-            oggi=oggi
+            oggi=oggi,
+            tavolo_stats=tavolo_stats,
+            adesioni_info=adesioni_info
         )
     finally:
         db.close()
@@ -501,7 +756,9 @@ def admin_new():
                 num_persone=num_persone if tipo == "tavolo" else None,
                 orario_previsto=orario_previsto,
                 note=note or None,
-                stato=stato
+                stato=stato,
+                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
+                codice_invito=_generate_unique_invite_code(db) if tipo == "tavolo" else None
             )
             db.add(pren)
             db.commit()
@@ -562,6 +819,17 @@ def admin_edit(pren_id):
             pren.note = note or None
             pren.orario_previsto = orario_previsto
             pren.stato = stato
+            if tipo != "tavolo":
+                pren.ruolo_tavolo = "none"
+                pren.prenotazione_padre_id = None
+                pren.codice_invito = None
+                pren.numero_tavolo = None
+                pren.nome_tavolo_gruppo = None
+                pren.stato_approvazione_tavolo = None
+            else:
+                pren.ruolo_tavolo = "aderente" if pren.prenotazione_padre_id else "referente"
+                if pren.ruolo_tavolo == "referente" and not pren.codice_invito:
+                    pren.codice_invito = _generate_unique_invite_code(db)
 
             db.commit()
             if stato == "no-show":
@@ -654,5 +922,192 @@ def admin_analytics(evento_id):
                                tavolo_persone=tavolo_persone,
                                cancellazioni=cancellazioni,
                                no_show=no_show)
+    finally:
+        db.close()
+
+
+# ============================================
+# 🪑 GESTIONE TAVOLI EVENTO (Admin)
+# ============================================
+
+@prenotazioni_bp.route("/admin/tavoli/evento/<int:evento_id>", methods=["GET"])
+@require_admin
+def admin_tavoli_evento(evento_id):
+    """Lista tavoli configurati per un evento"""
+    db = SessionLocal()
+    try:
+        e = db.query(Evento).get(evento_id)
+        if not e:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.admin_list"))
+        
+        tavoli = db.query(TavoloEvento).filter(
+            TavoloEvento.evento_id == evento_id
+        ).order_by(TavoloEvento.numero_tavolo.asc()).all()
+        
+        return render_template("admin/tavoli_evento_list.html", evento=e, tavoli=tavoli)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/tavoli/new", methods=["GET", "POST"])
+@require_admin
+def admin_tavolo_new():
+    """Crea nuovo tavolo per un evento"""
+    db = SessionLocal()
+    try:
+        evento_id = request.args.get("evento_id", type=int) or request.form.get("evento_id", type=int)
+        e = db.query(Evento).get(evento_id) if evento_id else None
+        
+        if request.method == "POST":
+            evento_id = request.form.get("evento_id", type=int)
+            numero_tavolo = request.form.get("numero_tavolo", type=int)
+            nome_tavolo = (request.form.get("nome_tavolo") or "").strip() or None
+            capienza = request.form.get("capienza", type=int) or 4
+            prezzo_minimo = request.form.get("prezzo_minimo", type=int) or None
+            attivo = request.form.get("attivo") == "on"
+            
+            if not evento_id or not numero_tavolo:
+                flash("Evento e numero tavolo sono obbligatori.", "danger")
+                return redirect(url_for("prenotazioni.admin_tavolo_new", evento_id=evento_id))
+            
+            # Verifica duplicati
+            esistente = db.query(TavoloEvento).filter(
+                TavoloEvento.evento_id == evento_id,
+                TavoloEvento.numero_tavolo == numero_tavolo
+            ).first()
+            
+            if esistente:
+                flash(f"Il tavolo {numero_tavolo} esiste già per questo evento.", "warning")
+                return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+            
+            tavolo = TavoloEvento(
+                evento_id=evento_id,
+                numero_tavolo=numero_tavolo,
+                nome_tavolo=nome_tavolo,
+                capienza=capienza,
+                prezzo_minimo=prezzo_minimo,
+                attivo=attivo
+            )
+            db.add(tavolo)
+            db.commit()
+            flash("Tavolo creato correttamente.", "success")
+            return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+        
+        eventi = db.query(Evento).order_by(Evento.data_evento.desc()).all()
+        return render_template("admin/tavolo_form.html", evento=e, eventi=eventi, tavolo=None)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/tavoli/<int:tavolo_id>/edit", methods=["GET", "POST"])
+@require_admin
+def admin_tavolo_edit(tavolo_id):
+    """Modifica tavolo esistente"""
+    db = SessionLocal()
+    try:
+        tavolo = db.query(TavoloEvento).get(tavolo_id)
+        if not tavolo:
+            flash("Tavolo non trovato.", "danger")
+            return redirect(url_for("prenotazioni.admin_list"))
+        
+        if request.method == "POST":
+            tavolo.numero_tavolo = request.form.get("numero_tavolo", type=int)
+            tavolo.nome_tavolo = (request.form.get("nome_tavolo") or "").strip() or None
+            tavolo.capienza = request.form.get("capienza", type=int) or 4
+            tavolo.prezzo_minimo = request.form.get("prezzo_minimo", type=int) or None
+            tavolo.attivo = request.form.get("attivo") == "on"
+            
+            db.commit()
+            flash("Tavolo aggiornato correttamente.", "success")
+            return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=tavolo.evento_id))
+        
+        eventi = [tavolo.evento]
+        return render_template("admin/tavolo_form.html", evento=tavolo.evento, eventi=eventi, tavolo=tavolo)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/tavoli/<int:tavolo_id>/delete", methods=["POST"])
+@require_admin
+def admin_tavolo_delete(tavolo_id):
+    """Elimina tavolo"""
+    db = SessionLocal()
+    try:
+        tavolo = db.query(TavoloEvento).get(tavolo_id)
+        if not tavolo:
+            flash("Tavolo non trovato.", "danger")
+            return redirect(url_for("prenotazioni.admin_list"))
+        
+        evento_id = tavolo.evento_id
+        db.delete(tavolo)
+        db.commit()
+        flash("Tavolo eliminato correttamente.", "success")
+        return redirect(url_for("prenotazioni.admin_tavoli_evento", evento_id=evento_id))
+    finally:
+        db.close()
+
+
+# ============================================
+# ✅ APPROVAZIONE PRENOTAZIONI TAVOLO (Admin)
+# ============================================
+
+@prenotazioni_bp.route("/admin/tavoli/prenotazioni/attesa", methods=["GET"])
+@require_admin
+def admin_prenotazioni_tavolo_attesa():
+    """Lista prenotazioni tavolo in attesa di approvazione"""
+    db = SessionLocal()
+    try:
+        prenotazioni = db.query(Prenotazione, Cliente, Evento, TavoloEvento)\
+            .join(Cliente, Prenotazione.cliente_id == Cliente.id_cliente)\
+            .join(Evento, Prenotazione.evento_id == Evento.id_evento)\
+            .outerjoin(TavoloEvento, Prenotazione.numero_tavolo == TavoloEvento.id_tavolo)\
+            .filter(
+                Prenotazione.tipo == "tavolo",
+                Prenotazione.stato_approvazione_tavolo == "in_attesa"
+            )\
+            .order_by(Evento.data_evento.asc(), Prenotazione.id_prenotazione.asc())\
+            .all()
+        
+        return render_template("admin/prenotazioni_tavolo_attesa.html", prenotazioni=prenotazioni)
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/prenotazioni/<int:pren_id>/approva-tavolo", methods=["POST"])
+@require_admin
+def admin_approva_prenotazione_tavolo(pren_id):
+    """Approva una prenotazione tavolo"""
+    db = SessionLocal()
+    try:
+        pren = db.query(Prenotazione).get(pren_id)
+        if not pren or pren.tipo != "tavolo":
+            flash("Prenotazione non trovata o non valida.", "danger")
+            return redirect(url_for("prenotazioni.admin_prenotazioni_tavolo_attesa"))
+        
+        pren.stato_approvazione_tavolo = "approvata"
+        db.commit()
+        flash("Prenotazione tavolo approvata.", "success")
+        return redirect(url_for("prenotazioni.admin_prenotazioni_tavolo_attesa"))
+    finally:
+        db.close()
+
+
+@prenotazioni_bp.route("/admin/prenotazioni/<int:pren_id>/rifiuta-tavolo", methods=["POST"])
+@require_admin
+def admin_rifiuta_prenotazione_tavolo(pren_id):
+    """Rifiuta una prenotazione tavolo"""
+    db = SessionLocal()
+    try:
+        pren = db.query(Prenotazione).get(pren_id)
+        if not pren or pren.tipo != "tavolo":
+            flash("Prenotazione non trovata o non valida.", "danger")
+            return redirect(url_for("prenotazioni.admin_prenotazioni_tavolo_attesa"))
+        
+        pren.stato_approvazione_tavolo = "rifiutata"
+        pren.numero_tavolo = None  # Libera il tavolo
+        db.commit()
+        flash("Prenotazione tavolo rifiutata. Il tavolo è ora disponibile per altre prenotazioni.", "info")
+        return redirect(url_for("prenotazioni.admin_prenotazioni_tavolo_attesa"))
     finally:
         db.close()

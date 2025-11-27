@@ -5,30 +5,64 @@
 <section class="card">
   <div style="margin-bottom: 1.5rem;">
     <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-      <span style="font-size: 2rem;">📋</span>
-      <h1 class="card__title" style="margin: 0;">Prenota in Lista</h1>
+      <span style="font-size: 2rem;">🎟️</span>
+      <h1 class="card__title" style="margin: 0;">Prenota per {{ e.nome_evento }}</h1>
     </div>
     <div class="card__meta">{{ e.nome_evento }}</div>
-  <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
   </div>
 
-  <div style="padding: 1rem; background: rgba(17, 24, 39, 0.4); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
-    <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
-      <strong>Prenotazione in Lista:</strong> Aggiungi il tuo nome alla lista d'attesa per questo evento. 
-      Ti contatteremo per confermare la disponibilità.
-    </p>
+  <div class="grid grid--2" style="gap: 1rem;">
+    <article class="card" style="background: rgba(212, 175, 55, 0.08); border: 1px solid rgba(212, 175, 55, 0.3);">
+      <h2 class="card__title">🪑 Prenota un Tavolo</h2>
+      <p class="text--muted">
+        Diventa il referente del tavolo, scegli la posizione dalla piantina e indica il nome del gruppo. 
+        La prenotazione viene inviata all’amministrazione per approvazione.
+      </p>
+      <ul class="text--muted" style="margin: 0 0 1rem 1rem; font-size: 0.9rem;">
+        <li>Seleziona un tavolo approvato</li>
+        <li>Assegna nome gruppo e numero persone</li>
+        <li>Ricevi codice invito per condividere il tavolo</li>
+      </ul>
+      <a class="btn btn--primary" href="{{ url_for('prenotazioni.nuova_tavolo', evento_id=e.id_evento) }}" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); border: 1px solid rgba(212, 175, 55, 0.4);">
+        Vai a “Prenota un Tavolo”
+      </a>
+    </article>
+
+    <article class="card" style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.3);">
+      <h2 class="card__title">🤝 Entra in un Tavolo Esistente</h2>
+      <p class="text--muted">
+        Ti ha invitato un amico? Inserisci il nome del tavolo o il codice invito e collegati al gruppo già confermato (solo tavoli approvati).
+      </p>
+      <ul class="text--muted" style="margin: 0 0 1rem 1rem; font-size: 0.9rem;">
+        <li>Nessuna scelta tavolo: ti agganci al referente</li>
+        <li>Capienza gestita automaticamente</li>
+        <li>Flusso rapido senza approvazione admin</li>
+      </ul>
+      <a class="btn btn--primary" href="{{ url_for('prenotazioni.entra_tavolo', evento_id=e.id_evento) }}">
+        Vai a “Entra in un Tavolo”
+      </a>
+    </article>
   </div>
+
+  <hr style="margin: 2rem 0; border-color: rgba(255,255,255,0.1);">
 
   <form class="form" method="post" action="{{ url_for('prenotazioni.nuova') }}">
     <input type="hidden" name="evento_id" value="{{ e.id_evento }}">
     <input type="hidden" name="tipo" value="lista">
+
+    <div style="padding: 1rem; background: rgba(17, 24, 39, 0.4); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+        <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
+          <strong>📋 Prenotazione in Lista:</strong> aggiungi il tuo nominativo alla lista d’attesa ufficiale dell’evento e attendi conferma via staff.
+        </p>
+    </div>
 
     <div class="form__group">
       <label class="form__label">Note opzionali</label>
       <textarea 
         class="form__input" 
         name="note" 
-        id="note" 
+        id="note_lista" 
         placeholder="Aggiungi eventuali note o richieste particolari (opzionale)"
         rows="3"
         style="resize: vertical;"
@@ -37,18 +71,11 @@
     </div>
 
     <div class="form__actions">
-      <button class="btn btn--primary" type="submit">📋 Conferma Prenotazione in Lista</button>
+      <button class="btn btn--primary" type="submit">
+        📋 Conferma Prenotazione in Lista
+      </button>
       <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Annulla</a>
     </div>
   </form>
-
-  <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-    <p class="text--muted" style="font-size: 0.9rem; margin-bottom: 0.75rem;">
-      Vuoi prenotare un tavolo invece?
-    </p>
-    <a class="btn btn--ghost" href="{{ url_for('prenotazioni.nuova_tavolo', evento_id=e.id_evento) }}" style="width: 100%; justify-content: center;">
-      🪑 Vai a Prenota Tavolo
-    </a>
-  </div>
 </section>
 {% endblock %}

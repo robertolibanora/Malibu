@@ -39,6 +39,7 @@ class Evento(Base):
     fedelta = relationship("Fedelta", back_populates="evento", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="evento", cascade="all, delete-orphan")
     template = relationship("TemplateEvento", lazy="joined")
+    tavoli_evento = relationship("TavoloEvento", back_populates="evento", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Evento(id={self.id_evento}, nome='{self.nome_evento}', data={self.data_evento})>"

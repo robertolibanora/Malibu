@@ -1,61 +1,73 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Format Eventi{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Impostazioni -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
-  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost btn--small">👤 Staff</a>
-  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost btn--small">🍹 Listino</a>
-  <a href="{{ url_for('format.admin_list') }}" class="btn btn--primary btn--small">🎭 Format</a>
-  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost btn--small">⭐ Soglie</a>
-  <a href="{{ url_for('log.list') }}" class="btn btn--ghost btn--small">📜 Log</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '⚙️'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': '🍹'},
+    {'url': url_for('promozioni.admin_list'), 'endpoint': 'promozioni.admin_list', 'label': 'Promozioni', 'icon': '🎁'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '📋'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📊'},
+  ], current_endpoint=request.endpoint) }}
 
-<div class="formats-hub">
-  <header class="formats-hub__header fade-in">
-    <div class="formats-hub__intro">
-      <h1 class="formats-hub__title">Libreria Format Eventi</h1>
-      <p class="formats-hub__subtitle">Gestisci i template pronti all’uso per velocizzare la creazione dei prossimi eventi.</p>
-  </div>
-    <a href="{{ url_for('format.admin_new') }}" class="btn btn--primary btn--large">+ Nuovo Format</a>
-  </header>
+  {{ render_page_header(
+    title="Libreria Format Eventi",
+    subtitle="Gestisci i template pronti all'uso per velocizzare la creazione dei prossimi eventi",
+    actions=[
+      {'type': 'link', 'url': url_for('format.admin_new'), 'label': '+ Nuovo Format', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Format'}
+    ]
+  ) }}
 
-  <section class="formats-hub__body fade-in" style="animation-delay: 120ms;">
+  <!-- Lista Format -->
+  <section>
     {% if formats %}
-    <div class="formats-grid">
-  {% for f in formats %}
-      <article class="format-card">
-        <header class="format-card__header">
-      <div>
-            <h2 class="format-card__title">{{ f.nome }}</h2>
-            <div class="format-card__tags">
+    <div class="grid grid--auto">
+      {% for f in formats %}
+      <article class="card">
+        <div class="card__header">
+          <div>
+            <h2 class="card__title">{{ f.nome }}</h2>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); margin-top: var(--spacing-2);">
               {% if f.categoria %}<span class="badge badge--warning">{{ f.categoria|capitalize }}</span>{% endif %}
-          {% if f.tipo_musica %}<span class="badge">{{ f.tipo_musica }}</span>{% endif %}
-          {% if f.capienza %}<span class="badge">Capienza {{ f.capienza }}</span>{% endif %}
+              {% if f.tipo_musica %}<span class="badge badge--secondary">{{ f.tipo_musica }}</span>{% endif %}
+              {% if f.capienza %}<span class="badge badge--secondary">Capienza {{ f.capienza }}</span>{% endif %}
+            </div>
+          </div>
         </div>
-      </div>
-        </header>
-
         {% if f.descrizione %}
-        <p class="format-card__description">{{ f.descrizione }}</p>
+        <div class="card__content">
+          <p style="margin: 0; font-size: var(--font-size-sm); color: var(--admin-text);">{{ f.descrizione }}</p>
+        </div>
         {% endif %}
-
-        <footer class="format-card__footer">
-          <div class="format-card__actions">
-        <a href="{{ url_for('format.admin_edit', template_id=f.id_template) }}" class="btn btn--primary btn--small">Modifica</a>
-            <form method="post" action="{{ url_for('format.admin_delete', template_id=f.id_template) }}" onsubmit="return confirm('Eliminare questo format? Questa azione non può essere annullata.');">
-          <button class="btn btn--ghost btn--small" type="submit">Elimina</button>
-        </form>
-      </div>
-          <small class="format-card__hint">Duplica questo format quando crei un nuovo evento per mantenere coerenza nelle informazioni.</small>
-        </footer>
+        <div class="card__footer">
+          <div style="display: flex; gap: var(--spacing-2);">
+            <a href="{{ url_for('format.admin_edit', template_id=f.id_template) }}" class="btn btn--primary btn--small">Modifica</a>
+            <form method="post" action="{{ url_for('format.admin_delete', template_id=f.id_template) }}" onsubmit="return confirm('Eliminare questo format? Questa azione non può essere annullata.');" style="display: inline;">
+              <button class="btn btn--danger btn--small" type="submit">Elimina</button>
+            </form>
+          </div>
+          <small class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-2); display: block;">
+            Duplica questo format quando crei un nuovo evento per mantenere coerenza nelle informazioni.
+          </small>
+        </div>
       </article>
       {% endfor %}
     </div>
-  {% else %}
-    <div class="empty-state">Non hai ancora definito nessun format. Creane uno per accelerare la creazione dei prossimi eventi.</div>
+    {% else %}
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">🎭</span>
+      <p class="admin-empty-state__message">Non hai ancora definito nessun format. Creane uno per accelerare la creazione dei prossimi eventi.</p>
+    </div>
     {% endif %}
-</section>
+  </section>
 </div>
 {% endblock %}

@@ -9,6 +9,7 @@
   {{ render_secondary_nav([
     {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
     {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
     {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
     {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
     {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
@@ -23,207 +24,224 @@
     ]
   ) }}
 
-<!-- Banner Evento Operativo -->
-{% if evento_operativo %}
-<section class="card" style="margin-bottom: 2rem; border-left: 4px solid #10b981; background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-        <span style="font-size: 1.5rem;">🟢</span>
-        <span style="font-weight: 600; color: #10b981;">EVENTO OPERATIVO IN CORSO</span>
+  <!-- Banner Evento Operativo -->
+  {% if evento_operativo %}
+  <section class="card" style="border-left: 4px solid var(--color-green-accent); background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+    <div class="card__header">
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2);">
+          <span style="font-size: 1.5rem;">🟢</span>
+          <span style="font-weight: var(--font-weight-semibold); color: var(--color-green-accent);">EVENTO OPERATIVO IN CORSO</span>
+        </div>
+        <h2 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-2);">{{ evento_operativo.nome_evento }}</h2>
+        <p class="text--muted" style="margin: 0;">
+          📅 {{ evento_operativo.data_evento.strftime('%d/%m/%Y') if evento_operativo.data_evento else 'Data da definire' }}
+          {% if evento_operativo.categoria %} • {{ evento_operativo.categoria|capitalize }}{% endif %}
+        </p>
       </div>
-      <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem;">{{ evento_operativo.nome_evento }}</h2>
-      <p class="text--muted" style="margin: 0;">
-        📅 {{ evento_operativo.data_evento.strftime('%d/%m/%Y') if evento_operativo.data_evento else 'Data da definire' }}
-        {% if evento_operativo.categoria %} • {{ evento_operativo.categoria|capitalize }}{% endif %}
-      </p>
-    </div>
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
       <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary">
         📊 Dashboard Evento
       </a>
     </div>
-  </div>
-  
-  <!-- Statistiche Evento Corrente -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-    <div style="text-align: center;">
-      <div class="text--muted" style="font-size: 0.85rem;">Prenotazioni</div>
-      <div style="font-size: 1.75rem; font-weight: 700; color: #f59e0b;">{{ tot_prenotazioni_oggi }}</div>
-    </div>
-    <div style="text-align: center;">
-      <div class="text--muted" style="font-size: 0.85rem;">Ingressi</div>
-      <div style="font-size: 1.75rem; font-weight: 700; color: #3b82f6;">{{ tot_ingressi_oggi }}</div>
-    </div>
-    <div style="text-align: center;">
-      <div class="text--muted" style="font-size: 0.85rem;">Consumi</div>
-      <div style="font-size: 1.75rem; font-weight: 700; color: #10b981;">€{{ "%.0f"|format(tot_consumi_oggi) }}</div>
-    </div>
-  </div>
-</section>
-{% else %}
-<section class="card" style="margin-bottom: 2rem; border-left: 4px solid #6b7280; background: rgba(107, 114, 128, 0.1);">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
-        <span style="font-size: 1.5rem;">⚪</span>
-        <span style="font-weight: 600; color: #6b7280;">NESSUN EVENTO OPERATIVO</span>
+    
+    <!-- Statistiche Evento Corrente -->
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <div class="stat-card" style="text-align: center; border-left: none;">
+          <div class="stat-card__label">Prenotazioni</div>
+          <div class="stat-card__value" style="color: #f59e0b;">{{ tot_prenotazioni_oggi }}</div>
+        </div>
+        <div class="stat-card" style="text-align: center; border-left: none;">
+          <div class="stat-card__label">Ingressi</div>
+          <div class="stat-card__value" style="color: #3b82f6;">{{ tot_ingressi_oggi }}</div>
+        </div>
+        <div class="stat-card" style="text-align: center; border-left: none;">
+          <div class="stat-card__label">Consumi</div>
+          <div class="stat-card__value" style="color: var(--color-green-accent);">€{{ "%.0f"|format(tot_consumi_oggi) }}</div>
+        </div>
       </div>
-      <p class="text--muted" style="margin: 0;">Imposta un evento operativo per visualizzare le statistiche in tempo reale.</p>
-    </div>
-    <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="btn btn--secondary">
-      🎯 Imposta Evento
-    </a>
-  </div>
-</section>
-{% endif %}
-
-<!-- Statistiche Globali -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #f59e0b;">
-    <div style="font-size: 2.5rem; font-weight: 700; color: #f59e0b;">{{ tot_prenotazioni_attive }}</div>
-    <div class="text--muted" style="margin-top: 0.5rem; font-size: 0.9rem;">Prenotazioni Attive</div>
-    <div class="text--muted" style="margin-top: 0.25rem; font-size: 0.75rem;">(tutti gli eventi)</div>
-  </div>
-</div>
-
-<!-- Sezioni Operative -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
-  
-  <!-- Prenotazioni -->
-  <section class="card">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 1.75rem;">📋</span>
-      <div>
-        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Prenotazioni</h2>
-        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Gestione liste e tavoli</p>
-      </div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-        📋 Tutte le Prenotazioni
-      </a>
-      {% if evento_operativo %}
-      <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        🎯 Prenotazioni Evento Attivo
-      </a>
-      {% endif %}
-      <a href="{{ url_for('prenotazioni.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        ➕ Nuova Prenotazione
-      </a>
-    </div>
-    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
-        Gestisci prenotazioni in lista (📋) e tavoli (🪑)
-      </p>
     </div>
   </section>
-
-  <!-- Ingressi -->
-  <section class="card">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 1.75rem;">🚪</span>
-      <div>
-        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Ingressi</h2>
-        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Check-in e registro accessi</p>
+  {% else %}
+  <section class="card" style="border-left: 4px solid #6b7280; background: rgba(107, 114, 128, 0.1);">
+    <div class="card__header">
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2);">
+          <span style="font-size: 1.5rem;">⚪</span>
+          <span style="font-weight: var(--font-weight-semibold); color: #6b7280;">NESSUN EVENTO OPERATIVO</span>
+        </div>
+        <p class="text--muted" style="margin: 0;">Imposta un evento operativo per visualizzare le statistiche in tempo reale.</p>
       </div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-        📋 Tutti gli Ingressi
+      <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="btn btn--secondary">
+        🎯 Imposta Evento
       </a>
-      {% if evento_operativo %}
-      <a href="{{ url_for('ingressi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        🎯 Ingressi Evento Attivo
-      </a>
-      {% endif %}
-      <a href="{{ url_for('ingressi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        ➕ Nuovo Ingresso
-      </a>
-    </div>
-    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
-        Registra ingressi tramite QR code o manualmente
-      </p>
     </div>
   </section>
+  {% endif %}
 
-  <!-- Consumi -->
-  <section class="card">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 1.75rem;">💰</span>
-      <div>
-        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Consumi</h2>
-        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ordini e vendite</p>
-      </div>
+  <!-- Statistiche Globali -->
+  <div class="grid grid--auto">
+    <div class="stat-card" style="border-left: 4px solid #f59e0b; text-align: center;">
+      <div class="stat-card__value" style="color: #f59e0b;">{{ tot_prenotazioni_attive }}</div>
+      <div class="stat-card__label">Prenotazioni Attive</div>
+      <div class="stat-card__meta">(tutti gli eventi)</div>
     </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-        📋 Tutti i Consumi
-      </a>
-      {% if evento_operativo %}
-      <a href="{{ url_for('consumi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        🎯 Consumi Evento Attivo
-      </a>
-      {% endif %}
-      <a href="{{ url_for('consumi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        ➕ Nuovo Consumo
-      </a>
-    </div>
-    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
-        Traccia vendite e genera punti fedeltà
-      </p>
-    </div>
-  </section>
-
-  <!-- Feedback -->
-  <section class="card">
-    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-      <span style="font-size: 1.75rem;">💬</span>
-      <div>
-        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Feedback</h2>
-        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Valutazioni clienti</p>
-      </div>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-        📋 Tutti i Feedback
-      </a>
-      {% if evento_operativo %}
-      <a href="{{ url_for('feedback.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-        🎯 Feedback Evento Attivo
-      </a>
-      {% endif %}
-    </div>
-    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
-        Recensioni su musica, ingresso, ambiente e servizio
-      </p>
-    </div>
-  </section>
-</div>
-
-<!-- Filtro Rapido per Evento -->
-{% if eventi_recenti %}
-<section class="card" style="margin-top: 2rem;">
-  <h2 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem;">🔍 Accesso Rapido per Evento</h2>
-  <p class="text--muted" style="margin-bottom: 1rem; font-size: 0.9rem;">Seleziona un evento per visualizzare i dati filtrati:</p>
-  <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-    {% for e in eventi_recenti[:6] %}
-    <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small" style="flex: 1 1 180px; justify-content: flex-start; text-align: left;">
-      <span style="margin-right: 0.5rem;">
-        {% if e.stato_pubblico == 'attivo' %}🟢{% elif e.stato_pubblico == 'programmato' %}📅{% else %}⚪{% endif %}
-      </span>
-      <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-        {{ e.nome_evento[:20] }}{% if e.nome_evento|length > 20 %}...{% endif %}
-      </span>
-    </a>
-    {% endfor %}
   </div>
-</section>
-{% endif %}
 
+  <!-- Sezioni Operative -->
+  <div class="grid grid--auto">
+    <!-- Prenotazioni -->
+    <section class="card">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 1.75rem;">📋</span>
+          <div>
+            <h2 class="card__title" style="margin: 0;">Prenotazioni</h2>
+            <p class="card__meta" style="margin: 0;">Gestione liste e tavoli</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
+          <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            📋 Tutte le Prenotazioni
+          </a>
+          {% if evento_operativo %}
+          <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            🎯 Prenotazioni Evento Attivo
+          </a>
+          {% endif %}
+          <a href="{{ url_for('prenotazioni.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            ➕ Nuova Prenotazione
+          </a>
+        </div>
+      </div>
+      <div class="card__footer">
+        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
+          Gestisci prenotazioni in lista (📋) e tavoli (🪑)
+        </p>
+      </div>
+    </section>
+
+    <!-- Ingressi -->
+    <section class="card">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 1.75rem;">🚪</span>
+          <div>
+            <h2 class="card__title" style="margin: 0;">Ingressi</h2>
+            <p class="card__meta" style="margin: 0;">Check-in e registro accessi</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
+          <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            📋 Tutti gli Ingressi
+          </a>
+          {% if evento_operativo %}
+          <a href="{{ url_for('ingressi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            🎯 Ingressi Evento Attivo
+          </a>
+          {% endif %}
+          <a href="{{ url_for('ingressi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            ➕ Nuovo Ingresso
+          </a>
+        </div>
+      </div>
+      <div class="card__footer">
+        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
+          Registra ingressi tramite QR code o manualmente
+        </p>
+      </div>
+    </section>
+
+    <!-- Consumi -->
+    <section class="card">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 1.75rem;">💰</span>
+          <div>
+            <h2 class="card__title" style="margin: 0;">Consumi</h2>
+            <p class="card__meta" style="margin: 0;">Ordini e vendite</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
+          <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            📋 Tutti i Consumi
+          </a>
+          {% if evento_operativo %}
+          <a href="{{ url_for('consumi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            🎯 Consumi Evento Attivo
+          </a>
+          {% endif %}
+          <a href="{{ url_for('consumi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            ➕ Nuovo Consumo
+          </a>
+        </div>
+      </div>
+      <div class="card__footer">
+        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
+          Traccia vendite e genera punti fedeltà
+        </p>
+      </div>
+    </section>
+
+    <!-- Feedback -->
+    <section class="card">
+      <div class="card__header">
+        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+          <span style="font-size: 1.75rem;">💬</span>
+          <div>
+            <h2 class="card__title" style="margin: 0;">Feedback</h2>
+            <p class="card__meta" style="margin: 0;">Valutazioni clienti</p>
+          </div>
+        </div>
+      </div>
+      <div class="card__content">
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
+          <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            📋 Tutti i Feedback
+          </a>
+          {% if evento_operativo %}
+          <a href="{{ url_for('feedback.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+            🎯 Feedback Evento Attivo
+          </a>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card__footer">
+        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
+          Recensioni su musica, ingresso, ambiente e servizio
+        </p>
+      </div>
+    </section>
+  </div>
+
+  <!-- Filtro Rapido per Evento -->
+  {% if eventi_recenti %}
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">🔍 Accesso Rapido per Evento</h2>
+      <p class="card__meta">Seleziona un evento per visualizzare i dati filtrati</p>
+    </div>
+    <div class="card__content">
+      <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2);">
+        {% for e in eventi_recenti[:6] %}
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small" style="flex: 1 1 180px; justify-content: flex-start; text-align: left;">
+          <span style="margin-right: var(--spacing-2);">
+            {% if e.stato_pubblico == 'attivo' %}🟢{% elif e.stato_pubblico == 'programmato' %}📅{% else %}⚪{% endif %}
+          </span>
+          <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            {{ e.nome_evento[:20] }}{% if e.nome_evento|length > 20 %}...{% endif %}
+          </span>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  {% endif %}
 </div>
 {% endblock %}
-

@@ -1,136 +1,174 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Log Attività{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Impostazioni -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
-  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost btn--small">👤 Staff</a>
-  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost btn--small">🍹 Listino</a>
-  <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost btn--small">🎭 Format</a>
-  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost btn--small">⭐ Soglie</a>
-  <a href="{{ url_for('log.list') }}" class="btn btn--primary btn--small">📜 Log</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '🏠'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Listino', 'icon': '🍹'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '🎭'},
+    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': '⭐'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📜'},
+  ], current_endpoint=request.endpoint) }}
 
-{% set displayed_rows = rows or [] %}
-{% set counts = namespace(ingressi=0, consumi=0, altre=0) %}
-{% for log, staff, detail in displayed_rows %}
-  {% if log.tabella == 'ingressi' %}
-    {% set counts.ingressi = counts.ingressi + 1 %}
-  {% elif log.tabella == 'consumi' %}
-    {% set counts.consumi = counts.consumi + 1 %}
-  {% else %}
-    {% set counts.altre = counts.altre + 1 %}
-  {% endif %}
-{% endfor %}
+  {{ render_page_header(
+    title="Registro Attività",
+    subtitle="Traccia modifiche e operazioni eseguite dal personale · Filtri rapidi disponibili",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Log'}
+    ]
+  ) }}
 
-<div class="logs-hub">
-  <header class="logs-hub__header fade-in">
-    <div class="logs-hub__intro">
-      <h1 class="logs-hub__title">Registro Attività</h1>
-      <p class="logs-hub__subtitle">Traccia modifiche e operazioni eseguite dal personale con filtri rapidi.</p>
-          </div>
-    <div class="logs-hub__filters">
-      <form class="logs-filter" method="get">
-        <label class="logs-filter__field">
-          <span>Tabella</span>
+  {% set displayed_rows = rows or [] %}
+  {% set counts = namespace(ingressi=0, consumi=0, altre=0) %}
+  {% for log, staff, detail in displayed_rows %}
+    {% if log.tabella == 'ingressi' %}
+      {% set counts.ingressi = counts.ingressi + 1 %}
+    {% elif log.tabella == 'consumi' %}
+      {% set counts.consumi = counts.consumi + 1 %}
+    {% else %}
+      {% set counts.altre = counts.altre + 1 %}
+    {% endif %}
+  {% endfor %}
+
+  <!-- Statistiche -->
+  <section class="card">
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <div class="profile-metric">
+          <div class="profile-metric__label">Log storici</div>
+          <div class="profile-metric__value">{{ total }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Risultati correnti</div>
+          <div class="profile-metric__value">{{ displayed_rows|length }}</div>
+          <div class="profile-metric__meta">Pagina {{ page }} / {{ (total // per_page) + (1 if total % per_page else 0) }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Ingressi</div>
+          <div class="profile-metric__value">{{ counts.ingressi }}</div>
+          <div class="profile-metric__meta">Nel set filtrato</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Vendite bar</div>
+          <div class="profile-metric__value">{{ counts.consumi }}</div>
+          <div class="profile-metric__meta">Nel set filtrato</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filtri -->
+  <section class="card">
+    <form class="form" method="get">
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Tabella</label>
           <input class="form__input" type="text" name="tabella" value="{{ filtro_tabella or '' }}" placeholder="Es. clienti, ingressi">
-        </label>
-        <label class="logs-filter__field">
-          <span>Staff</span>
-          <select class="form__select form__select--dense" name="staff_id" onchange="this.form.submit()">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Staff</label>
+          <select class="form__select" name="staff_id" onchange="this.form.submit()">
             <option value="">Tutti</option>
-              {% for s in staffs %}
-                <option value="{{ s.id_staff }}" {% if filtro_staff_id == s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
-              {% endfor %}
-            </select>
-        </label>
-        <label class="logs-filter__field">
-          <span>Tipo</span>
-          <select class="form__select form__select--dense" name="tipo" onchange="this.form.submit()">
+            {% for s in staffs %}
+            <option value="{{ s.id_staff }}" {% if filtro_staff_id == s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Tipo</label>
+          <select class="form__select" name="tipo" onchange="this.form.submit()">
             <option value="" {% if not filtro_tipo %}selected{% endif %}>Tutti</option>
-              <option value="ingressi" {% if filtro_tipo == 'ingressi' %}selected{% endif %}>Ingressi</option>
-              <option value="vendite" {% if filtro_tipo == 'vendite' %}selected{% endif %}>Vendite Bar</option>
-            </select>
-        </label>
-        <label class="logs-filter__field">
-          <span>Dal</span>
-            <input class="form__input" type="datetime-local" name="dal" value="{{ filtro_dal or '' }}">
-        </label>
-        <label class="logs-filter__field">
-          <span>Al</span>
-            <input class="form__input" type="datetime-local" name="al" value="{{ filtro_al or '' }}">
-        </label>
-        <div class="logs-filter__actions">
-          <button class="btn btn--secondary btn--small" type="submit">Applica filtri</button>
-          {% if filtro_tabella or filtro_staff_id or filtro_tipo or filtro_dal or filtro_al %}
-          <a class="btn btn--ghost btn--small" href="{{ url_for('log.list') }}">Reset</a>
+            <option value="ingressi" {% if filtro_tipo == 'ingressi' %}selected{% endif %}>Ingressi</option>
+            <option value="vendite" {% if filtro_tipo == 'vendite' %}selected{% endif %}>Vendite Bar</option>
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Dal</label>
+          <input class="form__input" type="datetime-local" name="dal" value="{{ filtro_dal or '' }}">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Al</label>
+          <input class="form__input" type="datetime-local" name="al" value="{{ filtro_al or '' }}">
+        </div>
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Applica filtri</button>
+        {% if filtro_tabella or filtro_staff_id or filtro_tipo or filtro_dal or filtro_al %}
+        <a class="btn btn--ghost" href="{{ url_for('log.list') }}">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista Log -->
+  {% if displayed_rows %}
+  <section class="card">
+    <div class="card__content">
+      <ul class="timeline-list">
+        {% for log, staff, detail in displayed_rows %}
+        <li class="timeline-item">
+          <div class="timeline-item__header">
+            <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+              <span class="badge badge--{{ 'primary' if log.tabella == 'ingressi' else 'success' if log.tabella == 'consumi' else 'secondary' }}">
+                {{ log.tabella|capitalize }}
+              </span>
+              <span class="badge badge--secondary">{{ log.azione|upper }}</span>
+            </div>
+          </div>
+          <div class="timeline-item__meta">
+            {{ log.timestamp.strftime('%d/%m/%Y %H:%M') if log.timestamp else log.timestamp }}
+            {% if staff %}• {{ staff.nome }}{% endif %}
+          </div>
+          {% if detail %}
+          <p class="timeline-item__note">{{ detail }}</p>
+          {% endif %}
+          <div class="timeline-item__actions" style="margin-top: var(--spacing-2);">
+            {% if log.tabella == 'ingressi' and log.azione != 'delete' %}
+            <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=log.record_id) }}" class="btn btn--primary btn--small">Apri ingresso</a>
+            {% elif log.tabella == 'consumi' and log.azione != 'delete' %}
+            <a href="{{ url_for('consumi.admin_edit', consumo_id=log.record_id) }}" class="btn btn--secondary btn--small">Modifica consumo</a>
+            {% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </section>
+  {% else %}
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">📜</span>
+      <p class="admin-empty-state__message">Nessun log corrisponde ai criteri selezionati.</p>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Paginazione -->
+  {% if total > per_page %}
+  <section class="card">
+    <div class="card__content">
+      <nav class="management__pagination">
+        <div class="pagination__controls">
+          {% if page > 1 %}
+          <a class="btn btn--ghost btn--small" href="{{ url_for('log.list', page=page-1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, tipo=filtro_tipo, dal=filtro_dal, al=filtro_al) }}">« Precedente</a>
+          {% endif %}
+          {% if total > page * per_page %}
+          <a class="btn btn--ghost btn--small" href="{{ url_for('log.list', page=page+1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, tipo=filtro_tipo, dal=filtro_dal, al=filtro_al) }}">Successiva »</a>
           {% endif %}
         </div>
-      </form>
+        <div style="text-align: center; margin-top: var(--spacing-3);">
+          <small class="text--muted">Pagina {{ page }} di {{ (total // per_page) + (1 if total % per_page else 0) }}</small>
+        </div>
+      </nav>
     </div>
-  </header>
-
-  <section class="logs-hub__stats fade-in" style="animation-delay: 120ms;">
-    <article class="profile-metric">
-      <span class="profile-metric__label">Log storici</span>
-      <span class="profile-metric__value">{{ total }}</span>
-    </article>
-    <article class="profile-metric">
-      <span class="profile-metric__label">Risultati correnti</span>
-      <span class="profile-metric__value">{{ displayed_rows|length }}</span>
-      <span class="profile-metric__meta">Paginati {{ page }} / {{ (total // per_page) + (1 if total % per_page else 0) }}</span>
-    </article>
-    <article class="profile-metric">
-      <span class="profile-metric__label">Ingressi</span>
-      <span class="profile-metric__value">{{ counts.ingressi }}</span>
-      <span class="profile-metric__meta">Nel set filtrato</span>
-    </article>
-    <article class="profile-metric">
-      <span class="profile-metric__label">Vendite bar</span>
-      <span class="profile-metric__value">{{ counts.consumi }}</span>
-      <span class="profile-metric__meta">Nel set filtrato</span>
-    </article>
   </section>
-
-  <section class="logs-timeline fade-in" style="animation-delay: 180ms;">
-    {% if displayed_rows %}
-    <ul class="timeline-list">
-      {% for log, staff, detail in displayed_rows %}
-      <li class="timeline-item">
-        <div class="timeline-item__header">
-          <div class="logs-pill logs-pill--{{ log.tabella }}">{{ log.tabella|capitalize }}</div>
-          <span class="logs-action">{{ log.azione|upper }}</span>
-        </div>
-        <div class="timeline-item__meta">
-          {{ log.timestamp.strftime('%d/%m/%Y %H:%M') if log.timestamp else log.timestamp }}
-          {% if staff %}• {{ staff.nome }}{% endif %}
-                  </div>
-                  {% if detail %}
-        <p class="timeline-item__note">{{ detail }}</p>
-                  {% endif %}
-        <div class="timeline-item__actions">
-                  {% if log.tabella == 'ingressi' and log.azione != 'delete' %}
-            <a href="{{ url_for('ingressi.admin_ingresso_detail', ingresso_id=log.record_id) }}" class="btn btn--primary btn--small">Apri ingresso</a>
-                  {% elif log.tabella == 'consumi' and log.azione != 'delete' %}
-            <a href="{{ url_for('consumi.admin_edit', consumo_id=log.record_id) }}" class="btn btn--secondary btn--small">Modifica consumo</a>
-                  {% endif %}
-        </div>
-      </li>
-      {% endfor %}
-    </ul>
-      {% else %}
-    <div class="empty-state">Nessun log corrisponde ai criteri selezionati.</div>
-      {% endif %}
-  </section>
-
-  <section class="logs-pagination fade-in" style="animation-delay: 220ms;">
-        {% if page > 1 %}
-          <a class="btn btn--ghost" href="{{ url_for('log.list', page=page-1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, tipo=filtro_tipo, dal=filtro_dal, al=filtro_al) }}">« Precedente</a>
-        {% endif %}
-        {% if total > page * per_page %}
-          <a class="btn btn--ghost" href="{{ url_for('log.list', page=page+1, per_page=per_page, tabella=filtro_tabella, staff_id=filtro_staff_id, tipo=filtro_tipo, dal=filtro_dal, al=filtro_al) }}">Successiva »</a>
-        {% endif %}
-  </section>
-      </div>
+  {% endif %}
+</div>
 {% endblock %}

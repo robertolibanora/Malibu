@@ -1,84 +1,113 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Promozioni{% endblock %}
 
-{% block admin_content %}
-<div class="promo-hub">
-  <header class="promo-hub__header fade-in">
-    <div class="promo-hub__intro">
-      <h1 class="promo-hub__title">Gestione Promozioni</h1>
-      <p class="promo-hub__subtitle">Gestisci le promo attive e programmane di nuove per coinvolgere i clienti.</p>
-  </div>
-    <div class="promo-hub__actions">
-      <form method="get" class="promo-hub__filter">
-        <label class="promo-hub__filter-label">Stato</label>
-        <select class="form__select form__select--dense" name="attiva" onchange="this.form.submit()">
-          <option value="" {% if not filtro.attiva %}selected{% endif %}>Tutte</option>
-        <option value="true" {% if filtro.attiva=='true' %}selected{% endif %}>Attive</option>
-        <option value="false" {% if filtro.attiva=='false' %}selected{% endif %}>Disattive</option>
-      </select>
-      </form>
-      <a href="{{ url_for('promozioni.admin_new') }}" class="btn btn--primary btn--large">+ Nuova Promozione</a>
-    </div>
-  </header>
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
 
-  <section class="promo-grid fade-in" style="animation-delay: 120ms;">
-    {% if promozioni %}
-  {% for p in promozioni %}
-    <article class="promo-card">
-      <header class="promo-card__header">
-      <div>
-          <h2 class="promo-card__title">{{ p.nome }}</h2>
-          <div class="promo-card__tags">
-          <span class="badge badge--{{ 'success' if p.attiva else 'secondary' }}">{{ 'Attiva' if p.attiva else 'Disattiva' }}</span>
-          <span class="badge badge--warning">{{ p.tipo|replace('_', ' ')|title }}</span>
-            {% if p.auto_assegnazione %}<span class="badge">Auto-assegnazione</span>{% endif %}
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '🏠'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Listino', 'icon': '🍹'},
+    {'url': url_for('promozioni.admin_list'), 'endpoint': 'promozioni.admin_list', 'label': 'Promozioni', 'icon': '🎁'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '🎭'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📜'},
+  ], current_endpoint=request.endpoint) }}
+
+  {{ render_page_header(
+    title="Gestione Promozioni",
+    subtitle="Gestisci le promo attive e programmane di nuove per coinvolgere i clienti",
+    actions=[
+      {'type': 'link', 'url': url_for('promozioni.admin_new'), 'label': '+ Nuova Promozione', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')},
+      {'label': 'Promozioni'}
+    ]
+  ) }}
+
+  <!-- Filtri -->
+  <section class="card">
+    <form method="get" class="form">
+      <div class="form__group" style="margin-bottom: 0;">
+        <label class="form__label">Stato</label>
+        <select class="form__select" name="attiva" onchange="this.form.submit()">
+          <option value="" {% if not filtro.attiva %}selected{% endif %}>Tutte</option>
+          <option value="true" {% if filtro.attiva=='true' %}selected{% endif %}>Attive</option>
+          <option value="false" {% if filtro.attiva=='false' %}selected{% endif %}>Disattive</option>
+        </select>
+      </div>
+    </form>
+  </section>
+
+  <!-- Lista Promozioni -->
+  {% if promozioni %}
+  <div class="grid grid--auto">
+    {% for p in promozioni %}
+    <article class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">{{ p.nome }}</h2>
+          <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap; margin-top: var(--spacing-2);">
+            <span class="badge badge--{{ 'success' if p.attiva else 'secondary' }}">{{ 'Attiva' if p.attiva else 'Disattiva' }}</span>
+            <span class="badge badge--warning">{{ p.tipo|replace('_', ' ')|title }}</span>
+            {% if p.auto_assegnazione %}<span class="badge badge--secondary">Auto-assegnazione</span>{% endif %}
           </div>
         </div>
         <a href="{{ url_for('promozioni.admin_promozione_detail', promozione_id=p.id_promozione) }}" class="btn btn--primary btn--small">Apri scheda</a>
-      </header>
+      </div>
+      
+      {% if p.descrizione %}
+      <div class="card__content">
+        <p style="margin: 0; color: var(--color-text-muted);">{{ p.descrizione }}</p>
+      </div>
+      {% endif %}
 
-        {% if p.descrizione %}
-      <p class="promo-card__description">{{ p.descrizione }}</p>
-        {% endif %}
-
-      <dl class="promo-card__meta">
+      <div class="card__footer">
+        <dl class="info-list">
           {% if p.valore %}
-        <div>
-          <dt>Valore</dt>
-          <dd>
-            {% if p.tipo == 'sconto_percentuale' %}
-              {{ p.valore }}%
-            {% else %}
-              €{{ "%.2f"|format(p.valore) }}
-            {% endif %}
-          </dd>
-        </div>
+          <div class="info-list__item">
+            <dt class="info-list__label">Valore</dt>
+            <dd class="info-list__value">
+              {% if p.tipo == 'sconto_percentuale' %}
+                {{ p.valore }}%
+              {% else %}
+                €{{ "%.2f"|format(p.valore) }}
+              {% endif %}
+            </dd>
+          </div>
           {% endif %}
-        <div>
-          <dt>Periodo</dt>
-          <dd>
-            {{ p.data_inizio.strftime('%d/%m/%Y') if p.data_inizio else 'Inizio n/d' }} →
-            {{ p.data_fine.strftime('%d/%m/%Y') if p.data_fine else 'Fine n/d' }}
-          </dd>
-        </div>
-        <div>
-          <dt>Requisiti</dt>
-          <dd>
-          {% if p.livello_richiesto %}
-              Livello {{ p.livello_richiesto|upper }}
-            {% else %}
-              Nessun livello richiesto
-          {% endif %}
-            {% if p.punti_richiesti %} • {{ p.punti_richiesti }} pt{% endif %}
-          </dd>
-        </div>
-      </dl>
-  </article>
+          <div class="info-list__item">
+            <dt class="info-list__label">Periodo</dt>
+            <dd class="info-list__value">
+              {{ p.data_inizio.strftime('%d/%m/%Y') if p.data_inizio else 'Inizio n/d' }} →
+              {{ p.data_fine.strftime('%d/%m/%Y') if p.data_fine else 'Fine n/d' }}
+            </dd>
+          </div>
+          <div class="info-list__item">
+            <dt class="info-list__label">Requisiti</dt>
+            <dd class="info-list__value">
+              {% if p.livello_richiesto %}
+                Livello {{ p.livello_richiesto|upper }}
+              {% else %}
+                Nessun livello richiesto
+              {% endif %}
+              {% if p.punti_richiesti %} • {{ p.punti_richiesti }} pt{% endif %}
+            </dd>
+          </div>
+        </dl>
+      </div>
+    </article>
     {% endfor %}
+  </div>
   {% else %}
-    <div class="empty-state">Non ci sono promozioni da mostrare. Crea la prima promozione per coinvolgere i clienti.</div>
-    {% endif %}
-  </section>
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">🎁</span>
+      <p class="admin-empty-state__message">Non ci sono promozioni da mostrare. Crea la prima promozione per coinvolgere i clienti.</p>
     </div>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}
-

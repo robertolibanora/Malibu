@@ -1,68 +1,113 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Feedback{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
-<!-- Navigazione Secondaria Clienti -->
-<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
-  <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">👥 Anagrafica</a>
-  <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">⭐ Punti Fedeltà</a>
-  <a href="{{ url_for('fedelta.admin_movimenti') }}" class="btn btn--ghost btn--small">📊 Movimenti</a>
-  <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--ghost btn--small">📈 Analytics</a>
-  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary btn--small">💬 Feedback</a>
-</div>
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+  ], current_endpoint=request.endpoint) }}
 
-<section class="card">
-  <h1 class="card__title">Feedback</h1>
-  <div class="card__meta">
-    Totali: {{ count }} • Musica: {{ avg_musica }} • Ingresso: {{ avg_ingresso }} • Ambiente: {{ avg_ambiente }} • Servizio: {{ avg_servizio }}
-  </div>
-      <form class="form" method="get">
-        <div class="grid grid--2">
-          <div class="form__group">
-            <label class="form__label">Evento</label>
-            <select class="form__input" name="evento_id">
-              <option value="">— Tutti —</option>
-              {% for ev in eventi %}
-                <option value="{{ ev.id_evento }}" {% if filtro_evento_id and filtro_evento_id == ev.id_evento %}selected{% endif %}>
-                  {{ ev.data_evento }} — {{ ev.nome_evento }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="form__group">
-            <label class="form__label">Dal</label>
-            <input class="form__input" type="date" name="dal">
-          </div>
-          <div class="form__group">
-            <label class="form__label">Al</label>
-            <input class="form__input" type="date" name="al">
-          </div>
-        </div>
-        <div class="form__actions">
-          <button class="btn btn--secondary" type="submit">Filtra</button>
-          {% if filtro_evento_id or request.args.get('dal') or request.args.get('al') %}
-          <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost">Reset</a>
-          {% endif %}
-        </div>
-      </form>
-</section>
+  {{ render_page_header(
+    title="Feedback",
+    subtitle="Valutazioni clienti · Recensioni su musica, ingresso, ambiente e servizio",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Operativo', 'url': url_for('prenotazioni.admin_hub')},
+      {'label': 'Feedback'}
+    ]
+  ) }}
 
-<!-- Info paginazione -->
-{% if total > 0 %}
-<section class="card" style="padding: 1rem 1.5rem; margin-bottom: 1.5rem;">
-  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-    <div>
-      <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} feedback</strong>
+  <!-- Statistiche Generali -->
+  {% if count > 0 %}
+  <section class="card">
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <div class="profile-metric">
+          <div class="profile-metric__label">Totali</div>
+          <div class="profile-metric__value">{{ count }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Musica</div>
+          <div class="profile-metric__value">{{ "%.1f"|format(avg_musica) }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Ingresso</div>
+          <div class="profile-metric__value">{{ "%.1f"|format(avg_ingresso) }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Ambiente</div>
+          <div class="profile-metric__value">{{ "%.1f"|format(avg_ambiente) }}</div>
+        </div>
+        <div class="profile-metric">
+          <div class="profile-metric__label">Servizio</div>
+          <div class="profile-metric__value">{{ "%.1f"|format(avg_servizio) }}</div>
+        </div>
+      </div>
     </div>
-    <div style="display: flex; gap: 0.75rem; align-items: center;">
-      <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
-      <select class="form__input" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
-        <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
-        <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
-        <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
-        <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
-      </select>
+  </section>
+  {% endif %}
+
+  <!-- Filtri -->
+  <section class="card">
+    <form class="form" method="get">
+      <div class="grid grid--2">
+        <div class="form__group">
+          <label class="form__label">Evento</label>
+          <select class="form__select" name="evento_id">
+            <option value="">Tutti</option>
+            {% for ev in eventi %}
+            <option value="{{ ev.id_evento }}" {% if filtro_evento_id and filtro_evento_id == ev.id_evento %}selected{% endif %}>
+              {{ ev.data_evento }} — {{ ev.nome_evento }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Dal</label>
+          <input class="form__input" type="date" name="dal" value="{{ request.args.get('dal') or '' }}">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Al</label>
+          <input class="form__input" type="date" name="al" value="{{ request.args.get('al') or '' }}">
+        </div>
+      </div>
+      <div class="form__actions">
+        <button class="btn btn--primary" type="submit">Filtra</button>
+        {% if filtro_evento_id or request.args.get('dal') or request.args.get('al') %}
+        <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost">Reset</a>
+        {% endif %}
+      </div>
+    </form>
+  </section>
+
+  <!-- Info paginazione -->
+  {% if total > 0 %}
+  <section class="card">
+    <div class="card__content">
+      <div class="management">
+        <div class="management__info">
+          <strong>Mostrando {{ ((page - 1) * per_page) + 1 }} - {{ (page * per_page if page * per_page < total else total) }} di {{ total }} feedback</strong>
+        </div>
+        <div class="management__actions">
+          <label class="form__label" style="margin: 0; white-space: nowrap;">Per pagina:</label>
+          <select class="form__select" style="width: auto; min-width: 80px;" onchange="updatePerPage(this.value)">
+            <option value="25" {% if per_page==25 %}selected{% endif %}>25</option>
+            <option value="50" {% if per_page==50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page==100 %}selected{% endif %}>100</option>
+            <option value="200" {% if per_page==200 %}selected{% endif %}>200</option>
+          </select>
+        </div>
+      </div>
     </div>
-  </div>
+  </section>
   <script>
     function updatePerPage(value) {
       const url = new URL(window.location.href);
@@ -71,76 +116,101 @@
       window.location.href = url.toString();
     }
   </script>
-</section>
-{% endif %}
+  {% endif %}
 
-<section class="card">
-      {% if rows and rows|length %}
-        <div class="list">
-          {% for fb, cl, ev in rows %}
-            <div class="list__item">
-              <div><strong>{{ ev.nome_evento }}</strong> — {{ ev.data_evento }}</div>
-              <div>{{ cl.nome }} {{ cl.cognome }}</div>
-              <div>Musica: {{ fb.voto_musica }} • Ingresso: {{ fb.voto_ingresso }} • Ambiente: {{ fb.voto_ambiente }} • Servizio: {{ fb.voto_servizio }}</div>
-              {% if fb.note %}<div class="text--muted">{{ fb.note }}</div>{% endif %}
-              <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}">
-                <div class="form__actions">
-                  <button class="btn btn--danger" onclick="return confirm('Eliminare il feedback?')" type="submit">Elimina</button>
-                </div>
-              </form>
-            </div>
-          {% endfor %}
+  <!-- Lista Feedback -->
+  {% if rows and rows|length %}
+  <section class="list">
+    {% for fb, cl, ev in rows %}
+    <article class="card list__item">
+      <div class="list__item-header">
+        <div>
+          <div class="list__item-title-link">
+            <strong>{{ ev.nome_evento }}</strong>
+          </div>
+          <div class="list__item-meta">
+            {{ ev.data_evento }} • {{ cl.nome }} {{ cl.cognome }}
+          </div>
+          <div class="list__item-badges">
+            <span class="badge badge--primary">Musica: {{ fb.voto_musica }}</span>
+            <span class="badge badge--primary">Ingresso: {{ fb.voto_ingresso }}</span>
+            <span class="badge badge--primary">Ambiente: {{ fb.voto_ambiente }}</span>
+            <span class="badge badge--primary">Servizio: {{ fb.voto_servizio }}</span>
+          </div>
+          {% if fb.note %}
+          <div class="text--muted" style="margin-top: var(--spacing-2); font-size: var(--font-size-sm);">
+            {{ fb.note }}
+          </div>
+          {% endif %}
         </div>
-      {% else %}
-        <p class="text--muted">Nessun feedback trovato.</p>
-      {% endif %}
-</section>
-
-<!-- Paginazione -->
-{% if total_pages > 1 %}
-<section class="card" style="padding: 1.5rem; margin-top: 2rem;">
-  <div style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-    {% if page > 1 %}
-    <a href="{{ url_for('feedback.admin_list', page=1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">« Prima</a>
-    <a href="{{ url_for('feedback.admin_list', page=page-1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
-    {% endif %}
-    
-    <div style="display: flex; gap: 0.25rem; align-items: center; margin: 0 1rem;">
-      {% set start_page = pages_list[0] if pages_list else 1 %}
-      {% set end_page = pages_list[-1] if pages_list else total_pages %}
-      
-      {% if start_page > 1 %}
-      <a href="{{ url_for('feedback.admin_list', page=1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">1</a>
-      {% if start_page > 2 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      {% endif %}
-      
-      {% for p in pages_list %}
-      {% if p == page %}
-      <span class="btn btn--primary btn--small" style="pointer-events: none;">{{ p }}</span>
-      {% else %}
-      <a href="{{ url_for('feedback.admin_list', page=p, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">{{ p }}</a>
-      {% endif %}
-      {% endfor %}
-      
-      {% if end_page < total_pages %}
-      {% if end_page < total_pages - 1 %}
-      <span class="text--muted" style="padding: 0 0.5rem;">...</span>
-      {% endif %}
-      <a href="{{ url_for('feedback.admin_list', page=total_pages, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">{{ total_pages }}</a>
-      {% endif %}
+        <div class="list__item-actions">
+          <form method="post" action="{{ url_for('feedback.admin_delete', id_feedback=fb.id_feedback) }}" 
+                onsubmit="return confirm('Eliminare il feedback?');">
+            <button class="btn btn--danger btn--small" type="submit">Elimina</button>
+          </form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </section>
+  {% else %}
+  <section class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">💬</span>
+      <p class="admin-empty-state__message">Nessun feedback trovato.</p>
     </div>
-    
-    {% if page < total_pages %}
-    <a href="{{ url_for('feedback.admin_list', page=page+1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">Successiva ›</a>
-    <a href="{{ url_for('feedback.admin_list', page=total_pages, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">Ultima »</a>
-    {% endif %}
-  </div>
-  
-  <div style="text-align: center; margin-top: 1rem;">
-    <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
-  </div>
-</section>
-{% endif %}
+  </section>
+  {% endif %}
+
+  <!-- Paginazione -->
+  {% if total_pages > 1 %}
+  <section class="card">
+    <div class="card__content">
+      <nav class="management__pagination">
+        <div class="pagination__controls">
+          {% if page > 1 %}
+          <a href="{{ url_for('feedback.admin_list', page=1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">« Prima</a>
+          <a href="{{ url_for('feedback.admin_list', page=page-1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
+          {% endif %}
+          
+          <span class="pagination__pages">
+            {% set start_page = pages_list[0] if pages_list else 1 %}
+            {% set end_page = pages_list[-1] if pages_list else total_pages %}
+            
+            {% if start_page > 1 %}
+            <a href="{{ url_for('feedback.admin_list', page=1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="pagination__page">1</a>
+            {% if start_page > 2 %}
+            <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
+            {% endif %}
+            {% endif %}
+            
+            {% for p in pages_list %}
+            {% if p == page %}
+            <span class="pagination__page pagination__page--active">{{ p }}</span>
+            {% else %}
+            <a href="{{ url_for('feedback.admin_list', page=p, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="pagination__page">{{ p }}</a>
+            {% endif %}
+            {% endfor %}
+            
+            {% if end_page < total_pages %}
+            {% if end_page < total_pages - 1 %}
+            <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
+            {% endif %}
+            <a href="{{ url_for('feedback.admin_list', page=total_pages, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="pagination__page">{{ total_pages }}</a>
+            {% endif %}
+          </span>
+          
+          {% if page < total_pages %}
+          <a href="{{ url_for('feedback.admin_list', page=page+1, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">Successiva ›</a>
+          <a href="{{ url_for('feedback.admin_list', page=total_pages, per_page=per_page, evento_id=filtro_evento_id, dal=request.args.get('dal'), al=request.args.get('al')) }}" class="btn btn--ghost btn--small">Ultima »</a>
+          {% endif %}
+        </div>
+        <div style="text-align: center; margin-top: var(--spacing-3);">
+          <small class="text--muted">Pagina {{ page }} di {{ total_pages }}</small>
+        </div>
+      </nav>
+    </div>
+  </section>
+  {% endif %}
+</div>
 {% endblock %}

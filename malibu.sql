@@ -69,6 +69,24 @@ CREATE TABLE eventi (
 -- template_eventi referenced by app; can be created separately if needed.
 
 -- --------------------------------------------------------------------------
+-- Table: tavoli_evento
+-- --------------------------------------------------------------------------
+CREATE TABLE tavoli_evento (
+  id_tavolo INT AUTO_INCREMENT PRIMARY KEY,
+  evento_id INT NOT NULL,
+  numero_tavolo INT NOT NULL,
+  nome_tavolo VARCHAR(100),
+  capienza INT DEFAULT 4,
+  prezzo_minimo INT DEFAULT NULL,
+  attivo BOOLEAN DEFAULT TRUE NOT NULL,
+  UNIQUE KEY unique_tavolo_evento (evento_id, numero_tavolo),
+  INDEX idx_evento_tavolo (evento_id, attivo),
+  CONSTRAINT fk_tavoli_eventi
+    FOREIGN KEY (evento_id) REFERENCES eventi(id_evento)
+    ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------------------------
 -- Table: prenotazioni
 -- --------------------------------------------------------------------------
 CREATE TABLE prenotazioni (
@@ -80,16 +98,32 @@ CREATE TABLE prenotazioni (
   orario_previsto TIME DEFAULT NULL,
   note TEXT,
   stato ENUM('attiva', 'no-show', 'usata', 'cancellata') DEFAULT 'attiva',
+  ruolo_tavolo ENUM('referente', 'aderente', 'none') DEFAULT 'none' NOT NULL,
+  prenotazione_padre_id INT NULL,
+  numero_tavolo INT NULL,
+  nome_tavolo_gruppo VARCHAR(100) NULL,
+  stato_approvazione_tavolo ENUM('in_attesa', 'approvata', 'rifiutata') NULL DEFAULT NULL,
+  codice_invito VARCHAR(10) UNIQUE,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_prenotazioni_cliente (cliente_id),
   INDEX idx_prenotazioni_evento (evento_id),
   INDEX idx_prenotazioni_stato (stato),
+  INDEX idx_prenotazione_tavolo (numero_tavolo),
+  INDEX idx_prenotazione_stato_approvazione (stato_approvazione_tavolo),
+  INDEX idx_prenotazione_tipo_stato (tipo, stato, stato_approvazione_tavolo),
+  INDEX idx_prenotazione_padre (prenotazione_padre_id),
   CONSTRAINT fk_prenotazioni_clienti
     FOREIGN KEY (cliente_id) REFERENCES clienti(id_cliente)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT fk_prenotazioni_eventi
     FOREIGN KEY (evento_id) REFERENCES eventi(id_evento)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_prenotazione_tavolo
+    FOREIGN KEY (numero_tavolo) REFERENCES tavoli_evento(id_tavolo)
+    ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT fk_prenotazione_padre
+    FOREIGN KEY (prenotazione_padre_id) REFERENCES prenotazioni(id_prenotazione)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

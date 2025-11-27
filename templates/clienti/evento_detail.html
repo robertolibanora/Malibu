@@ -28,10 +28,14 @@
             <a class="btn btn--primary" href="{{ url_for('prenotazioni.nuova_tavolo', evento_id=e.id_evento) }}" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); border: 1px solid rgba(212, 175, 55, 0.4);">
               🪑 Prenota Tavolo
             </a>
+            <a class="btn btn--primary" href="{{ url_for('prenotazioni.entra_tavolo', evento_id=e.id_evento) }}" style="flex:1; min-width:140px; background: rgba(59,130,246,0.2); border:1px solid rgba(59,130,246,0.6); color: #93c5fd;">
+              🤝 Entra in un Tavolo
+            </a>
           </div>
           <small class="text--muted" style="font-size: 0.85rem; line-height: 1.4;">
             <strong>Prenota in Lista:</strong> prenotazione standard per entrare in lista d'attesa<br>
-            <strong>Prenota Tavolo:</strong> prenotazione riservata per un tavolo specifico
+            <strong>Prenota Tavolo:</strong> percorso completo per diventare referente di un tavolo approvato<br>
+            <strong>Entra in un Tavolo:</strong> usa il codice invito ricevuto per unirti a un tavolo già prenotato
           </small>
         </div>
       {% elif prenotazione_attiva %}

@@ -62,6 +62,67 @@ def create_app():
                     "ADD CONSTRAINT chk_voto_servizio "
                     "CHECK (voto_servizio BETWEEN 1 AND 10)"
                 ))
+
+        prenotazioni_columns = {col["name"] for col in inspector.get_columns("prenotazioni")}
+        if "ruolo_tavolo" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN ruolo_tavolo ENUM('referente', 'aderente', 'none') "
+                    "NOT NULL DEFAULT 'none' "
+                    "AFTER stato"
+                ))
+        if "prenotazione_padre_id" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN prenotazione_padre_id INT NULL "
+                    "AFTER ruolo_tavolo"
+                ))
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD CONSTRAINT fk_prenotazioni_padre "
+                    "FOREIGN KEY (prenotazione_padre_id) "
+                    "REFERENCES prenotazioni(id_prenotazione) "
+                    "ON DELETE CASCADE ON UPDATE CASCADE"
+                ))
+        if "codice_invito" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN codice_invito VARCHAR(10) UNIQUE "
+                    "AFTER prenotazione_padre_id"
+                ))
+        if "numero_tavolo" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN numero_tavolo INT NULL "
+                    "AFTER codice_invito"
+                ))
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD CONSTRAINT fk_prenotazioni_tavolo "
+                    "FOREIGN KEY (numero_tavolo) "
+                    "REFERENCES tavoli_evento(id_tavolo) "
+                    "ON DELETE SET NULL ON UPDATE CASCADE"
+                ))
+        if "nome_tavolo_gruppo" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN nome_tavolo_gruppo VARCHAR(100) "
+                    "AFTER numero_tavolo"
+                ))
+        if "stato_approvazione_tavolo" not in prenotazioni_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE prenotazioni "
+                    "ADD COLUMN stato_approvazione_tavolo "
+                    "ENUM('in_attesa','approvata','rifiutata') "
+                    "DEFAULT NULL "
+                    "AFTER nome_tavolo_gruppo"
+                ))
         staff_columns = inspector.get_columns("staff")
         ruolo_column = next((col for col in staff_columns if col["name"] == "ruolo"), None)
         desired_roles = ("admin", "barista", "ingressista")

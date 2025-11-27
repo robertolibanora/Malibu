@@ -11,3 +11,4 @@ from app.models.feedback import Feedback
 from app.models.log_attivita import LogAttivita
 from app.models.prodotti import Prodotto
 from app.models.promozioni import Promozione, ClientePromozione
+from app.models.tavoli_evento import TavoloEvento

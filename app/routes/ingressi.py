@@ -107,6 +107,10 @@ def staff_scan():
             pren = _active_prenotazione(db, cli.id_cliente, e.id_evento)
             if pren:
                 tipo_ingresso = pren.tipo
+                # Verifica approvazione per prenotazioni tavolo
+                if pren.tipo == "tavolo" and pren.stato_approvazione_tavolo != "approvata":
+                    flash("La prenotazione tavolo non è stata ancora approvata. Impossibile registrare l'ingresso.", "warning")
+                    return redirect(url_for("ingressi.staff_scan"))
             else:
                 # Nessuna prenotazione -> distinguiamo automaticamente come 'lista'
                 tipo_ingresso = "lista"

@@ -1,0 +1,63 @@
+{# Header Evento Unificato - Usato in Gestione e Dettaglio #}
+{% macro render_evento_header(evento) %}
+<section class="card" style="border-left: 4px solid {% if evento.stato_pubblico == 'attivo' %}#3fc380{% elif evento.stato_pubblico == 'programmato' %}#d4af37{% else %}#6b7280{% endif %};">
+  <div class="card__header" style="padding: var(--spacing-4);">
+    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-3);">
+      <!-- Nome e Info -->
+      <div style="flex: 1; min-width: 200px;">
+        <h1 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-2); color: var(--admin-text);">
+          {{ evento.nome_evento }}
+        </h1>
+        <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+          <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+            📅 {{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}
+          </span>
+          {% if evento.dj_artista %}
+          <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
+            🎧 {{ evento.dj_artista }}
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Stato e Badge -->
+      <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
+        <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'primary' if evento.stato_pubblico == 'programmato' else 'secondary' }}" style="font-size: var(--font-size-sm); padding: var(--spacing-2) var(--spacing-3);">
+          {{ evento.stato_pubblico|upper }}
+        </span>
+        {% if evento.is_staff_operativo %}
+        <span class="badge badge--success" style="font-size: var(--font-size-sm); padding: var(--spacing-2) var(--spacing-3);">
+          🟢 OPERATIVO
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Azioni Principali -->
+      <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
+        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">✏️ Modifica</a>
+        <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}" style="display: inline;">
+          <button type="submit" class="btn btn--secondary btn--small" title="Duplica evento">📋 Duplica</button>
+        </form>
+        {% if not evento.is_staff_operativo %}
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+          <button class="btn btn--secondary btn--small" type="submit" name="evento_id" value="{{ evento.id_evento }}">🟢 Attiva Staff</button>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+          <input type="hidden" name="evento_id" value="clear">
+          <button class="btn btn--ghost btn--small" type="submit">🔴 Disattiva</button>
+        </form>
+        {% endif %}
+        {% if evento.stato_pubblico != 'chiuso' %}
+        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
+              style="display: inline;" 
+              onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
+          <button class="btn btn--danger btn--small" type="submit">🔒 Chiudi</button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endmacro %}
+

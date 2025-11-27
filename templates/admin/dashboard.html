@@ -17,393 +17,429 @@
   ) }}
 
   <!-- Filtro Periodo -->
-  <section class="card" style="margin-bottom: 2rem;">
-    <form method="get" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
-      <label class="form__label" for="dashboard-range" style="margin: 0;">Periodo analisi:</label>
-      <select id="dashboard-range" name="range" class="form__input" style="width: auto; min-width: 200px;" onchange="this.form.submit()">
-        {% for option in range_options %}
-        <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>Ultimi {{ option }} giorni</option>
-        {% endfor %}
-      </select>
+  <section class="card">
+    <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
+      <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
+        <label class="form__label" for="dashboard-range">Periodo analisi</label>
+        <select id="dashboard-range" name="range" class="form__select" onchange="this.form.submit()">
+          {% for option in range_options %}
+          <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>Ultimi {{ option }} giorni</option>
+          {% endfor %}
+        </select>
+      </div>
     </form>
   </section>
 
   <!-- Quick Actions -->
-  <section class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--gold-primary); background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.02));">
-    <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem; color: var(--admin-accent);">⚡ Accesso Rapido</h2>
-    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
-      <a href="{{ url_for('eventi.admin_list') }}" class="admin-quick-link">
-        <span class="admin-quick-link__icon">📅</span>
-        <span class="admin-quick-link__text">
-          <strong>Eventi</strong>
-          <small>Gestione eventi</small>
-        </span>
-      </a>
-      <a href="{{ url_for('prenotazioni.admin_hub') }}" class="admin-quick-link">
-        <span class="admin-quick-link__icon">📋</span>
-        <span class="admin-quick-link__text">
-          <strong>Operativo</strong>
-          <small>Prenotazioni e ingressi</small>
-        </span>
-      </a>
-      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="admin-quick-link">
-        <span class="admin-quick-link__icon">👥</span>
-        <span class="admin-quick-link__text">
-          <strong>Clienti</strong>
-          <small>Anagrafica e fedeltà</small>
-        </span>
-      </a>
-      <a href="{{ url_for('staff_admin.admin_hub') }}" class="admin-quick-link">
-        <span class="admin-quick-link__icon">⚙️</span>
-        <span class="admin-quick-link__text">
-          <strong>Configurazione</strong>
-          <small>Impostazioni sistema</small>
-        </span>
-      </a>
+  <section class="card" style="border-left: 4px solid var(--admin-accent); background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%);">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">⚡ Accesso Rapido</h2>
+        <p class="card__subtitle">Navigazione veloce alle sezioni principali</p>
+      </div>
+    </div>
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <a href="{{ url_for('eventi.admin_list') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+            <span style="font-size: 2rem;">📅</span>
+            <div>
+              <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Eventi</strong>
+              <small class="text--muted">Gestione eventi</small>
+            </div>
+          </div>
+        </a>
+        <a href="{{ url_for('prenotazioni.admin_hub') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+            <span style="font-size: 2rem;">📋</span>
+            <div>
+              <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Operativo</strong>
+              <small class="text--muted">Prenotazioni e ingressi</small>
+            </div>
+          </div>
+        </a>
+        <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+            <span style="font-size: 2rem;">👥</span>
+            <div>
+              <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Clienti</strong>
+              <small class="text--muted">Anagrafica e fedeltà</small>
+            </div>
+          </div>
+        </a>
+        <a href="{{ url_for('staff_admin.admin_hub') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
+          <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+            <span style="font-size: 2rem;">⚙️</span>
+            <div>
+              <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Configurazione</strong>
+              <small class="text--muted">Impostazioni sistema</small>
+            </div>
+          </div>
+        </a>
+      </div>
     </div>
   </section>
 
-  <style>
-  .admin-quick-link {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-3);
-    padding: var(--spacing-3) var(--spacing-4);
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(212, 175, 55, 0.1);
-    border-radius: var(--radius-md);
-    text-decoration: none;
-    color: var(--admin-text);
-    transition: all var(--transition-base);
-  }
-  
-  .admin-quick-link:hover {
-    background: rgba(212, 175, 55, 0.1);
-    border-color: rgba(212, 175, 55, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
-  }
-  
-  .admin-quick-link__icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-  }
-  
-  .admin-quick-link__text {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-1);
-  }
-  
-  .admin-quick-link__text strong {
-    font-size: var(--font-size-base);
-    font-weight: var(--font-weight-semibold);
-    color: var(--admin-text);
-  }
-  
-  .admin-quick-link__text small {
-    font-size: var(--font-size-xs);
-    color: rgba(255, 255, 255, 0.5);
-  }
-  </style>
-
-<!-- Statistiche Principali -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-  <!-- Clienti -->
-  <div class="card" style="padding: 1.5rem; border-left: 4px solid var(--gold-primary);">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
-      <div>
-        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">👥 Clienti Totali</div>
-        <div style="font-size: 2.5rem; font-weight: 700; color: var(--gold-primary);">{{ tot_clienti }}</div>
-        <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">{{ clienti_attivi }} attivi</div>
-      </div>
-    </div>
-    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <div class="text--muted" style="font-size: 0.85rem;">Nuovi ({{ range_days }} gg)</div>
-      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ nuovi_clienti }}</div>
+  <!-- Statistiche Principali -->
+  <div class="grid grid--auto">
+    <!-- Clienti -->
+    <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">👥 Clienti Totali</div>
+      <div class="stat-card__value">{{ tot_clienti }}</div>
+      <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
       {% if nuovi_clienti_delta_abs != 0 %}
-      <div style="font-size: 0.75rem; margin-top: 0.25rem; color: {% if nuovi_clienti_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
-        {% if nuovi_clienti_delta_abs > 0 %}+{% endif %}{{ nuovi_clienti_delta_abs }}
-        {% if nuovi_clienti_delta_pct is not none %} ({% if nuovi_clienti_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(nuovi_clienti_delta_pct|abs) }}%){% endif %}
-      </div>
-      {% endif %}
-    </div>
-  </div>
-
-  <!-- Ingressi -->
-  <div class="card" style="padding: 1.5rem; border-left: 4px solid #3b82f6;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
-      <div>
-        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">🚪 Ingressi ({{ range_days }} gg)</div>
-        <div style="font-size: 2.5rem; font-weight: 700; color: #3b82f6;">{{ ingressi_recenti }}</div>
-      </div>
-    </div>
-    {% if ingressi_delta_abs != 0 %}
-    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <div style="font-size: 0.75rem; color: {% if ingressi_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
-        {% if ingressi_delta_abs > 0 %}+{% endif %}{{ ingressi_delta_abs }}
-        {% if ingressi_delta_pct is not none %} ({% if ingressi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(ingressi_delta_pct|abs) }}%){% endif %}
-        <span class="text--muted">vs periodo precedente</span>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Consumi -->
-  <div class="card" style="padding: 1.5rem; border-left: 4px solid #10b981;">
-    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
-      <div>
-        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">💰 Consumi ({{ range_days }} gg)</div>
-        <div style="font-size: 2.5rem; font-weight: 700; color: #10b981;">€{{ "%.0f"|format(consumi_recenti) }}</div>
-      </div>
-    </div>
-    {% if consumi_delta_abs != 0 %}
-    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
-      <div style="font-size: 0.75rem; color: {% if consumi_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
-        {% if consumi_delta_abs > 0 %}+{% endif %}€{{ "%.0f"|format(consumi_delta_abs|abs) }}
-        {% if consumi_delta_pct is not none %} ({% if consumi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(consumi_delta_pct|abs) }}%){% endif %}
-        <span class="text--muted">vs periodo precedente</span>
-      </div>
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Eventi -->
-  <div class="card" style="padding: 1.5rem; border-left: 4px solid #8b5cf6;">
-    <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">📅 Eventi</div>
-    <div style="font-size: 2.5rem; font-weight: 700; color: #8b5cf6;">{{ eventi_attivi }}</div>
-    <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">{{ tot_eventi }} totali</div>
-  </div>
-
-  <!-- Prenotazioni -->
-  <div class="card" style="padding: 1.5rem; border-left: 4px solid #f59e0b;">
-    <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">📋 Prenotazioni Attive</div>
-    <div style="font-size: 2.5rem; font-weight: 700; color: #f59e0b;">{{ prenotazioni_attive }}</div>
-    <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">Stato "attiva"</div>
-  </div>
-</div>
-
-<!-- Prossimo Evento -->
-{% if prossimo_evento %}
-{% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
-<section class="card" style="margin-bottom: 2rem; border-left: 4px solid {% if is_staff_operativo %}#10b981{% else %}#3b82f6{% endif %}; background: {% if is_staff_operativo %}linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%){% else %}rgba(59, 130, 246, 0.05){% endif %};">
-  <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
-    <div style="flex: 1; min-width: 250px;">
-      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-        <span style="font-size: 1.25rem; font-weight: 600;">📅 Prossimo Evento</span>
-        {% if giorni_al_prossimo_evento is not none %}
-        <span class="badge" style="background: {% if giorni_al_prossimo_evento <= 0 %}#10b981{% elif giorni_al_prossimo_evento == 1 %}#f59e0b{% else %}#3b82f6{% endif %}; color: white;">
-          {% if giorni_al_prossimo_evento <= 0 %}IN CORSO{% elif giorni_al_prossimo_evento == 1 %}DOMANI{% else %}TRA {{ giorni_al_prossimo_evento }} GIORNI{% endif %}
+      <div class="stat-card__trend {% if nuovi_clienti_delta_abs > 0 %}stat-card__trend--up{% else %}stat-card__trend--down{% endif %}">
+        <span class="stat-card__trend-label">Nuovi ({{ range_days }} gg):</span>
+        <span class="stat-card__trend-value">{{ nuovi_clienti }}</span>
+        <span class="stat-card__trend-pct">
+          {% if nuovi_clienti_delta_abs > 0 %}+{% endif %}{{ nuovi_clienti_delta_abs }}
+          {% if nuovi_clienti_delta_pct is not none %} ({% if nuovi_clienti_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(nuovi_clienti_delta_pct|abs) }}%){% endif %}
         </span>
-        {% endif %}
-        <span class="badge badge--secondary">{{ prossimo_evento.stato_pubblico|upper }}</span>
-        {% if is_staff_operativo %}
-        <span class="badge" style="background: #10b981; color: white;">🟢 OPERATIVO STAFF</span>
-        {% endif %}
       </div>
-      <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem;">{{ prossimo_evento.nome_evento }}</h2>
-      <p class="text--muted" style="margin: 0 0 0.5rem;">
-        📅 {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
-        {% if prossimo_evento.dj_artista %} · 🎧 {{ prossimo_evento.dj_artista }}{% endif %}
-        {% if prossimo_evento.categoria %} · {{ prossimo_evento.categoria|capitalize }}{% endif %}
-      </p>
-      {% if prossimo_evento.capienza_max %}
-      <p class="text--muted" style="margin: 0;">👥 Capienza: {{ prossimo_evento.capienza_max }}</p>
       {% endif %}
-    </div>
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-      {% if not is_staff_operativo %}
-      <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-        <button type="submit" class="btn btn--primary btn--small" name="evento_id" value="{{ prossimo_evento.id_evento }}">
-          🟢 Attiva Staff
-        </button>
-      </form>
-      {% else %}
-      <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-        <input type="hidden" name="evento_id" value="clear">
-        <button type="submit" class="btn btn--ghost btn--small">🔴 Disattiva Staff</button>
-      </form>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--admin-accent); opacity: 0.7;">Clicca per vedere →</div>
+    </a>
+
+    <!-- Ingressi -->
+    <a href="{{ url_for('ingressi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #3b82f6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">🚪 Ingressi ({{ range_days }} gg)</div>
+      <div class="stat-card__value" style="color: #3b82f6;">{{ ingressi_recenti }}</div>
+      {% if ingressi_delta_abs != 0 %}
+      <div class="stat-card__trend {% if ingressi_delta_abs > 0 %}stat-card__trend--up{% else %}stat-card__trend--down{% endif %}">
+        <span class="stat-card__trend-value">
+          {% if ingressi_delta_abs > 0 %}+{% endif %}{{ ingressi_delta_abs }}
+        </span>
+        <span class="stat-card__trend-pct">
+          {% if ingressi_delta_pct is not none %} ({% if ingressi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(ingressi_delta_pct|abs) }}%){% endif %}
+        </span>
+        <span class="stat-card__trend-label">vs periodo precedente</span>
+      </div>
       {% endif %}
-      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">
-        📊 Dashboard
-      </a>
-      <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">
-        ✏️ Modifica
-      </a>
-    </div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #3b82f6; opacity: 0.7;">Clicca per vedere →</div>
+    </a>
+
+    <!-- Consumi -->
+    <a href="{{ url_for('consumi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--color-green-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">💰 Consumi ({{ range_days }} gg)</div>
+      <div class="stat-card__value" style="color: var(--color-green-accent);">€{{ "%.0f"|format(consumi_recenti) }}</div>
+      {% if consumi_delta_abs != 0 %}
+      <div class="stat-card__trend {% if consumi_delta_abs > 0 %}stat-card__trend--up{% else %}stat-card__trend--down{% endif %}">
+        <span class="stat-card__trend-value">
+          {% if consumi_delta_abs > 0 %}+{% endif %}€{{ "%.0f"|format(consumi_delta_abs|abs) }}
+        </span>
+        <span class="stat-card__trend-pct">
+          {% if consumi_delta_pct is not none %} ({% if consumi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(consumi_delta_pct|abs) }}%){% endif %}
+        </span>
+        <span class="stat-card__trend-label">vs periodo precedente</span>
+      </div>
+      {% endif %}
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--color-green-accent); opacity: 0.7;">Clicca per vedere →</div>
+    </a>
+
+    <!-- Eventi -->
+    <a href="{{ url_for('eventi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #8b5cf6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">📅 Eventi</div>
+      <div class="stat-card__value" style="color: #8b5cf6;">{{ eventi_attivi }}</div>
+      <div class="stat-card__meta">{{ tot_eventi }} totali</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #8b5cf6; opacity: 0.7;">Clicca per vedere →</div>
+    </a>
+
+    <!-- Prenotazioni -->
+    <a href="{{ url_for('prenotazioni.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #f59e0b;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">📋 Prenotazioni Attive</div>
+      <div class="stat-card__value" style="color: #f59e0b;">{{ prenotazioni_attive }}</div>
+      <div class="stat-card__meta">Stato "attiva"</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #f59e0b; opacity: 0.7;">Clicca per vedere →</div>
+    </a>
   </div>
 
-  {% if prossimo_evento_stats %}
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
-    <div>
-      <div class="text--muted" style="font-size: 0.85rem;">Prenotazioni</div>
-      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ prossimo_evento_stats.prenotazioni_totali }}</div>
-      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.prenotazioni_attive }} attive</div>
-    </div>
-    <div>
-      <div class="text--muted" style="font-size: 0.85rem;">Ingressi</div>
-      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ prossimo_evento_stats.ingressi_totali }}</div>
-      {% if prossimo_evento_stats.capienza %}
-      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.occupancy_pct }}% capienza</div>
-      {% endif %}
-    </div>
-    <div>
-      <div class="text--muted" style="font-size: 0.85rem;">Consumi</div>
-      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">€{{ "%.0f"|format(prossimo_evento_stats.consumi_totali) }}</div>
-    </div>
-    {% if prossimo_evento_stats.feedback_samples > 0 %}
-    <div>
-      <div class="text--muted" style="font-size: 0.85rem;">Feedback</div>
-      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ "%.1f"|format(prossimo_evento_stats.feedback_media_generale) }}/10</div>
-      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.feedback_samples }} valutazioni</div>
-    </div>
-    {% endif %}
-  </div>
-  {% endif %}
-</section>
-{% endif %}
-
-<!-- Grafici e Insights -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-  <!-- Trend Grafico -->
-  <section class="card">
-    <div style="margin-bottom: 1rem;">
-      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">📈 Trend Attività</h2>
-      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ingressi e consumi giornalieri ({{ range_days }} gg)</p>
-    </div>
-    {% if has_trend_data %}
-    <div style="height: 300px; position: relative;">
-      <canvas id="dashboard-trend-chart"></canvas>
-    </div>
-    {% else %}
-    <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun dato disponibile nel periodo selezionato.</p>
-    {% endif %}
-  </section>
-
-  <!-- Distribuzione Livelli -->
-  <section class="card">
-    <div style="margin-bottom: 1rem;">
-      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">⭐ Distribuzione Livelli Fedeltà</h2>
-      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ripartizione clienti per tier</p>
-    </div>
-    {% set totale_livelli = livelli_dist.values()|sum %}
-    {% if totale_livelli %}
-    <div style="display: flex; flex-direction: column; gap: 1rem;">
-      {% for livello, count in livelli_dist.items() %}
-      {% set percent = (count / totale_livelli * 100) %}
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-          <span style="font-weight: 500;">{{ livello|capitalize }}</span>
-          <span class="badge badge--secondary">{{ count }} ({{ "%.1f"|format(percent) }}%)</span>
+  <!-- Prossimo Evento -->
+  {% if prossimo_evento %}
+  {% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
+  <section class="card" style="border-left: 4px solid {% if is_staff_operativo %}var(--color-green-accent){% else %}#3b82f6{% endif %}; background: {% if is_staff_operativo %}linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%){% else %}rgba(59, 130, 246, 0.05){% endif %};">
+    <div class="card__header">
+      <div style="flex: 1;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2); flex-wrap: wrap;">
+          <h2 class="card__title" style="margin: 0;">📅 Prossimo Evento</h2>
+          {% if giorni_al_prossimo_evento is not none %}
+          <span class="badge {% if giorni_al_prossimo_evento <= 0 %}badge--success{% elif giorni_al_prossimo_evento == 1 %}badge--warning{% else %}badge--secondary{% endif %}">
+            {% if giorni_al_prossimo_evento <= 0 %}IN CORSO{% elif giorni_al_prossimo_evento == 1 %}DOMANI{% else %}TRA {{ giorni_al_prossimo_evento }} GIORNI{% endif %}
+          </span>
+          {% endif %}
+          <span class="badge badge--secondary">{{ prossimo_evento.stato_pubblico|upper }}</span>
+          {% if is_staff_operativo %}
+          <span class="badge badge--success">🟢 OPERATIVO STAFF</span>
+          {% endif %}
         </div>
-        <div style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; overflow: hidden;">
-          <div style="width: {{ percent }}%; height: 100%; background: var(--gold-primary); transition: width 0.3s;"></div>
+        <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-2);">{{ prossimo_evento.nome_evento }}</h3>
+        <div class="text--muted" style="font-size: var(--font-size-sm);">
+          📅 {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
+          {% if prossimo_evento.dj_artista %} · 🎧 {{ prossimo_evento.dj_artista }}{% endif %}
+          {% if prossimo_evento.categoria %} · {{ prossimo_evento.categoria|capitalize }}{% endif %}
+          {% if prossimo_evento.capienza_max %} · 👥 Capienza: {{ prossimo_evento.capienza_max }}{% endif %}
         </div>
       </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun cliente con livelli assegnati.</p>
-    {% endif %}
-  </section>
-</div>
-
-<!-- Feedback e Eventi Recenti -->
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
-  <!-- Media Feedback -->
-  <section class="card">
-    <div style="margin-bottom: 1rem;">
-      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">💬 Media Feedback</h2>
-      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Valutazione media su scala 1-10</p>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <span>🎵 Musica</span>
-        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_musica }}/10</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <span>🚪 Ingresso</span>
-        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_ingresso }}/10</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <span>🌟 Ambiente</span>
-        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_ambiente }}/10</span>
-      </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <span>🍽️ Servizio</span>
-        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_servizio }}/10</span>
-      </div>
-    </div>
-  </section>
-
-  <!-- Eventi Recenti -->
-  <section class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-      <div>
-        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">📅 Eventi Recenti</h2>
-        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ultimi 5 eventi</p>
-      </div>
-      <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
-    </div>
-    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-      {% for evento in eventi_recenti %}
-      <div style="padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
-          <strong style="font-size: 0.95rem;">{{ evento.nome_evento }}</strong>
-          <span class="badge badge--secondary" style="font-size: 0.75rem;">{{ evento.stato_pubblico|upper }}</span>
-        </div>
-        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
-          {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}
-          {% if evento.categoria %} · {{ evento.categoria|capitalize }}{% endif %}
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-          <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" style="font-size: 0.75rem;">✏️ Modifica</a>
-          <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" style="font-size: 0.75rem;">📊 Analytics</a>
-        </div>
-      </div>
-      {% else %}
-      <p class="text--muted" style="text-align: center; padding: 1rem;">Nessun evento recente.</p>
-      {% endfor %}
-    </div>
-  </section>
-</div>
-
-<!-- Top Clienti -->
-<section class="card">
-  <div style="margin-bottom: 1rem;">
-    <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">🏆 Top 5 Clienti per Punti</h2>
-    <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Clienti più fidelizzati</p>
-  </div>
-  <div style="overflow-x: auto;">
-    <table style="width: 100%; border-collapse: collapse;">
-      <thead>
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-          <th style="text-align: left; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Cliente</th>
-          <th style="text-align: right; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Punti</th>
-          <th style="text-align: left; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Livello</th>
-          <th style="text-align: right; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Azioni</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for cliente, punti in top_clienti %}
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-          <td style="padding: 0.75rem;">{{ cliente.nome }} {{ cliente.cognome }}</td>
-          <td style="text-align: right; padding: 0.75rem; font-weight: 600;">{{ punti or 0 }}</td>
-          <td style="padding: 0.75rem;"><span class="badge badge--secondary">{{ cliente.livello|capitalize }}</span></td>
-          <td style="text-align: right; padding: 0.75rem;">
-            <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ cliente.id_cliente }}" class="btn btn--ghost btn--small">Vedi</a>
-          </td>
-        </tr>
+      <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
+        {% if not is_staff_operativo %}
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+          <button type="submit" class="btn btn--primary btn--small" name="evento_id" value="{{ prossimo_evento.id_evento }}">
+            🟢 Attiva Staff
+          </button>
+        </form>
         {% else %}
-        <tr>
-          <td colspan="4" class="text--muted" style="text-align: center; padding: 2rem;">Nessun cliente con punti registrati.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
+        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+          <input type="hidden" name="evento_id" value="clear">
+          <button type="submit" class="btn btn--ghost btn--small">🔴 Disattiva Staff</button>
+        </form>
+        {% endif %}
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">
+          📊 Dashboard
+        </a>
+        <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">
+          ✏️ Modifica
+        </a>
+      </div>
+    </div>
 
+    {% if prossimo_evento_stats %}
+    <div class="card__content">
+      <div class="grid grid--auto">
+        <div>
+          <div class="text--muted" style="font-size: var(--font-size-xs);">Prenotazioni</div>
+          <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); margin-top: var(--spacing-1);">{{ prossimo_evento_stats.prenotazioni_totali }}</div>
+          <div class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-1);">{{ prossimo_evento_stats.prenotazioni_attive }} attive</div>
+        </div>
+        <div>
+          <div class="text--muted" style="font-size: var(--font-size-xs);">Ingressi</div>
+          <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); margin-top: var(--spacing-1);">{{ prossimo_evento_stats.ingressi_totali }}</div>
+          {% if prossimo_evento_stats.capienza %}
+          <div class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-1);">{{ prossimo_evento_stats.occupancy_pct }}% capienza</div>
+          {% endif %}
+        </div>
+        <div>
+          <div class="text--muted" style="font-size: var(--font-size-xs);">Consumi</div>
+          <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); margin-top: var(--spacing-1);">€{{ "%.0f"|format(prossimo_evento_stats.consumi_totali) }}</div>
+        </div>
+        {% if prossimo_evento_stats.feedback_samples > 0 %}
+        <div>
+          <div class="text--muted" style="font-size: var(--font-size-xs);">Feedback</div>
+          <div style="font-size: var(--font-size-xl); font-weight: var(--font-weight-semibold); margin-top: var(--spacing-1);">{{ "%.1f"|format(prossimo_evento_stats.feedback_media_generale) }}/10</div>
+          <div class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-1);">{{ prossimo_evento_stats.feedback_samples }} valutazioni</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- Grafici e Insights -->
+  <div class="grid grid--auto">
+    <!-- Trend Grafico -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">📈 Trend Attività</h2>
+          <p class="card__meta">Ingressi e consumi giornalieri ({{ range_days }} gg)</p>
+        </div>
+      </div>
+      <div class="card__content">
+        {% if has_trend_data %}
+        <div style="height: 300px; position: relative;">
+          <canvas id="dashboard-trend-chart"></canvas>
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">📊</span>
+          <p class="admin-empty-state__message">Nessun dato disponibile nel periodo selezionato.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <!-- Distribuzione Livelli -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">⭐ Distribuzione Livelli Fedeltà</h2>
+          <p class="card__meta">Ripartizione clienti per tier</p>
+        </div>
+        <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">Vedi dettagli →</a>
+      </div>
+      <div class="card__content">
+        {% set totale_livelli = livelli_dist.values()|sum %}
+        {% if totale_livelli %}
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
+          {% set level_colors = {
+            'base': '#6b7280',
+            'loyal': '#3b82f6',
+            'premium': '#8b5cf6',
+            'vip': 'var(--admin-accent)'
+          } %}
+          {% for livello, count in livelli_dist.items() %}
+          {% set percent = (count / totale_livelli * 100) %}
+          {% set level_color = level_colors.get(livello|lower, 'var(--admin-accent)') %}
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-2);">
+              <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                <span style="font-weight: var(--font-weight-semibold); text-transform: uppercase; font-size: var(--font-size-sm);">{{ livello }}</span>
+                <span style="font-size: var(--font-size-lg); font-weight: var(--font-weight-bold); color: {{ level_color }};">{{ count }}</span>
+              </div>
+              <span class="badge badge--secondary">{{ "%.1f"|format(percent) }}%</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 10px; overflow: hidden; position: relative;">
+              <div style="width: {{ percent }}%; height: 100%; background: {{ level_color }}; transition: width 0.5s ease; border-radius: 999px; box-shadow: 0 0 8px rgba(0,0,0,0.3);"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">⭐</span>
+          <p class="admin-empty-state__message">Nessun cliente con livelli assegnati.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Feedback e Eventi Recenti -->
+  <div class="grid grid--auto">
+    <!-- Media Feedback -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">💬 Media Feedback</h2>
+          <p class="card__meta">Valutazione media su scala 1-10</p>
+        </div>
+        <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
+      </div>
+      <div class="card__content">
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
+          {% set feedback_items = [
+            ('🎵 Musica', avg_musica, '#3b82f6'),
+            ('🚪 Ingresso', avg_ingresso, '#8b5cf6'),
+            ('🌟 Ambiente', avg_ambiente, '#f59e0b'),
+            ('🍽️ Servizio', avg_servizio, 'var(--color-green-accent)')
+          ] %}
+          {% for icon_label, value, color in feedback_items %}
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-2);">
+              <span style="font-weight: var(--font-weight-medium);">{{ icon_label }}</span>
+              <span style="font-size: var(--font-size-lg); font-weight: var(--font-weight-semibold); color: {{ color }};">{{ "%.1f"|format(value) }}/10</span>
+            </div>
+            <div style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; overflow: hidden; position: relative;">
+              <div style="width: {{ (value / 10 * 100) }}%; height: 100%; background: {{ color }}; transition: width 0.5s ease; border-radius: 999px;"></div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Eventi Recenti -->
+    <section class="card">
+      <div class="card__header">
+        <div>
+          <h2 class="card__title">📅 Eventi Recenti</h2>
+          <p class="card__meta">Ultimi 5 eventi</p>
+        </div>
+        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
+      </div>
+      <div class="card__content">
+        {% if eventi_recenti %}
+        <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+          {% for evento in eventi_recenti %}
+          <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none; display: block; padding: var(--spacing-4); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-left: 3px solid {% if evento.stato_pubblico == 'attivo' %}var(--color-green-accent){% elif evento.stato_pubblico == 'programmato' %}var(--admin-accent){% else %}var(--color-gray-soft){% endif %}; border-radius: var(--radius-md); transition: all var(--transition-base);" onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(212,175,55,0.3)'; this.style.transform='translateX(4px)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.transform=''">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-2); flex-wrap: wrap; gap: var(--spacing-2);">
+              <strong style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">{{ evento.nome_evento }}</strong>
+              <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
+                <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'primary' if evento.stato_pubblico == 'programmato' else 'secondary' }}" style="font-size: var(--font-size-xs);">
+                  {{ evento.stato_pubblico|upper }}
+                </span>
+              </div>
+            </div>
+            <div class="text--muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-3);">
+              <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
+                <span>📅 {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}</span>
+                {% if evento.categoria %}
+                <span>·</span>
+                <span>{{ evento.categoria|capitalize }}</span>
+                {% endif %}
+                {% if evento.dj_artista %}
+                <span>·</span>
+                <span>🎧 {{ evento.dj_artista }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
+              <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small" onclick="event.stopPropagation();">📊 Dashboard</a>
+              <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" onclick="event.stopPropagation();">✏️ Modifica</a>
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty-state">
+          <span class="admin-empty-state__icon">📅</span>
+          <p class="admin-empty-state__message">Nessun evento recente.</p>
+        </div>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Top Clienti -->
+  <section class="card">
+    <div class="card__header">
+      <div>
+        <h2 class="card__title">🏆 Top 5 Clienti per Punti</h2>
+        <p class="card__meta">Clienti più fidelizzati</p>
+      </div>
+      <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">Vedi classifica completa →</a>
+    </div>
+    <div class="card__content">
+      {% if top_clienti %}
+      <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+        {% for cliente, punti in top_clienti %}
+        {% set rank = loop.index %}
+        {% set medal_colors = {1: 'var(--admin-accent)', 2: '#c0c0c0', 3: '#cd7f32'} %}
+        {% set medal_color = medal_colors.get(rank, 'transparent') %}
+        <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cliente.id_cliente) }}" style="text-decoration: none; display: block; padding: var(--spacing-4); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); transition: all var(--transition-base);" onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(212,175,55,0.3)'; this.style.transform='translateX(4px)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.transform=''">
+          <div style="display: flex; align-items: center; gap: var(--spacing-4);">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: {% if rank <= 3 %}linear-gradient(135deg, {{ medal_color }}, {{ medal_color }}dd){% else %}rgba(255,255,255,0.1){% endif %}; display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); font-size: var(--font-size-lg); flex-shrink: 0;">
+              {% if rank <= 3 %}
+                {% if rank == 1 %}🥇{% elif rank == 2 %}🥈{% else %}🥉{% endif %}
+              {% else %}
+                {{ rank }}
+              {% endif %}
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">{{ cliente.nome }} {{ cliente.cognome }}</div>
+              <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                <span class="badge badge--level badge--level-{{ cliente.livello|lower if cliente.livello else 'base' }}">{{ cliente.livello|upper if cliente.livello else 'BASE' }}</span>
+                {% if cliente.telefono %}
+                <span class="text--muted" style="font-size: var(--font-size-xs);">{{ cliente.telefono }}</span>
+                {% endif %}
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--admin-accent);">{{ punti or 0 }}</div>
+              <div class="text--muted" style="font-size: var(--font-size-xs);">punti</div>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="admin-empty-state">
+        <span class="admin-empty-state__icon">🏆</span>
+        <p class="admin-empty-state__message">Nessun cliente con punti registrati.</p>
+      </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
 {% endblock %}
 
 {% block scripts %}

@@ -1,0 +1,78 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Tavoli Evento{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title="Gestione Tavoli",
+    subtitle="Tavoli configurati per: " ~ evento.nome_evento ~ " (" ~ (evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'N/A') ~ ")",
+    actions=[
+      {'type': 'link', 'url': url_for('prenotazioni.admin_tavolo_new', evento_id=evento.id_evento), 'label': '+ Nuovo Tavolo', 'class': 'btn--primary'},
+      {'type': 'link', 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento), 'label': '← Evento', 'class': 'btn--ghost'}
+    ],
+    breadcrumbs=[
+      {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
+      {'label': evento.nome_evento, 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento)},
+      {'label': 'Tavoli'}
+    ]
+  ) }}
+
+  {% if tavoli %}
+  <div class="card">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th class="admin-table__header">Numero</th>
+          <th class="admin-table__header">Nome</th>
+          <th class="admin-table__header">Capienza</th>
+          <th class="admin-table__header">Prezzo Minimo</th>
+          <th class="admin-table__header">Stato</th>
+          <th class="admin-table__header admin-table__header--actions">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tavolo in tavoli %}
+        <tr class="admin-table__row">
+          <td class="admin-table__cell"><strong>{{ tavolo.numero_tavolo }}</strong></td>
+          <td class="admin-table__cell">{{ tavolo.nome_tavolo or '-' }}</td>
+          <td class="admin-table__cell">{{ tavolo.capienza }} persone</td>
+          <td class="admin-table__cell">
+            {% if tavolo.prezzo_minimo %}€{{ tavolo.prezzo_minimo }}{% else %}-{% endif %}
+          </td>
+          <td class="admin-table__cell">
+            {% if tavolo.attivo %}
+              <span class="badge badge--success">Attivo</span>
+            {% else %}
+              <span class="badge badge--secondary">Disattivo</span>
+            {% endif %}
+          </td>
+          <td class="admin-table__cell admin-table__cell--actions">
+            <a href="{{ url_for('prenotazioni.admin_tavolo_edit', tavolo_id=tavolo.id_tavolo) }}" 
+               class="admin-table__action admin-table__action--edit" title="Modifica">✏️</a>
+            <form method="post" action="{{ url_for('prenotazioni.admin_tavolo_delete', tavolo_id=tavolo.id_tavolo) }}" 
+                  style="display: inline;" 
+                  onsubmit="return confirm('Sei sicuro di voler eliminare questo tavolo?');">
+              <button type="submit" class="admin-table__action admin-table__action--delete" title="Elimina">🗑️</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="admin-empty-state">
+      <span class="admin-empty-state__icon">🪑</span>
+      <p class="admin-empty-state__message">Nessun tavolo configurato per questo evento.</p>
+      <a href="{{ url_for('prenotazioni.admin_tavolo_new', evento_id=evento.id_evento) }}" class="btn btn--primary">
+        + Crea Primo Tavolo
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
