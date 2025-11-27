@@ -1,0 +1,54 @@
+{% extends "clienti/base.html" %}
+{% block title %}Prenota Tavolo{% endblock %}
+
+{% block cliente_content %}
+<section class="card">
+  <div style="margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+      <span style="font-size: 2rem;">🪑</span>
+      <h1 class="card__title" style="margin: 0;">Prenota Tavolo</h1>
+    </div>
+    <div class="card__meta">{{ e.nome_evento }}</div>
+    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+  </div>
+
+  <div style="padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(212, 175, 55, 0.3);">
+    <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
+      <strong>Prenotazione Tavolo:</strong> Riserva un tavolo specifico per questa serata. 
+      Il numero di persone verrà confermato dall'amministrazione.
+    </p>
+  </div>
+
+  <form class="form" method="post" action="{{ url_for('prenotazioni.nuova_tavolo') }}">
+    <input type="hidden" name="evento_id" value="{{ e.id_evento }}">
+
+    <div class="form__group">
+      <label class="form__label">
+        <span style="font-size: 1.2rem; margin-right: 0.5rem;">🪑</span>
+        Nome Tavolo <span style="color: var(--gold-primary);">*</span>
+      </label>
+      <input 
+        class="form__input" 
+        name="note" 
+        id="note" 
+        placeholder="Es: Tavolo VIP lato consolle, Tavolo 5, Tavolo centrale..." 
+        required
+        autofocus
+        style="font-size: 1rem; padding: 0.75rem;"
+      >
+      <small class="form__hint">
+        Indica il nome o la posizione del tavolo che desideri prenotare. 
+        L'amministrazione confermerà la disponibilità e il numero di persone.
+      </small>
+    </div>
+
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit" style="background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); border: 1px solid rgba(212, 175, 55, 0.4);">
+        🪑 Conferma Prenotazione Tavolo
+      </button>
+      <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Annulla</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+

@@ -1,20 +1,20 @@
 {% extends "shared/base.html" %}
 
-{% block title %}Login - Malibù{% endblock %}
+{% block title %}Login Cliente - Malibù{% endblock %}
 {% block body_class %}auth-page{% endblock %}
 
 {% block content %}
 <section class="auth">
   <div class="auth__brand">
     <img class="auth__brand-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù">
-    <span class="auth__brand-subtitle">Dashboard & Area Riservata</span>
+    <span class="auth__brand-subtitle">Area Cliente</span>
     <span class="auth__divider"></span>
   </div>
 
-  <form class="auth-card form" method="post" action="{{ url_for('auth.auth_login_submit') }}" onsubmit="handleFormSubmit(event, this)">
+  <form class="auth-card form" method="post" action="{{ url_for('auth.auth_login_cliente_submit') }}" onsubmit="handleFormSubmit(event, this)">
     <div class="form__group">
-      <label class="form__label" for="identifier">Numero di Telefono</label>
-      <input class="form__input" id="identifier" type="text" name="identifier" required autocomplete="username" aria-label="Numero di telefono o username">
+      <label class="form__label" for="telefono">Numero di Telefono</label>
+      <input class="form__input" id="telefono" type="tel" name="telefono" required autocomplete="tel" aria-label="Numero di telefono" placeholder="Es: +39 123 456 7890">
     </div>
     <div class="form__group">
       <label class="form__label" for="password">Password</label>
@@ -24,8 +24,11 @@
       <button class="btn btn--primary" type="submit" id="loginBtn">Accedi</button>
     </div>
     <p class="auth__alt">
-      Nuovo utente?
+      Nuovo cliente?
       <a href="{{ url_for('auth.auth_register_form') }}">Registrati</a>
+    </p>
+    <p class="auth__alt" style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+      Sei staff? <a href="{{ url_for('auth.auth_login_staff_form') }}">Accedi come operatore</a>
     </p>
   </form>
 
@@ -40,3 +43,4 @@
   </script>
 </section>
 {% endblock %}
+

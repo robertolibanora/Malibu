@@ -1,5 +1,5 @@
 # app/routes/fedelta.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
@@ -332,25 +332,6 @@ def admin_movimenti():
     finally:
         db.close()
 
-# =========================================
-# 👑 Admin — blocco operazioni manuali
-# =========================================
-@fedelta_bp.route("/admin/new", methods=["GET", "POST"])
-@require_admin
-def admin_new():
-    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
-
-
-@fedelta_bp.route("/admin/<int:mov_id>/edit", methods=["GET", "POST"])
-@require_admin
-def admin_edit(mov_id):
-    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
-
-
-@fedelta_bp.route("/admin/<int:mov_id>/delete", methods=["POST"])
-@require_admin
-def admin_delete(mov_id):
-    abort(403, description="I movimenti fedeltà vengono gestiti automaticamente dal sistema.")
 
 # =========================================
 # 👑 Admin — analytics (periodo)

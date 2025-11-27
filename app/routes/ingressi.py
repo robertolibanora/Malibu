@@ -1,5 +1,5 @@
 # app/routes/ingressi.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
 from sqlalchemy import func, and_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
@@ -7,12 +7,13 @@ from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.log_attivita import log_action
 from app.utils.events import get_evento_operativo
+from app.utils.helpers import get_current_staff_id, cliente_has_ingresso
 
 from app.models.clienti import Cliente
 from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
 from app.models.prenotazioni import Prenotazione
-from app.models.staff import Staff  # opzionale per filtri admin
+from app.models.staff import Staff
 from app.routes.fedelta import award_on_ingresso
 
 ingressi_bp = Blueprint("ingressi", __name__, url_prefix="/ingressi")
@@ -21,28 +22,16 @@ TIPI = ("lista", "tavolo", "omaggio", "prevendita")
 
 
 # ---------------------------
-# Helpers
+# Helpers specifici ingressi
 # ---------------------------
-def _get_evento_attivo(db):
-    return get_evento_operativo(db)
-
-def _get_staff_id(db):
-    # Se in futuro avrai login staff: salva session["staff_id"]
-    return session.get("staff_id")
-
-def _already_checked_in(db, cliente_id, evento_id):
-    return db.query(Ingresso.id_ingresso).filter(
-        Ingresso.cliente_id == cliente_id,
-        Ingresso.evento_id == evento_id
-    ).first() is not None
-
 def _capienza_counts(db, evento_id):
-    tot = db.query(func.count(Ingresso.id_ingresso)).filter(
+    """Conta il numero totale di ingressi per un evento."""
+    return db.query(func.count(Ingresso.id_ingresso)).filter(
         Ingresso.evento_id == evento_id
     ).scalar() or 0
-    return tot
 
 def _active_prenotazione(db, cliente_id, evento_id):
+    """Trova la prenotazione attiva di un cliente per un evento."""
     return db.query(Prenotazione).filter(
         Prenotazione.cliente_id == cliente_id,
         Prenotazione.evento_id == evento_id,
@@ -56,9 +45,10 @@ def _active_prenotazione(db, cliente_id, evento_id):
 @ingressi_bp.route("/mie", methods=["GET"])
 @require_cliente
 def mie():
+    from app.utils.helpers import get_current_cliente_id
     db = SessionLocal()
     try:
-        cid = session.get("cliente_id")
+        cid = get_current_cliente_id()
         rows = db.query(Ingresso).join(Evento, Evento.id_evento == Ingresso.evento_id) \
             .filter(Ingresso.cliente_id == cid) \
             .order_by(Ingresso.orario_ingresso.desc()) \
@@ -76,7 +66,7 @@ def mie():
 def staff_scan():
     db = SessionLocal()
     try:
-        e = _get_evento_attivo(db)
+        e = get_evento_operativo(db)
         if not e:
             flash("Evento chiuso: non è possibile registrare nuovi ingressi.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
@@ -96,7 +86,7 @@ def staff_scan():
                 return redirect(url_for("ingressi.staff_scan"))
 
             # No doppio ingresso
-            if _already_checked_in(db, cli.id_cliente, e.id_evento):
+            if cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
                 flash("Cliente già entrato per questo evento.", "warning")
                 return redirect(url_for("ingressi.staff_scan"))
 
@@ -125,7 +115,7 @@ def staff_scan():
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
                 prenotazione_id=pren.id_prenotazione if pren else None,
-                staff_id=_get_staff_id(db),
+                staff_id=get_current_staff_id(),
                 tipo_ingresso=tipo_ingresso,
                 note=None
             )
@@ -144,7 +134,7 @@ def staff_scan():
                     db,
                     tabella="prenotazioni",
                     record_id=pren.id_prenotazione,
-                    staff_id=_get_staff_id(db),
+                    staff_id=get_current_staff_id(),
                     azione="prenotazione_usata",
                     note=f"evento_id={e.id_evento}"
                 )
@@ -152,12 +142,12 @@ def staff_scan():
             if e.capienza_max is not None and tot >= e.capienza_max and request.form.get("override_capienza") == "1":
                 # Logga override capienza
                 note = f"Capienza superata {tot}/{e.capienza_max}, ingresso forzato"
-                log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=_get_staff_id(db), azione="override_capienza", note=note)
+                log_action(db, tabella="ingressi", record_id=ingresso.id_ingresso, staff_id=get_current_staff_id(), azione="override_capienza", note=note)
             log_action(
                 db,
                 tabella="ingressi",
                 record_id=ingresso.id_ingresso,
-                staff_id=_get_staff_id(db),
+                staff_id=get_current_staff_id(),
                 azione="ingresso_automatico",
                 note=f"evento_id={e.id_evento}"
             )
@@ -196,7 +186,7 @@ def staff_prenotati_count():
     """
     db = SessionLocal()
     try:
-        e = _get_evento_attivo(db)
+        e = get_evento_operativo(db)
         if not e:
             return jsonify({"ok": False, "reason": "no_event"}), 409
 
@@ -235,7 +225,7 @@ def staff_scan_check():
     """
     db = SessionLocal()
     try:
-        e = _get_evento_attivo(db)
+        e = get_evento_operativo(db)
         if not e:
             return jsonify({"ok": False, "reason": "no_event"}), 200
         if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
@@ -247,7 +237,7 @@ def staff_scan_check():
         cli = db.query(Cliente).filter(Cliente.qr_code == qr).first()
         if not cli:
             return jsonify({"ok": False, "reason": "not_found"}), 200
-        if _already_checked_in(db, cli.id_cliente, e.id_evento):
+        if cliente_has_ingresso(db, cli.id_cliente, e.id_evento):
             return jsonify({"ok": False, "reason": "already"}), 200
         return jsonify({"ok": True}), 200
     finally:
@@ -269,7 +259,7 @@ def staff_scan_preview():
     """
     db = SessionLocal()
     try:
-        e = _get_evento_attivo(db)
+        e = get_evento_operativo(db)
         if not e:
             return jsonify({"ok": False, "reason": "no_event"}), 200
         if e.stato_pubblico == "chiuso" or not e.is_staff_operativo:
@@ -281,7 +271,7 @@ def staff_scan_preview():
         cli = db.query(Cliente).filter(Cliente.qr_code == qr).first()
         if not cli:
             return jsonify({"ok": False, "reason": "not_found"}), 200
-        already = _already_checked_in(db, cli.id_cliente, e.id_evento)
+        already = cliente_has_ingresso(db, cli.id_cliente, e.id_evento)
         cliente_payload = {
             "id": cli.id_cliente,
             "nome": cli.nome,
@@ -405,7 +395,7 @@ def admin_new():
                 return redirect(url_for("ingressi.admin_new"))
 
             # No doppio ingresso
-            if _already_checked_in(db, cliente_id, evento_id):
+            if cliente_has_ingresso(db, cliente_id, evento_id):
                 flash("Cliente già entrato per questo evento.", "warning")
                 return redirect(url_for("ingressi.admin_list"))
 

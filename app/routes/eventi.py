@@ -27,11 +27,7 @@ eventi_bp = Blueprint("eventi", __name__, url_prefix="/eventi")
 CATEGORIES_PUBLIC = ["reggaeton", "techno", "altro"]  # categorie pubbliche esposte a UI
 
 
-def _get_evento_attivo(db):
-    """
-    Fonte unica: tabella config_app + flag su evento.
-    """
-    return get_evento_operativo(db)
+# Helper: usa direttamente get_evento_operativo dal modulo events
 
 # --------------------------
 # CLIENTE — LISTA EVENTI PUBBLICI (no login)
@@ -161,7 +157,7 @@ def dettaglio_pubblico(evento_id):
 def staff_select_event():
     db = SessionLocal()
     try:
-        evento_attivo = _get_evento_attivo(db)
+        evento_attivo = get_evento_operativo(db)
         # Includiamo anche gli eventi di "ieri" per coprire serate a cavallo della mezzanotte
         window_start = date.today() - timedelta(days=1)
         eventi = (db.query(Evento)
@@ -177,7 +173,7 @@ def staff_select_event():
 def staff_dashboard():
     db = SessionLocal()
     try:
-        e = _get_evento_attivo(db)
+        e = get_evento_operativo(db)
         if not e:
             flash("Nessun evento attivo impostato dagli amministratori.", "warning")
             return redirect(url_for("eventi.staff_select_event"))
@@ -225,11 +221,11 @@ def admin_evento_attivo():
                         .group_by(Ingresso.evento_id)
                         .all())
             ingressi_map = {eid: tot for eid, tot in counts}
-        evento_attivo = _get_evento_attivo(db)
+        evento_attivo = get_evento_operativo(db)
 
         if request.method == "POST":
-            scelta = request.form.get("evento_id")
-            if scelta == "clear":
+            action = request.form.get("action")
+            if action == "clear":
                 # Disattiva operatività per tutti e azzera config
                 for ev in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
                     ev.is_staff_operativo = False
@@ -245,6 +241,10 @@ def admin_evento_attivo():
                 )
                 flash("Evento operativo staff azzerato.", "info")
             else:
+                scelta = request.form.get("evento_id")
+                if not scelta:
+                    flash("Seleziona un evento o azzera l'evento attivo.", "warning")
+                    return redirect(url_for("eventi.admin_evento_attivo"))
                 try:
                     evento_id = int(scelta)
                 except (TypeError, ValueError):
@@ -303,7 +303,7 @@ def admin_menu():
         # Ultimi 3 eventi
         ultimi_eventi = db.query(Evento).order_by(Evento.data_evento.desc()).limit(3).all()
 
-        evento_attivo = _get_evento_attivo(db)
+        evento_attivo = get_evento_operativo(db)
         
         return render_template("admin/eventi_menu.html",
                              tot_eventi=tot_eventi,
@@ -513,8 +513,26 @@ def admin_evento_detail(evento_id):
         avg_feedback = db.query(
             func.avg(Feedback.voto_musica),
             func.avg(Feedback.voto_ingresso),
-            func.avg(Feedback.voto_ambiente)
+            func.avg(Feedback.voto_ambiente),
+            func.avg(Feedback.voto_servizio)
         ).filter(Feedback.evento_id == evento_id).one()
+        
+        # Dati per grafici analytics
+        # Ingressi per ora
+        ingressi_ora = db.query(
+            func.hour(Ingresso.orario_ingresso).label('ora'),
+            func.count(Ingresso.id_ingresso).label('count')
+        ).filter(Ingresso.evento_id == evento_id).group_by(func.hour(Ingresso.orario_ingresso)).order_by(func.hour(Ingresso.orario_ingresso)).all()
+        
+        ingressi_temporali_data = []
+        for ora, count in ingressi_ora:
+            ingressi_temporali_data.append({'slot': f"{ora:02d}:00", 'value': count})
+        
+        # Prenotazioni per tipo (per grafico)
+        prenotazioni_chart_data = [{'label': tipo.capitalize(), 'value': count} for tipo, count in pren_by_tipo.items()]
+        
+        # Prodotti top (per grafico)
+        prodotti_chart_data = [{'label': prodotto, 'count': count, 'revenue': float(importo)} for prodotto, importo, count in consumi_by_prodotto]
         
         return render_template("admin/evento_detail.html",
                              evento=e,
@@ -540,6 +558,10 @@ def admin_evento_detail(evento_id):
                              avg_musica=round(avg_feedback[0] or 0, 1),
                              avg_ingresso=round(avg_feedback[1] or 0, 1),
                              avg_ambiente=round(avg_feedback[2] or 0, 1),
+                             avg_servizio=round(avg_feedback[3] or 0, 1),
+                             ingressi_temporali_data=ingressi_temporali_data,
+                             prenotazioni_chart_data=prenotazioni_chart_data,
+                             prodotti_chart_data=prodotti_chart_data,
                              CATEGORIES_PUBLIC=CATEGORIES_PUBLIC)
     finally:
         db.close()
@@ -593,6 +615,42 @@ def admin_edit(evento_id):
             flash("Evento aggiornato.", "success")
             return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
         return render_template("admin/eventi_form.html", e=e, CATEGORIES_PUBLIC=CATEGORIES_PUBLIC)
+    finally:
+        db.close()
+
+@eventi_bp.route("/admin/<int:evento_id>/attiva-pubblico", methods=["POST"])
+@require_admin
+def admin_attiva_pubblico(evento_id):
+    """Attiva l'evento al pubblico (stato_pubblico = 'attivo')"""
+    db = SessionLocal()
+    try:
+        e = db.query(Evento).get(evento_id)
+        if not e:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.admin_list"))
+        e.stato_pubblico = "attivo"
+        db.commit()
+        log_action(db, tabella="eventi", record_id=evento_id, staff_id=session.get("staff_id"), azione="update", note="stato_pubblico=attivo")
+        flash(f"Evento '{e.nome_evento}' attivato al pubblico.", "success")
+        return redirect(url_for("eventi.admin_list"))
+    finally:
+        db.close()
+
+@eventi_bp.route("/admin/<int:evento_id>/chiudi-pubblico", methods=["POST"])
+@require_admin
+def admin_chiudi_pubblico(evento_id):
+    """Chiude l'evento al pubblico (stato_pubblico = 'chiuso')"""
+    db = SessionLocal()
+    try:
+        e = db.query(Evento).get(evento_id)
+        if not e:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.admin_list"))
+        e.stato_pubblico = "chiuso"
+        db.commit()
+        log_action(db, tabella="eventi", record_id=evento_id, staff_id=session.get("staff_id"), azione="update", note="stato_pubblico=chiuso")
+        flash(f"Evento '{e.nome_evento}' chiuso al pubblico.", "info")
+        return redirect(url_for("eventi.admin_list"))
     finally:
         db.close()
 
@@ -678,6 +736,7 @@ def admin_duplicate(evento_id):
 @eventi_bp.route("/admin/<int:evento_id>/close", methods=["POST"])
 @require_admin
 def admin_close(evento_id):
+    from app.utils.workflow import processa_no_show_automatico
     db = SessionLocal()
     try:
         e = db.query(Evento).get(evento_id)
@@ -689,33 +748,24 @@ def admin_close(evento_id):
             e.is_staff_operativo = False
             # reset fonte unica evento operativo
             set_evento_operativo_id(db, None)
-            # prenotazioni attive -> no-show con assegnazione punti negativi
-            pren_attive = db.query(Prenotazione).filter(
-                Prenotazione.evento_id == evento_id,
-                Prenotazione.stato == "attiva"
-            ).all()
-            for pren in pren_attive:
-                pren.stato = "no-show"
-                award_on_no_show(db, cliente_id=pren.cliente_id, evento_id=pren.evento_id)
-                log_action(
-                    db,
-                    tabella="prenotazioni",
-                    record_id=pren.id_prenotazione,
-                    staff_id=session.get("staff_id"),
-                    azione="no_show_assegnato",
-                    note=f"evento_id={evento_id}"
-                )
-            db.flush()
+            
+            # ⚡ Usa funzione centralizzata per processare no-show
+            count_marcate, count_già, count_con_ingresso = processa_no_show_automatico(db, evento_id=evento_id)
+            
             log_action(
                 db,
                 tabella="eventi",
                 record_id=evento_id,
                 staff_id=session.get("staff_id"),
                 azione="event_close",
-                note=f"evento_id={evento_id}"
+                note=f"evento_id={evento_id}, no_show_processati={count_marcate}"
             )
             db.commit()
-            flash("Evento chiuso. Prenotazioni residue marcate come no-show.", "success")
+            
+            if count_marcate > 0:
+                flash(f"Evento chiuso. {count_marcate} prenotazione/i marcate come no-show.", "success")
+            else:
+                flash("Evento chiuso. Nessuna prenotazione da processare.", "success")
         return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
     finally:
         db.close()
@@ -723,130 +773,5 @@ def admin_close(evento_id):
 @eventi_bp.route("/admin/<int:evento_id>/analytics", methods=["GET"])
 @require_admin
 def admin_analytics(evento_id):
-    db = SessionLocal()
-    try:
-        e = db.query(Evento).get(evento_id)
-        if not e:
-            flash("Evento non trovato.", "danger")
-            return redirect(url_for("eventi.admin_list"))
-
-        ingressi_tot = (db.query(func.count(Ingresso.id_ingresso))
-                          .filter(Ingresso.evento_id == evento_id)
-                          .scalar()) or 0
-
-        pren_by_tipo_items = (db.query(Prenotazione.tipo,
-                                       func.count(Prenotazione.id_prenotazione))
-                              .filter(Prenotazione.evento_id == evento_id)
-                                .group_by(Prenotazione.tipo)
-                                .all())
-        pren_by_tipo = {tipo or "non_specificato": count for tipo, count in pren_by_tipo_items}
-
-        consumi_sum = (db.query(func.coalesce(func.sum(Consumo.importo), 0))
-                         .filter(Consumo.evento_id == evento_id)
-                         .scalar()) or 0
-        # Per coerenza di pagina evento: limita il dataset a questo evento
-        ingressi_per_evento = {
-            "items": [{
-                "label": e.nome_evento,
-                "count": int(ingressi_tot),
-                "categoria": e.categoria or "non specificato",
-            }],
-            "categories": [e.categoria] if e.categoria else [],
-        }
-
-        feedback_media_row = (db.query(
-            func.avg(Feedback.voto_musica),
-            func.avg(Feedback.voto_ingresso),
-            func.avg(Feedback.voto_ambiente),
-            func.count(Feedback.id_feedback)
-        )
-            .filter(Feedback.evento_id == evento_id)
-            .one())
-
-        feedback_media = None
-        if feedback_media_row and feedback_media_row[3]:
-            valori_feedback = [
-                float(feedback_media_row[0] or 0),
-                float(feedback_media_row[1] or 0),
-                float(feedback_media_row[2] or 0),
-            ]
-            feedback_media = {
-                "labels": ["Musica", "Ingresso", "Ambiente"],
-                "values": valori_feedback,
-                "samples": int(feedback_media_row[3]),
-                "average": (sum(valori_feedback) / len(valori_feedback)) if valori_feedback else 0.0,
-            }
-
-        slot_expr = func.date_format(Ingresso.orario_ingresso, "%Y-%m-%d %H:00")
-        ingressi_temporali_rows = (
-            db.query(
-                slot_expr.label("slot"),
-                func.count(Ingresso.id_ingresso).label("tot_slot")
-            )
-            .filter(Ingresso.evento_id == evento_id)
-            .group_by(slot_expr)
-            .order_by(slot_expr)
-            .all()
-        )
-
-        ingressi_temporali_points = []
-        for row in ingressi_temporali_rows:
-            slot_str = row.slot
-            ingressi_temporali_points.append({
-                "slot": slot_str,
-                "value": int(row.tot_slot or 0),
-            })
-
-        ingressi_temporali = {
-            "points": ingressi_temporali_points,
-        }
-
-        prodotti_top_rows = (
-            db.query(
-                Consumo.prodotto,
-                func.count(Consumo.id_consumo).label("quantita"),
-                func.coalesce(func.sum(Consumo.importo), 0).label("ricavi")
-            )
-            .filter(Consumo.evento_id == evento_id)
-            .group_by(Consumo.prodotto)
-            .order_by(func.count(Consumo.id_consumo).desc())
-            .limit(10)
-            .all()
-        )
-
-        prodotti_top_items = []
-        for row in prodotti_top_rows:
-            prodotti_top_items.append({
-                "label": row.prodotto,
-                "count": int(row.quantita or 0),
-                "revenue": float(row.ricavi or 0),
-            })
-
-        prodotti_top = {
-            "items": prodotti_top_items,
-        }
-
-        prenotazioni_chart = {
-            "items": [
-                {
-                    "label": label,
-                    "value": int(value or 0),
-                }
-                for label, value in pren_by_tipo.items()
-            ] or [{"label": "Nessuna", "value": 0}],
-        }
-
-        return render_template(
-            "admin/analytics/evento_dashboard.html",
-                               e=e,
-                               ingressi_tot=ingressi_tot,
-                               pren_by_tipo=pren_by_tipo,
-            consumi_sum=float(consumi_sum),
-            ingressi_per_evento=ingressi_per_evento,
-            feedback_media=feedback_media,
-            ingressi_temporali=ingressi_temporali,
-            prodotti_top=prodotti_top,
-            prenotazioni_chart=prenotazioni_chart,
-        )
-    finally:
-        db.close()
+    """Vista legacy: reindirizza alla nuova pagina unificata di dettaglio evento."""
+    return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))

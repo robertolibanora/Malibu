@@ -3,61 +3,52 @@
 
 {% block cliente_content %}
 <section class="card">
-  <h1 class="card__title">{{ e.nome_evento }}</h1>
+  <div style="margin-bottom: 1.5rem;">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+      <span style="font-size: 2rem;">📋</span>
+      <h1 class="card__title" style="margin: 0;">Prenota in Lista</h1>
+    </div>
+    <div class="card__meta">{{ e.nome_evento }}</div>
   <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+  </div>
+
+  <div style="padding: 1rem; background: rgba(17, 24, 39, 0.4); border-radius: 8px; margin-bottom: 1.5rem; border: 1px solid rgba(255,255,255,0.1);">
+    <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
+      <strong>Prenotazione in Lista:</strong> Aggiungi il tuo nome alla lista d'attesa per questo evento. 
+      Ti contatteremo per confermare la disponibilità.
+    </p>
+  </div>
 
   <form class="form" method="post" action="{{ url_for('prenotazioni.nuova') }}">
     <input type="hidden" name="evento_id" value="{{ e.id_evento }}">
+    <input type="hidden" name="tipo" value="lista">
 
     <div class="form__group">
-      <label class="form__label">Tipo prenotazione</label>
-      <select class="form__input" name="tipo" id="tipo" required>
-        {% for t in TIPI %}
-        <option value="{{ t }}">{{ t|capitalize }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="form__group" id="grp_num" style="display:none;">
-      <label class="form__label">Numero persone (obbligatorio)</label>
-      <input class="form__input" type="number" name="num_persone" id="num_persone" min="1" placeholder="Es: 6">
-    </div>
-
-    <div class="form__group" id="grp_note" style="display:none;">
-      <label class="form__label">Nome tavolo (obbligatorio)</label>
-      <input class="form__input" name="note" id="note" placeholder="Es: Tavolo VIP lato consolle">
+      <label class="form__label">Note opzionali</label>
+      <textarea 
+        class="form__input" 
+        name="note" 
+        id="note" 
+        placeholder="Aggiungi eventuali note o richieste particolari (opzionale)"
+        rows="3"
+        style="resize: vertical;"
+      ></textarea>
+      <small class="form__hint">Puoi aggiungere informazioni utili per la gestione della tua prenotazione.</small>
     </div>
 
     <div class="form__actions">
-      <button class="btn btn--primary" type="submit">Conferma</button>
+      <button class="btn btn--primary" type="submit">📋 Conferma Prenotazione in Lista</button>
       <a class="btn btn--ghost" href="{{ url_for('eventi.dettaglio_pubblico', evento_id=e.id_evento) }}">Annulla</a>
     </div>
   </form>
+
+  <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+    <p class="text--muted" style="font-size: 0.9rem; margin-bottom: 0.75rem;">
+      Vuoi prenotare un tavolo invece?
+    </p>
+    <a class="btn btn--ghost" href="{{ url_for('prenotazioni.nuova_tavolo', evento_id=e.id_evento) }}" style="width: 100%; justify-content: center;">
+      🪑 Vai a Prenota Tavolo
+    </a>
+  </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-<script>
-const tipo = document.getElementById('tipo');
-const grpNote = document.getElementById('grp_note');
-const note = document.getElementById('note');
-const grpNum = document.getElementById('grp_num');
-const num = document.getElementById('num_persone');
-
-function toggleFields(){
-  if (tipo.value === 'tavolo'){
-    grpNote.style.display = '';
-    note.setAttribute('required','required');
-    grpNum.style.display = '';
-    num.setAttribute('required','required');
-  } else {
-    grpNote.style.display = 'none';
-    note.removeAttribute('required');
-    grpNum.style.display = 'none';
-    num.removeAttribute('required');
-  }
-}
-tipo.addEventListener('change', toggleFields);
-toggleFields();
-</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
@@ -19,3 +20,20 @@ SQLALCHEMY_DATABASE_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_H
 engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+@contextmanager
+def get_db():
+    """
+    Context manager per sessioni database.
+    
+    Uso:
+        with get_db() as db:
+            result = db.query(Model).all()
+            # La sessione viene chiusa automaticamente
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

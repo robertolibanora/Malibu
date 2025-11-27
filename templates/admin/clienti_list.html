@@ -1,9 +1,30 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Clienti{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
 {% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+    {'url': url_for('fedelta.admin_movimenti'), 'endpoint': 'fedelta.admin_movimenti', 'label': 'Movimenti', 'icon': '📊'},
+    {'url': url_for('fedelta.admin_analytics'), 'endpoint': 'fedelta.admin_analytics', 'label': 'Analytics', 'icon': '📈'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Anagrafica Clienti",
+    subtitle="Gestione completa dei profili fidelizzazione · risultati aggiornati su base live" + (" · Totali: " ~ stats.total ~ " | Attivi: " ~ stats.attivi if stats else ""),
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
+      {'label': 'Anagrafica'}
+    ]
+  ) }}
+
 <div class="management">
-  <header class="management__header fade-in">
+  <header class="management__header fade-in" style="display: none;">
     <div class="management__intro">
       <h1 class="management__title">Anagrafica Clienti</h1>
       <p class="management__subtitle">

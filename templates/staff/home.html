@@ -2,99 +2,228 @@
 {% block staff_title %}Home{% endblock %}
 
 {% block staff_content %}
-<!-- Event Status Header -->
-<section class="card staff-home__header">
-  <div class="staff-home__event-status">
+<style>
+  .staff-welcome {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .staff-welcome__logo {
+    font-size: 4rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .staff-welcome__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+  
+  .staff-welcome__subtitle {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.95rem;
+    margin: 0;
+  }
+  
+  .staff-welcome__cta {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+  }
+  
+  .staff-welcome__btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 2rem 1.5rem;
+    border-radius: 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  
+  .staff-welcome__btn--primary {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #fff;
+    border: none;
+  }
+  
+  .staff-welcome__btn--primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+  }
+  
+  .staff-welcome__btn--secondary {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    color: #fff;
+  }
+  
+  .staff-welcome__btn--secondary:hover {
+    background: rgba(255,255,255,0.12);
+    border-color: rgba(255,255,255,0.3);
+  }
+  
+  .staff-welcome__btn--disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  .staff-welcome__btn-icon {
+    font-size: 2.5rem;
+  }
+  
+  .staff-welcome__btn-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  
+  .staff-welcome__btn-desc {
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+  
+  .staff-welcome__event {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 12px;
+    padding: 1.25rem;
+  }
+  
+  .staff-welcome__event--inactive {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  
+  .staff-welcome__event-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+  }
+  
+  .staff-welcome__event-badge--active {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+  }
+  
+  .staff-welcome__event-badge--inactive {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+  }
+  
+  .staff-welcome__event-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+  }
+  
+  .staff-welcome__event-date {
+    color: rgba(255,255,255,0.7);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+  
+  .staff-welcome__role {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  
+  .staff-welcome__role--ingressista {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+  }
+  
+  .staff-welcome__role--barista {
+    background: rgba(168, 85, 247, 0.2);
+    color: #c084fc;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+  }
+  
+  .staff-welcome__role--admin {
+    background: rgba(212, 175, 55, 0.2);
+    color: #d4af37;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+  }
+</style>
+
+<div class="staff-welcome">
+  <!-- Logo e Benvenuto -->
+  <div>
+    <div class="staff-welcome__logo">🌴</div>
+    <h1 class="staff-welcome__title">Benvenuto in Malibù</h1>
+    <p class="staff-welcome__subtitle">Pannello operativo staff</p>
+  </div>
+  
+  <!-- Ruolo -->
+  <div>
+    <span class="staff-welcome__role staff-welcome__role--{{ staff_role }}">
+      {% if staff_role == 'ingressista' %}🚪 Ingressista
+      {% elif staff_role == 'barista' %}🍹 Barista  
+      {% else %}👑 Admin{% endif %}
+    </span>
+  </div>
+  
+  <!-- Evento Status -->
+  <div class="staff-welcome__event {% if not evento_attivo %}staff-welcome__event--inactive{% endif %}">
     {% if evento_attivo %}
-      <div class="staff-home__event-info">
-        <span class="staff-home__event-badge staff-home__event-badge--active">
-          🎯 EVENTO ATTIVO
+      <span class="staff-welcome__event-badge staff-welcome__event-badge--active">
+        🟢 Evento Attivo
         </span>
-        <h1 class="staff-home__event-name">{{ evento_attivo.nome_evento }}</h1>
-        <p class="staff-home__event-date">
-          📅 {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}
-          {% if evento_attivo.stato_pubblico != 'attivo' %}
-            <span class="staff-home__event-warning">⚠️ Non pubblico come "attivo"</span>
-          {% endif %}
-        </p>
-      </div>
+      <h2 class="staff-welcome__event-name">{{ evento_attivo.nome_evento }}</h2>
+      <p class="staff-welcome__event-date">📅 {{ evento_attivo.data_evento.strftime('%d/%m/%Y') }}</p>
     {% else %}
-      <div class="staff-home__event-empty">
-        <span class="staff-home__event-badge staff-home__event-badge--empty">
-          ⚠️ NO EVENT
+      <span class="staff-welcome__event-badge staff-welcome__event-badge--inactive">
+        ⚠️ Nessun Evento
         </span>
-        <h1 class="staff-home__event-name">Nessun evento operativo</h1>
-        <p class="staff-home__event-date">
-          Contatta l'amministratore per selezionare l'evento della serata
-        </p>
-      </div>
+      <h2 class="staff-welcome__event-name">In attesa</h2>
+      <p class="staff-welcome__event-date">Contatta l'admin per attivare un evento</p>
     {% endif %}
   </div>
-</section>
-
-<!-- Primary Actions -->
-<section class="card staff-home__section">
-  <h2 class="staff-home__section-title">🎯 Azioni Principali</h2>
-  <div class="staff-home__actions-grid staff-home__actions-grid--primary">
-    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
-       href="{{ url_for('ingressi.staff_scan') }}" 
-       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
-      <span class="staff-home__action-icon">🔍</span>
-      <span class="staff-home__action-label">Scanner Ingressi</span>
-      <span class="staff-home__action-desc">Scansiona QR clienti in ingresso</span>
+  
+  <!-- CTA -->
+  <div class="staff-welcome__cta">
+    {% if evento_attivo %}
+    <a href="{{ url_for('staff.scan_unificato') }}" class="staff-welcome__btn staff-welcome__btn--primary">
+      <span class="staff-welcome__btn-icon">📱</span>
+      <span class="staff-welcome__btn-label">Inizia a Scansionare</span>
+      <span class="staff-welcome__btn-desc">
+        {% if staff_role == 'ingressista' %}Registra gli ingressi dei clienti
+        {% elif staff_role == 'barista' %}Registra i consumi dei clienti
+        {% else %}Gestisci ingressi e consumi{% endif %}
+      </span>
     </a>
+    {% else %}
+    <div class="staff-welcome__btn staff-welcome__btn--primary staff-welcome__btn--disabled">
+      <span class="staff-welcome__btn-icon">📱</span>
+      <span class="staff-welcome__btn-label">Scanner non disponibile</span>
+      <span class="staff-welcome__btn-desc">Attendi l'attivazione di un evento</span>
+    </div>
+    {% endif %}
     
-    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
-       href="{{ url_for('consumi.staff_listino') }}" 
-       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
-      <span class="staff-home__action-icon">🧾</span>
-      <span class="staff-home__action-label">Registra Consumi</span>
-      <span class="staff-home__action-desc">Addebita prodotti ai clienti</span>
-    </a>
-
-    <a class="staff-home__action-btn staff-home__action-btn--primary{% if not evento_attivo %} staff-home__action-btn--disabled{% endif %}" 
-       href="{{ url_for('fedelta.staff_quick') }}" 
-       {% if not evento_attivo %}aria-disabled="true"{% endif %}>
-      <span class="staff-home__action-icon">⚡</span>
-      <span class="staff-home__action-label">Fedeltà</span>
-      <span class="staff-home__action-desc">Visualizza punti fedeltà</span>
+    <a href="{{ url_for('eventi.staff_select_event') }}" class="staff-welcome__btn staff-welcome__btn--secondary">
+      <span class="staff-welcome__btn-icon">🎯</span>
+      <span class="staff-welcome__btn-label">Info Evento</span>
+      <span class="staff-welcome__btn-desc">Visualizza dettagli e statistiche</span>
     </a>
   </div>
-</section>
-
-<!-- Secondary Actions -->
-<section class="card staff-home__section">
-  <h2 class="staff-home__section-title">📋 Risorse</h2>
-  <div class="staff-home__actions-grid staff-home__actions-grid--secondary">
-    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
-       href="{{ url_for('consumi.staff_new') }}">
-      <span class="staff-home__action-icon">➕</span>
-      <span class="staff-home__action-label">Nuovo Consumo</span>
-    </a>
-
-    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
-       href="{{ url_for('prodotti.public_listino') }}" 
-       target="_blank" rel="noopener">
-      <span class="staff-home__action-icon">🌐</span>
-      <span class="staff-home__action-label">Listino Pubblico</span>
-    </a>
-
-    <a class="staff-home__action-btn staff-home__action-btn--secondary" 
-       href="{{ url_for('eventi.staff_select_event') }}">
-      <span class="staff-home__action-icon">🎯</span>
-      <span class="staff-home__action-label">Gestisci Evento</span>
-    </a>
   </div>
-</section>
-
-<!-- Info Banner -->
-{% if not evento_attivo %}
-<section class="card staff-home__info">
-  <div class="banner banner--warning" role="alert">
-    <strong>⚠️ Attenzione:</strong> Le azioni principali sono disabilitate finché non viene impostato un evento operativo.
-  </div>
-</section>
-{% endif %}
-
 {% endblock %}
 

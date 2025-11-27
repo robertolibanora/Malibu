@@ -55,12 +55,12 @@ def require_staff(f):
     """
     Decoratore che richiede un membro dello staff loggato.
     
-    Reindirizza al login se nessuno staff_id in sessione.
+    Reindirizza al login staff se nessuno staff_id in sessione.
     """
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if not session.get("staff_id"):
+        if not session.get("staff_id") and session.get("staff_role") != "admin":
             flash("Devi effettuare l'accesso staff.", "error")
-            return redirect(url_for("auth.auth_login_form"))  # usiamo il login shared
+            return redirect(url_for("auth.auth_login_staff_form"))
         return f(*args, **kwargs)
     return wrapper

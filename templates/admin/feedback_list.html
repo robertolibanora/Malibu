@@ -1,6 +1,15 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Feedback{% endblock %}
 {% block admin_content %}
+<!-- Navigazione Secondaria Clienti -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+  <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">👥 Anagrafica</a>
+  <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">⭐ Punti Fedeltà</a>
+  <a href="{{ url_for('fedelta.admin_movimenti') }}" class="btn btn--ghost btn--small">📊 Movimenti</a>
+  <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--ghost btn--small">📈 Analytics</a>
+  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary btn--small">💬 Feedback</a>
+</div>
+
 <section class="card">
   <h1 class="card__title">Feedback</h1>
   <div class="card__meta">

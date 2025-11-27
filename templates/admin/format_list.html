@@ -2,6 +2,16 @@
 {% block admin_title %}Format Eventi{% endblock %}
 
 {% block admin_content %}
+<!-- Navigazione Secondaria Impostazioni -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+  <a href="{{ url_for('staff_admin.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Impostazioni</a>
+  <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost btn--small">👤 Staff</a>
+  <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost btn--small">🍹 Listino</a>
+  <a href="{{ url_for('format.admin_list') }}" class="btn btn--primary btn--small">🎭 Format</a>
+  <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost btn--small">⭐ Soglie</a>
+  <a href="{{ url_for('log.list') }}" class="btn btn--ghost btn--small">📜 Log</a>
+</div>
+
 <div class="formats-hub">
   <header class="formats-hub__header fade-in">
     <div class="formats-hub__intro">

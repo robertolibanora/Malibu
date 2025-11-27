@@ -252,3 +252,123 @@ def evento_stato_badge(evento: Evento) -> dict:
     
     return {"label": "● Sconosciuto", "class": "badge-muted", "color": "gray", "icon": "?"}
 
+
+def processa_no_show_automatico(db, cliente_id: int = None, evento_id: int = None):
+    """
+    Processa automaticamente le prenotazioni che devono essere marcate come no-show.
+    
+    Regole:
+    - Prenotazione con stato "attiva"
+    - Evento con data_evento < oggi (evento passato)
+    - Nessun ingresso registrato per quel cliente/evento
+    
+    Se cliente_id è specificato, processa solo per quel cliente.
+    Se evento_id è specificato, processa solo per quell'evento.
+    Se entrambi None, processa tutte le prenotazioni che rispettano i criteri.
+    
+    Ritorna: (count_marcate, count_già_no_show, count_con_ingresso)
+    """
+    from datetime import date
+    from app.routes.fedelta import award_on_no_show
+    from app.routes.log_attivita import log_action
+    
+    oggi = date.today()
+    
+    # Query base: prenotazioni attive con evento passato
+    query = db.query(Prenotazione).join(Evento, Prenotazione.evento_id == Evento.id_evento).filter(
+        Prenotazione.stato == "attiva",
+        Evento.data_evento < oggi
+    )
+    
+    if cliente_id:
+        query = query.filter(Prenotazione.cliente_id == cliente_id)
+    if evento_id:
+        query = query.filter(Prenotazione.evento_id == evento_id)
+    
+    prenotazioni_da_verificare = query.all()
+    
+    count_marcate = 0
+    count_già_no_show = 0
+    count_con_ingresso = 0
+    
+    for pren in prenotazioni_da_verificare:
+        # Verifica se esiste ingresso
+        ingresso = db.query(Ingresso).filter(
+            Ingresso.cliente_id == pren.cliente_id,
+            Ingresso.evento_id == pren.evento_id
+        ).first()
+        
+        if ingresso:
+            # Ha ingresso: marca prenotazione come "usata" se non lo è già
+            if pren.stato != "usata":
+                pren.stato = "usata"
+                count_marcate += 1
+                log_action(
+                    db,
+                    tabella="prenotazioni",
+                    record_id=pren.id_prenotazione,
+                    staff_id=None,  # Automatico
+                    azione="prenotazione_usata_automatica",
+                    note=f"Evento passato con ingresso registrato, evento_id={pren.evento_id}"
+                )
+            count_con_ingresso += 1
+        else:
+            # Nessun ingresso: marca come no-show e applica penalità
+            if pren.stato == "attiva":
+                pren.stato = "no-show"
+                award_on_no_show(db, cliente_id=pren.cliente_id, evento_id=pren.evento_id)
+                count_marcate += 1
+                log_action(
+                    db,
+                    tabella="prenotazioni",
+                    record_id=pren.id_prenotazione,
+                    staff_id=None,  # Automatico
+                    azione="no_show_automatico",
+                    note=f"Evento passato senza ingresso, evento_id={pren.evento_id}"
+                )
+            else:
+                count_già_no_show += 1
+    
+    if count_marcate > 0:
+        db.commit()
+    
+    return (count_marcate, count_già_no_show, count_con_ingresso)
+
+
+def verifica_e_aggiorna_prenotazione_cliente(db, cliente_id: int, prenotazione: Prenotazione) -> str:
+    """
+    Verifica una singola prenotazione e la aggiorna se necessario.
+    
+    Ritorna: "usata" | "no-show" | "attiva" | "cancellata"
+    """
+    from datetime import date
+    
+    # Se già in stato finale, non fare nulla
+    if prenotazione.stato in ("usata", "no-show", "cancellata"):
+        return prenotazione.stato
+    
+    # Se evento è futuro, resta attiva
+    if prenotazione.evento and prenotazione.evento.data_evento >= date.today():
+        return "attiva"
+    
+    # Evento passato: verifica ingresso
+    ingresso = db.query(Ingresso).filter(
+        Ingresso.cliente_id == prenotazione.cliente_id,
+        Ingresso.evento_id == prenotazione.evento_id
+    ).first()
+    
+    if ingresso:
+        # Ha ingresso: marca come usata
+        if prenotazione.stato == "attiva":
+            prenotazione.stato = "usata"
+            db.commit()
+        return "usata"
+    else:
+        # Nessun ingresso: marca come no-show e applica penalità
+        if prenotazione.stato == "attiva":
+            from app.routes.fedelta import award_on_no_show
+            prenotazione.stato = "no-show"
+            award_on_no_show(db, cliente_id=prenotazione.cliente_id, evento_id=prenotazione.evento_id)
+            db.commit()
+        return "no-show"
+

@@ -1,0 +1,966 @@
+{% extends "staff/base.html" %}
+{% from "staff/partials/qr_scanner.html" import render_qr_scanner %}
+{% block staff_title %}Scanner{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/qr-scanner.css') }}">
+  <style>
+    /* Scanner Unificato - Mobile First */
+    .scan-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      padding-bottom: 120px; /* Spazio per action bar sticky */
+    }
+    
+    .scan-hub__header {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 12px;
+      padding: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .scan-hub__event {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    
+    .scan-hub__event-name {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #10b981;
+    }
+    
+    .scan-hub__event-date {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .scan-hub__stats {
+      display: flex;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    
+    .scan-hub__stat {
+      text-align: center;
+    }
+    
+    .scan-hub__stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    
+    .scan-hub__stat-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.6);
+    }
+    
+    /* Scanner Area */
+    .scan-hub__scanner {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+    
+    .scan-hub__scanner-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+    
+    /* Cliente Preview */
+    .scan-hub__cliente {
+      display: none;
+      background: linear-gradient(135deg, rgba(212, 175, 55, 0.12) 0%, rgba(212, 175, 55, 0.04) 100%);
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 16px;
+      padding: 1.25rem;
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    .scan-hub__cliente.active {
+      display: block;
+    }
+    
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .scan-hub__cliente-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .scan-hub__cliente-avatar {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #000;
+    }
+    
+    .scan-hub__cliente-info {
+      flex: 1;
+    }
+    
+    .scan-hub__cliente-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+    
+    .scan-hub__cliente-meta {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.7);
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    
+    .scan-hub__cliente-status {
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    
+    .scan-hub__cliente-status--entered {
+      background: rgba(16, 185, 129, 0.2);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+    
+    .scan-hub__cliente-status--not-entered {
+      background: rgba(245, 158, 11, 0.2);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+    }
+    
+    .scan-hub__cliente-status--error {
+      background: rgba(239, 68, 68, 0.2);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+    }
+    
+    /* Prenotazione Badge */
+    .scan-hub__prenotazione {
+      margin-top: 0.75rem;
+      padding: 0.75rem;
+      background: rgba(139, 92, 246, 0.15);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 8px;
+      font-size: 0.85rem;
+    }
+    
+    .scan-hub__prenotazione-tipo {
+      font-weight: 600;
+      color: #a78bfa;
+    }
+    
+    /* Listino Prodotti - Solo per Barista */
+    .scan-hub__listino {
+      display: none;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.25rem;
+    }
+    
+    .scan-hub__listino.active {
+      display: block;
+      animation: slideUp 0.3s ease-out;
+    }
+    
+    .scan-hub__listino-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    
+    .scan-hub__listino-title {
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .scan-hub__categoria {
+      margin-bottom: 1rem;
+    }
+    
+    .scan-hub__categoria-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .scan-hub__prodotti-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 0.5rem;
+    }
+    
+    .scan-hub__prodotto {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .scan-hub__prodotto:active {
+      transform: scale(0.98);
+    }
+    
+    .scan-hub__prodotto.selected {
+      background: rgba(212, 175, 55, 0.2);
+      border-color: #d4af37;
+    }
+    
+    .scan-hub__prodotto-nome {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 0.25rem;
+    }
+    
+    .scan-hub__prodotto-prezzo {
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: #d4af37;
+    }
+    
+    .scan-hub__prodotto-qty {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    
+    .scan-hub__prodotto.selected .scan-hub__prodotto-qty {
+      display: flex;
+    }
+    
+    .scan-hub__qty-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    
+    .scan-hub__qty-value {
+      font-weight: 700;
+      min-width: 24px;
+      text-align: center;
+    }
+    
+    /* Action Bar Sticky */
+    .scan-hub__actions {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.9) 100%);
+      backdrop-filter: blur(12px);
+      padding: 1rem;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      z-index: 100;
+      display: none;
+    }
+    
+    .scan-hub__actions.active {
+      display: block;
+      animation: slideUp 0.25s ease-out;
+    }
+    
+    .scan-hub__totale {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .scan-hub__totale-label {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.7);
+    }
+    
+    .scan-hub__totale-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #d4af37;
+    }
+    
+    .scan-hub__action-btns {
+      display: flex;
+      gap: 0.75rem;
+    }
+    
+    .scan-hub__action-btn {
+      flex: 1;
+      padding: 1rem;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    
+    .scan-hub__action-btn--primary {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #fff;
+    }
+    
+    .scan-hub__action-btn--gold {
+      background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+      color: #000;
+    }
+    
+    .scan-hub__action-btn--ghost {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .scan-hub__action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .scan-hub__action-btn:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+    
+    /* Ruolo Badge */
+    .scan-hub__role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .scan-hub__role-badge--ingressista {
+      background: rgba(59, 130, 246, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+    }
+    
+    .scan-hub__role-badge--barista {
+      background: rgba(168, 85, 247, 0.2);
+      color: #c084fc;
+      border: 1px solid rgba(168, 85, 247, 0.4);
+    }
+    
+    .scan-hub__role-badge--admin {
+      background: rgba(212, 175, 55, 0.2);
+      color: #d4af37;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+    }
+    
+    /* Success/Error Toast */
+    .scan-hub__toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      background: rgba(0,0,0,0.95);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      z-index: 200;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+    
+    .scan-hub__toast.active {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+    
+    .scan-hub__toast-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+    
+    .scan-hub__toast-text {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+    
+    .scan-hub__toast--success {
+      border: 2px solid #10b981;
+    }
+    
+    .scan-hub__toast--error {
+      border: 2px solid #ef4444;
+    }
+    
+    /* Overlay */
+    .scan-hub__overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 150;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    
+    .scan-hub__overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+{% endblock %}
+
+{% block staff_content %}
+<div class="scan-hub">
+  
+  <!-- Header con Info Evento -->
+  <header class="scan-hub__header">
+    <div class="scan-hub__event">
+      <span class="scan-hub__event-name">{{ evento.nome_evento }}</span>
+      <span class="scan-hub__event-date">📅 {{ evento.data_evento.strftime('%d/%m/%Y') }}</span>
+    </div>
+    <div class="scan-hub__stats">
+      <div class="scan-hub__stat">
+        <div class="scan-hub__stat-value" id="stat_ingressi">{{ ingressi_totali }}</div>
+        <div class="scan-hub__stat-label">Entrati</div>
+      </div>
+      {% if capienza_residua is not none %}
+      <div class="scan-hub__stat">
+        <div class="scan-hub__stat-value" id="stat_capienza">{{ capienza_residua }}</div>
+        <div class="scan-hub__stat-label">Posti</div>
+      </div>
+      {% endif %}
+      <div class="scan-hub__stat">
+        <div class="scan-hub__stat-value" id="stat_prenotati">{{ prenotati_attesa }}</div>
+        <div class="scan-hub__stat-label">In attesa</div>
+      </div>
+    </div>
+  </header>
+  
+  <!-- Ruolo Badge -->
+  <div style="display: flex; justify-content: center;">
+    <span class="scan-hub__role-badge scan-hub__role-badge--{{ staff_role }}">
+      {% if staff_role == 'ingressista' %}🚪 Ingressista{% elif staff_role == 'barista' %}🍹 Barista{% else %}👑 Admin{% endif %}
+    </span>
+  </div>
+  
+  <!-- Scanner QR -->
+  <section class="scan-hub__scanner card">
+    <h2 class="scan-hub__scanner-title">📱 Scansiona QR Cliente</h2>
+    
+    <form id="scanForm" method="post">
+      {{ render_qr_scanner(
+        container_id='qr-reader',
+        form_id='scanForm',
+        auto_submit=False,
+        show_manual_input=True,
+        manual_input_label='Inserisci QR manualmente',
+        manual_input_placeholder='Codice QR cliente'
+      ) }}
+      <input type="hidden" id="qr_hidden" name="qr">
+    </form>
+    
+    <!-- Status -->
+    <div id="scanner_status" style="text-align: center; margin-top: 1rem; font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+      ⏳ In attesa di scansione...
+    </div>
+  </section>
+  
+  <!-- Cliente Info (mostrato dopo scansione) -->
+  <section id="cliente_section" class="scan-hub__cliente">
+    <div class="scan-hub__cliente-header">
+      <div class="scan-hub__cliente-avatar" id="cliente_avatar">?</div>
+      <div class="scan-hub__cliente-info">
+        <div class="scan-hub__cliente-name" id="cliente_nome">-</div>
+        <div class="scan-hub__cliente-meta">
+          <span id="cliente_livello">-</span>
+          <span id="cliente_punti">- punti</span>
+        </div>
+      </div>
+      <div class="scan-hub__cliente-status" id="cliente_status">-</div>
+    </div>
+    
+    <div id="prenotazione_info" class="scan-hub__prenotazione" style="display: none;">
+      <span class="scan-hub__prenotazione-tipo" id="prenotazione_tipo">-</span>
+      <span id="prenotazione_dettagli"></span>
+    </div>
+  </section>
+  
+  <!-- Listino Prodotti (solo barista/admin, mostrato dopo scansione cliente entrato) -->
+  {% if staff_role in ('barista', 'admin') and prodotti_per_categoria %}
+  <section id="listino_section" class="scan-hub__listino">
+    <div class="scan-hub__listino-header">
+      <h2 class="scan-hub__listino-title">🛍️ Seleziona Prodotti</h2>
+      <button type="button" class="btn btn--ghost btn--small" id="clear_selection">Reset</button>
+    </div>
+    
+    {% for categoria, prodotti_cat in prodotti_per_categoria.items() %}
+    <div class="scan-hub__categoria">
+      <h3 class="scan-hub__categoria-title">{{ categoria }}</h3>
+      <div class="scan-hub__prodotti-grid">
+        {% for p in prodotti_cat %}
+        <div class="scan-hub__prodotto" data-id="{{ p.id_prodotto }}" data-nome="{{ p.nome }}" data-prezzo="{{ p.prezzo|float }}">
+          <div class="scan-hub__prodotto-nome">{{ p.nome }}</div>
+          <div class="scan-hub__prodotto-prezzo">€{{ "%.2f"|format(p.prezzo) }}</div>
+          <div class="scan-hub__prodotto-qty">
+            <button type="button" class="scan-hub__qty-btn" data-action="minus">−</button>
+            <span class="scan-hub__qty-value">1</span>
+            <button type="button" class="scan-hub__qty-btn" data-action="plus">+</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+
+<!-- Action Bar Sticky -->
+<div id="action_bar" class="scan-hub__actions">
+  <div class="scan-hub__totale" id="totale_section" style="display: none;">
+    <span class="scan-hub__totale-label">Totale</span>
+    <span class="scan-hub__totale-value" id="totale_value">€0.00</span>
+  </div>
+  
+  <div class="scan-hub__action-btns">
+    <!-- Pulsante Ingresso (ingressista/admin, se cliente non entrato) -->
+    <button type="button" class="scan-hub__action-btn scan-hub__action-btn--primary" id="btn_ingresso" style="display: none;">
+      🚪 Fai Entrare
+    </button>
+    
+    <!-- Pulsante Addebita (barista/admin, se cliente entrato e prodotti selezionati) -->
+    <button type="button" class="scan-hub__action-btn scan-hub__action-btn--gold" id="btn_addebita" style="display: none;">
+      💰 Addebita
+    </button>
+    
+    <!-- Pulsante Reset -->
+    <button type="button" class="scan-hub__action-btn scan-hub__action-btn--ghost" id="btn_reset">
+      🔄 Nuova Scansione
+    </button>
+  </div>
+</div>
+
+<!-- Toast Success -->
+<div id="toast_success" class="scan-hub__toast scan-hub__toast--success">
+  <div class="scan-hub__toast-icon">✅</div>
+  <div class="scan-hub__toast-text" id="toast_success_text">Operazione completata!</div>
+</div>
+
+<!-- Toast Error -->
+<div id="toast_error" class="scan-hub__toast scan-hub__toast--error">
+  <div class="scan-hub__toast-icon">❌</div>
+  <div class="scan-hub__toast-text" id="toast_error_text">Errore</div>
+</div>
+
+<!-- Overlay -->
+<div id="overlay" class="scan-hub__overlay"></div>
+
+<!-- Scripts -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="{{ url_for('static', filename='js/qr-scanner.js') }}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Elements
+  const qrHidden = document.getElementById('qr_hidden');
+  const qrManual = document.getElementById('qr_manual');
+  const scannerStatus = document.getElementById('scanner_status');
+  const clienteSection = document.getElementById('cliente_section');
+  const listinoSection = document.getElementById('listino_section');
+  const actionBar = document.getElementById('action_bar');
+  const btnIngresso = document.getElementById('btn_ingresso');
+  const btnAddebita = document.getElementById('btn_addebita');
+  const btnReset = document.getElementById('btn_reset');
+  const totaleSection = document.getElementById('totale_section');
+  const totaleValue = document.getElementById('totale_value');
+  const toastSuccess = document.getElementById('toast_success');
+  const toastError = document.getElementById('toast_error');
+  const overlay = document.getElementById('overlay');
+  
+  const staffRole = '{{ staff_role }}';
+  let clienteData = null;
+  let currentQR = null;
+  let carrello = {};
+  
+  // Reset UI
+  function resetUI() {
+    clienteSection.classList.remove('active');
+    if (listinoSection) listinoSection.classList.remove('active');
+    actionBar.classList.remove('active');
+    btnIngresso.style.display = 'none';
+    btnAddebita.style.display = 'none';
+    totaleSection.style.display = 'none';
+    clienteData = null;
+    currentQR = null;
+    carrello = {};
+    if (qrManual) qrManual.value = '';
+    if (qrHidden) qrHidden.value = '';
+    scannerStatus.innerHTML = '⏳ In attesa di scansione...';
+    
+    // Reset prodotti selection
+    document.querySelectorAll('.scan-hub__prodotto').forEach(p => {
+      p.classList.remove('selected');
+      const qtyEl = p.querySelector('.scan-hub__qty-value');
+      if (qtyEl) qtyEl.textContent = '1';
+    });
+    
+    updateTotale();
+  }
+  
+  // Show Toast
+  function showToast(type, message, duration = 2000) {
+    const toast = type === 'success' ? toastSuccess : toastError;
+    const textEl = toast.querySelector('.scan-hub__toast-text');
+    textEl.textContent = message;
+    
+    overlay.classList.add('active');
+    toast.classList.add('active');
+    
+    setTimeout(() => {
+      toast.classList.remove('active');
+      overlay.classList.remove('active');
+      
+      if (type === 'success') {
+        resetUI();
+        // Aggiorna statistiche
+        updateStats();
+      }
+    }, duration);
+  }
+  
+  // Update Stats
+  async function updateStats() {
+    try {
+      const res = await fetch('{{ url_for("ingressi.staff_prenotati_count") }}');
+      const data = await res.json();
+      if (data.ok) {
+        const prenotatiEl = document.getElementById('stat_prenotati');
+        const ingressiEl = document.getElementById('stat_ingressi');
+        if (prenotatiEl) prenotatiEl.textContent = data.prenotati_mancanti || 0;
+        if (ingressiEl && data.ingressi_totali !== undefined) {
+          ingressiEl.textContent = data.ingressi_totali;
+        }
+      }
+    } catch (e) {
+      console.error('Errore aggiornamento stats:', e);
+    }
+  }
+  
+  // Fetch Cliente Info
+  async function fetchClienteInfo(qr) {
+    scannerStatus.innerHTML = '⌛ Verifica cliente...';
+    
+    try {
+      const res = await fetch('{{ url_for("staff.scan_cliente_info") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ qr })
+      });
+      
+      const data = await res.json();
+      
+      if (!data.ok) {
+        let msg = 'Cliente non trovato';
+        if (data.reason === 'no_event') msg = 'Nessun evento attivo';
+        scannerStatus.innerHTML = `❌ ${msg}`;
+        return;
+      }
+      
+      // Store data
+      clienteData = data.cliente;
+      currentQR = qr;
+      
+      // Update UI
+      const c = data.cliente;
+      document.getElementById('cliente_nome').textContent = `${c.nome} ${c.cognome}`;
+      document.getElementById('cliente_avatar').textContent = c.nome.charAt(0).toUpperCase();
+      document.getElementById('cliente_livello').textContent = `⭐ ${(c.livello || 'base').charAt(0).toUpperCase() + (c.livello || 'base').slice(1)}`;
+      document.getElementById('cliente_punti').textContent = `${c.punti || 0} punti`;
+      
+      const statusEl = document.getElementById('cliente_status');
+      if (data.ha_ingresso) {
+        statusEl.className = 'scan-hub__cliente-status scan-hub__cliente-status--entered';
+        statusEl.textContent = '✓ Entrato';
+        scannerStatus.innerHTML = '✅ Cliente già entrato';
+      } else {
+        statusEl.className = 'scan-hub__cliente-status scan-hub__cliente-status--not-entered';
+        statusEl.textContent = '⚠️ Non entrato';
+        scannerStatus.innerHTML = '✅ Cliente trovato - pronto per ingresso';
+      }
+      
+      // Prenotazione info
+      const prenInfo = document.getElementById('prenotazione_info');
+      if (data.ha_prenotazione && data.prenotazione) {
+        const p = data.prenotazione;
+        document.getElementById('prenotazione_tipo').textContent = 
+          p.tipo === 'tavolo' ? '🪑 Tavolo' : (p.tipo === 'lista' ? '📋 Lista' : p.tipo);
+        let dettagli = '';
+        if (p.num_persone) dettagli += ` • ${p.num_persone} persone`;
+        if (p.note) dettagli += ` • ${p.note}`;
+        document.getElementById('prenotazione_dettagli').textContent = dettagli;
+        prenInfo.style.display = 'block';
+      } else {
+        prenInfo.style.display = 'none';
+      }
+      
+      // Show cliente section
+      clienteSection.classList.add('active');
+      
+      // Show action bar and buttons based on role and status
+      actionBar.classList.add('active');
+      
+      // Ingressista/Admin: mostra pulsante ingresso se non entrato
+      if ((staffRole === 'ingressista' || staffRole === 'admin') && !data.ha_ingresso) {
+        btnIngresso.style.display = 'flex';
+      } else {
+        btnIngresso.style.display = 'none';
+      }
+      
+      // Barista/Admin: mostra listino se cliente è entrato
+      if ((staffRole === 'barista' || staffRole === 'admin') && data.ha_ingresso && listinoSection) {
+        listinoSection.classList.add('active');
+        totaleSection.style.display = 'flex';
+      }
+      
+    } catch (err) {
+      console.error('Errore fetch cliente:', err);
+      scannerStatus.innerHTML = '❌ Errore verifica cliente';
+    }
+  }
+  
+  // Handle QR Scan
+  document.addEventListener('qr-scanned', function(event) {
+    const code = event?.detail?.code;
+    if (code) {
+      if (qrHidden) qrHidden.value = code;
+      fetchClienteInfo(code);
+    }
+  });
+  
+  // Manual Input
+  if (qrManual) {
+    let debounce = null;
+    qrManual.addEventListener('input', function() {
+      clearTimeout(debounce);
+      const val = this.value.trim();
+      if (val.length >= 5) {
+        debounce = setTimeout(() => {
+          if (qrHidden) qrHidden.value = val;
+          fetchClienteInfo(val);
+        }, 500);
+      }
+    });
+  }
+  
+  // Reset Button
+  btnReset.addEventListener('click', resetUI);
+  
+  // Ingresso Button
+  btnIngresso.addEventListener('click', async function() {
+    if (!currentQR) return;
+    
+    this.disabled = true;
+    this.innerHTML = '⌛ Registrazione...';
+    
+    try {
+      const res = await fetch('{{ url_for("staff.scan_registra_ingresso") }}', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ qr: currentQR })
+      });
+      
+      const data = await res.json();
+      
+      if (data.ok) {
+        showToast('success', `✓ ${data.cliente_nome} è entrato!`);
+      } else {
+        showToast('error', data.error || 'Errore registrazione ingresso');
+      }
+    } catch (err) {
+      console.error('Errore ingresso:', err);
+      showToast('error', 'Errore di connessione');
+    }
+    
+    this.disabled = false;
+    this.innerHTML = '🚪 Fai Entrare';
+  });
+  
+  // Prodotti Selection
+  document.querySelectorAll('.scan-hub__prodotto').forEach(prodotto => {
+    prodotto.addEventListener('click', function(e) {
+      // Evita toggle se si clicca sui bottoni qty
+      if (e.target.closest('.scan-hub__qty-btn')) return;
+      
+      const id = this.dataset.id;
+      const nome = this.dataset.nome;
+      const prezzo = parseFloat(this.dataset.prezzo);
+      
+      if (this.classList.contains('selected')) {
+        this.classList.remove('selected');
+        delete carrello[id];
+      } else {
+        this.classList.add('selected');
+        carrello[id] = { nome, prezzo, qty: 1 };
+      }
+      
+      updateTotale();
+    });
+  });
+  
+  // Qty Buttons
+  document.querySelectorAll('.scan-hub__qty-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      const prodotto = this.closest('.scan-hub__prodotto');
+      const id = prodotto.dataset.id;
+      const qtyEl = prodotto.querySelector('.scan-hub__qty-value');
+      
+      if (!carrello[id]) return;
+      
+      if (this.dataset.action === 'plus') {
+        carrello[id].qty++;
+      } else if (this.dataset.action === 'minus' && carrello[id].qty > 1) {
+        carrello[id].qty--;
+      }
+      
+      qtyEl.textContent = carrello[id].qty;
+      updateTotale();
+    });
+  });
+  
+  // Clear Selection
+  const clearBtn = document.getElementById('clear_selection');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function() {
+      document.querySelectorAll('.scan-hub__prodotto').forEach(p => {
+        p.classList.remove('selected');
+        const qtyEl = p.querySelector('.scan-hub__qty-value');
+        if (qtyEl) qtyEl.textContent = '1';
+      });
+      carrello = {};
+      updateTotale();
+    });
+  }
+  
+  // Update Totale
+  function updateTotale() {
+    let totale = 0;
+    for (const id in carrello) {
+      totale += carrello[id].prezzo * carrello[id].qty;
+    }
+    
+    totaleValue.textContent = '€' + totale.toFixed(2);
+    
+    // Show/hide addebita button
+    const hasProducts = Object.keys(carrello).length > 0;
+    btnAddebita.style.display = hasProducts ? 'flex' : 'none';
+  }
+  
+  // Addebita Button
+  btnAddebita.addEventListener('click', async function() {
+    if (!currentQR || Object.keys(carrello).length === 0) return;
+    
+    this.disabled = true;
+    this.innerHTML = '⌛ Addebito...';
+    
+    // Prepara form data
+    const formData = new FormData();
+    formData.append('qr', currentQR);
+    formData.append('punto_vendita', 'bar');
+    formData.append('confirm_token', Date.now().toString());
+    
+    for (const id in carrello) {
+      formData.append('prodotto_id', id);
+      formData.append(`quantita_${id}`, carrello[id].qty);
+    }
+    
+    try {
+      const res = await fetch('{{ url_for("consumi.staff_listino_addebito") }}', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+      });
+      
+      if (res.redirected || res.ok) {
+        // Calcola totale per il messaggio
+        let totale = 0;
+        for (const id in carrello) {
+          totale += carrello[id].prezzo * carrello[id].qty;
+        }
+        showToast('success', `€${totale.toFixed(2)} addebitato!`);
+      } else {
+        showToast('error', 'Errore addebito');
+      }
+    } catch (err) {
+      console.error('Errore addebito:', err);
+      showToast('error', 'Errore di connessione');
+    }
+    
+    this.disabled = false;
+    this.innerHTML = '💰 Addebita';
+  });
+  
+  // Auto-update stats periodically
+  setInterval(updateStats, 30000);
+});
+</script>
+{% endblock %}
+

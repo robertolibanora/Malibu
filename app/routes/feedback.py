@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from sqlalchemy import and_, func
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin
+from app.utils.limiter import limiter
 from app.models.feedback import Feedback
 from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
@@ -24,6 +25,7 @@ def miei():
 
 @feedback_bp.route("/nuovo", methods=["GET", "POST"])
 @require_cliente
+@limiter.limit("5 per minute", key_func=lambda: session.get("cliente_id") or request.remote_addr)
 def nuovo():
     from app.utils.workflow import get_workflow_state
     db = SessionLocal()

@@ -33,20 +33,36 @@
         <p class="event-card__meta">
           <span class="event-card__date">{{ p.evento.data_evento.strftime('%d %b %Y') if p.evento.data_evento else '' }}</span>
           <span class="event-card__dot">•</span>
-          <span class="event-card__genre">{{ p.tipo|capitalize }}</span>
+          {% if p.tipo == 'tavolo' %}
+            <span class="event-card__genre" style="color: var(--gold-primary); font-weight: 600;">🪑 Tavolo</span>
+          {% else %}
+            <span class="event-card__genre">📋 Lista</span>
+          {% endif %}
         </p>
         <p class="event-card__promo">Punti guadagnati finora: {{ punti_evento.get(p.evento_id, 0) }}</p>
-        {% if p.tipo == 'tavolo' and p.num_persone %}
-          <p class="event-card__info">Persone: <strong>{{ p.num_persone }}</strong></p>
+        {% if p.tipo == 'tavolo' %}
+          {% if p.num_persone %}
+            <p class="event-card__info" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>👥</span>
+              <span>Persone: <strong>{{ p.num_persone }}</strong></span>
+            </p>
         {% endif %}
         {% if p.note %}
+            <p class="event-card__promo" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>🪑</span>
+              <span><strong>Tavolo:</strong> {{ p.note }}</span>
+            </p>
+          {% endif %}
+        {% elif p.note %}
           <p class="event-card__promo">Note: {{ p.note }}</p>
         {% endif %}
       </div>
       <div class="event-card__actions">
+        {% if p.evento.data_evento >= oggi %}
         <form method="post" action="{{ url_for('prenotazioni.cancella_mia', pren_id=p.id_prenotazione) }}" onsubmit="return confirm('Cancellare la prenotazione?');">
           <button class="btn btn--primary" type="submit" style="background: linear-gradient(135deg, rgba(196, 30, 58, 0.95) 0%, rgba(196, 30, 58, 0.85) 100%); color: white; border: 1px solid rgba(196, 30, 58, 0.4);">Cancella (entro le 18)</button>
         </form>
+        {% endif %}
       </div>
     </div>
   </article>
@@ -79,10 +95,27 @@
         <p class="event-card__meta">
           <span class="event-card__date">{{ pren.evento.data_evento.strftime('%d %b %Y') if pren.evento.data_evento else '' }}</span>
           <span class="event-card__dot">•</span>
-          <span class="event-card__genre">{{ pren.tipo|capitalize }}</span>
+          {% if pren.tipo == 'tavolo' %}
+            <span class="event-card__genre" style="color: var(--gold-primary); font-weight: 600;">🪑 Tavolo</span>
+          {% else %}
+            <span class="event-card__genre">📋 Lista</span>
+          {% endif %}
         </p>
         <p class="event-card__promo">Punti guadagnati: {{ punti_evento.get(pren.evento_id, 0) }}</p>
+        {% if pren.tipo == 'tavolo' %}
+          {% if pren.num_persone %}
+            <p class="event-card__info" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>👥</span>
+              <span>Persone: <strong>{{ pren.num_persone }}</strong></span>
+            </p>
+          {% endif %}
         {% if pren.note %}
+            <p class="event-card__promo" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>🪑</span>
+              <span><strong>Tavolo:</strong> {{ pren.note }}</span>
+            </p>
+          {% endif %}
+        {% elif pren.note %}
           <p class="event-card__promo">Note: {{ pren.note }}</p>
         {% endif %}
         {% if feedback %}
@@ -147,10 +180,27 @@
         <p class="event-card__meta">
           <span class="event-card__date">{{ p.evento.data_evento.strftime('%d %b %Y') if p.evento.data_evento else '' }}</span>
           <span class="event-card__dot">•</span>
-          <span class="event-card__genre">{{ p.tipo|capitalize }}</span>
+          {% if p.tipo == 'tavolo' %}
+            <span class="event-card__genre" style="color: var(--gold-primary); font-weight: 600;">🪑 Tavolo</span>
+          {% else %}
+            <span class="event-card__genre">📋 Lista</span>
+          {% endif %}
         </p>
         <p class="event-card__promo">Punti guadagnati: {{ punti_evento.get(p.evento_id, 0) }}</p>
+        {% if p.tipo == 'tavolo' %}
+          {% if p.num_persone %}
+            <p class="event-card__info" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>👥</span>
+              <span>Persone: <strong>{{ p.num_persone }}</strong></span>
+            </p>
+          {% endif %}
         {% if p.note %}
+            <p class="event-card__promo" style="display: flex; align-items: center; gap: 0.5rem;">
+              <span>🪑</span>
+              <span><strong>Tavolo:</strong> {{ p.note }}</span>
+            </p>
+          {% endif %}
+        {% elif p.note %}
           <p class="event-card__promo">Note: {{ p.note }}</p>
         {% endif %}
         <p class="event-card__promo">Perdita punti: -{{ punti_per_no_show }} pt</p>

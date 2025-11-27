@@ -6,3 +6,4 @@ qrcode[pil]
 Werkzeug
 cryptography
 dotenv
+Flask-Limiter==3.5.0

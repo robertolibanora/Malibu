@@ -8,137 +8,17 @@ from app.models.prenotazioni import Prenotazione
 from app.models.eventi import Evento
 from app.models.ingressi import Ingresso
 from app.models.consumi import Consumo
-from app.utils.qr import generate_short_code, qr_data_url
+from app.utils.qr import qr_data_url
 from app.utils.auth import hash_password
 from app.routes.fedelta import get_thresholds, compute_level, next_threshold_info
 from app.utils.decorators import require_cliente, require_admin
 from app.utils.events import get_evento_operativo
+from app.utils.helpers import get_current_cliente as current_cliente
 from datetime import datetime, date, timedelta
 
 clienti_bp = Blueprint("clienti", __name__, url_prefix="/clienti")
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
-# -----------------------
-# Helpers session utente
-# -----------------------
-def current_cliente(db):
-    """
-    Helper per ottenere il cliente attualmente loggato dalla sessione.
-    """
-    cid = session.get("cliente_id")
-    if not cid:
-        return None
-    return db.query(Cliente).get(cid)
-
-# -----------------------
-# REGISTRAZIONE CLIENTE
-# -----------------------
-@clienti_bp.route("/register", methods=["GET"])
-def register_form():
-    return render_template("shared/register.html")
-
-@clienti_bp.route("/register", methods=["POST"])
-def register_submit():
-    nome = request.form.get("nome", "").strip()
-    cognome = request.form.get("cognome", "").strip()
-    telefono = request.form.get("telefono", "").strip()
-    data_nascita = request.form.get("data_nascita")  # yyyy-mm-dd
-    citta = request.form.get("citta", "").strip()
-    password = request.form.get("password", "").strip()
-    termini_accettati = request.form.get("accetto_termini") == "on"
-    privacy_accettata = request.form.get("accetto_privacy") == "on"
-
-    if not termini_accettati or not privacy_accettata:
-        if not termini_accettati and not privacy_accettata:
-            flash("Per proseguire devi accettare i Termini e Condizioni e la Privacy Policy.", "warning")
-        elif not termini_accettati:
-            flash("Per proseguire devi accettare i Termini e Condizioni.", "warning")
-        else:
-            flash("Per proseguire devi accettare la Privacy Policy.", "warning")
-        return redirect(url_for("clienti.register_form"))
-
-    if not all([nome, cognome, telefono, password, data_nascita, citta]):
-        flash("Per favore, compila tutti i campi obbligatori per completare la registrazione.", "warning")
-        return redirect(url_for("clienti.register_form"))
-
-    db = SessionLocal()
-    try:
-        # genera QR unico
-        qr = generate_unique_qr(db)
-
-        nuovo = Cliente(
-            nome=nome,
-            cognome=cognome,
-            telefono=telefono,
-            data_nascita=data_nascita,
-            citta=citta,
-            password_hash=hash_password(password),
-            qr_code=qr,
-            livello="base",
-            punti_fedelta=0,
-            stato_account="attivo"
-        )
-        db.add(nuovo)
-        db.flush()  # Per ottenere l'ID del cliente
-        
-        # Assegna automaticamente le promozioni con auto_assegnazione=True
-        from app.models.promozioni import Promozione, ClientePromozione
-        from datetime import date
-        promozioni_auto = db.query(Promozione).filter(
-            Promozione.auto_assegnazione == True,
-            Promozione.attiva == True
-        ).filter(
-            (Promozione.data_inizio.is_(None)) | (Promozione.data_inizio <= date.today()),
-            (Promozione.data_fine.is_(None)) | (Promozione.data_fine >= date.today())
-        ).all()
-        
-        for prom in promozioni_auto:
-            # Verifica condizioni (livello e punti)
-            if prom.livello_richiesto and nuovo.livello != prom.livello_richiesto:
-                continue
-            if prom.punti_richiesti and (nuovo.punti_fedelta or 0) < prom.punti_richiesti:
-                continue
-            
-            cp = ClientePromozione(
-                cliente_id=nuovo.id_cliente,
-                promozione_id=prom.id_promozione,
-                data_scadenza=prom.data_fine
-            )
-            db.add(cp)
-        
-        db.commit()
-        session["cliente_id"] = nuovo.id_cliente
-        flash("🎉 Benvenuto! Il tuo account è stato creato con successo.", "success")
-        return redirect(url_for("clienti.area_personale"))
-    except IntegrityError:
-        db.rollback()
-        # blocco duplicati su telefono -> 409
-        flash("Sembra che questo numero sia già registrato. Hai già un account? Prova ad accedere.", "info")
-        return redirect(url_for("auth.auth_login_form"))
-    finally:
-        db.close()
-
-def generate_unique_qr(db) -> str:
-    # loop fino a trovare un codice libero
-    while True:
-        code = generate_short_code(10)
-        if not db.query(Cliente).filter_by(qr_code=code).first():
-            return code
-
-# -----------------------
-# LOGIN / LOGOUT
-# -----------------------
-@clienti_bp.route("/login", methods=["GET", "POST"])
-def login_form():
-    # Redirect alla route unificata in auth
-    if request.method == "POST":
-        return redirect(url_for("auth.auth_login_submit"), code=307)  # 307 mantiene il metodo POST
-    return redirect(url_for("auth.auth_login_form"))
-
-@clienti_bp.route("/logout")
-def logout():
-    # Usa il logout unificato in auth
-    return redirect(url_for("auth.logout"))
 
 # -----------------------
 # AREA PERSONALE CLIENTE
@@ -152,7 +32,7 @@ def area_personale():
         if not cli:
             session.pop("cliente_id", None)
             flash("La tua sessione non è più valida. Effettua di nuovo l'accesso.", "warning")
-            return redirect(url_for("auth.auth_login_form"))
+            return redirect(url_for("auth.auth_login_cliente_form"))
         # Prepara QR in data URL per embed
         qr_url = qr_data_url(cli.qr_code) if cli and cli.qr_code else None
 
@@ -289,29 +169,24 @@ def admin_dashboard():
         prev_period_start = start_period - timedelta(days=range_days)
         prev_period_end = start_period
 
-        # Statistiche generali
-        tot_clienti = db.query(func.count(Cliente.id_cliente)).scalar() or 0
-        clienti_attivi = (
-            db.query(func.count(Cliente.id_cliente))
-            .filter(Cliente.stato_account == "attivo")
-            .scalar()
-            or 0
-        )
-
-        # Nuovi clienti (range selezionato)
-        nuovi_clienti = (
-            db.query(func.count(Cliente.id_cliente))
-            .filter(Cliente.data_registrazione >= start_period)
-            .scalar()
-            or 0
-        )
-        nuovi_clienti_prev = (
-            db.query(func.count(Cliente.id_cliente))
-            .filter(Cliente.data_registrazione >= prev_period_start)
-            .filter(Cliente.data_registrazione < prev_period_end)
-            .scalar()
-            or 0
-        )
+        # Statistiche clienti aggregate in singola query
+        from sqlalchemy import case
+        cliente_stats = db.query(
+            func.count(Cliente.id_cliente).label('totale'),
+            func.sum(case((Cliente.stato_account == 'attivo', 1), else_=0)).label('attivi'),
+            func.sum(case((Cliente.data_registrazione >= start_period, 1), else_=0)).label('nuovi'),
+            func.sum(case(
+                (Cliente.data_registrazione >= prev_period_start, 1),
+                else_=0
+            ) * case(
+                (Cliente.data_registrazione < prev_period_end, 1),
+                else_=0
+            )).label('nuovi_prev')
+        ).one()
+        tot_clienti = int(cliente_stats.totale or 0)
+        clienti_attivi = int(cliente_stats.attivi or 0)
+        nuovi_clienti = int(cliente_stats.nuovi or 0)
+        nuovi_clienti_prev = int(cliente_stats.nuovi_prev or 0)
         
         # Eventi
         tot_eventi = db.query(func.count(Evento.id_evento)).scalar() or 0
@@ -335,44 +210,30 @@ def admin_dashboard():
         prossimo_evento_stats = None
         if prossimo_evento:
             evento_id = prossimo_evento.id_evento
-            prenotazioni_totali = (
-                db.query(func.count(Prenotazione.id_prenotazione))
-                .filter(Prenotazione.evento_id == evento_id)
-                .scalar()
-                or 0
-            )
-            prenotazioni_attive_evento = (
-                db.query(func.count(Prenotazione.id_prenotazione))
-                .filter(
-                    Prenotazione.evento_id == evento_id,
-                    Prenotazione.stato == "attiva",
-                )
-                .scalar()
-                or 0
-            )
-            prenotazioni_utilizzate = (
-                db.query(func.count(Prenotazione.id_prenotazione))
-                .filter(
-                    Prenotazione.evento_id == evento_id,
-                    Prenotazione.stato == "usata",
-                )
-                .scalar()
-                or 0
-            )
+            
+            # Query aggregate per statistiche prenotazioni (singola query con CASE)
+            pren_stats = db.query(
+                func.count(Prenotazione.id_prenotazione).label('totali'),
+                func.sum(case((Prenotazione.stato == 'attiva', 1), else_=0)).label('attive'),
+                func.sum(case((Prenotazione.stato == 'usata', 1), else_=0)).label('usate')
+            ).filter(Prenotazione.evento_id == evento_id).one()
+            prenotazioni_totali = int(pren_stats.totali or 0)
+            prenotazioni_attive_evento = int(pren_stats.attive or 0)
+            prenotazioni_utilizzate = int(pren_stats.usate or 0)
+            
+            # Query aggregate per ingressi e consumi evento (singola subquery)
             ingressi_tot_evento = (
                 db.query(func.count(Ingresso.id_ingresso))
                 .filter(Ingresso.evento_id == evento_id)
-                .scalar()
-                or 0
+                .scalar() or 0
             )
-            consumi_tot_evento = (
-                db.query(func.sum(Consumo.importo))
+            consumi_tot_evento = float(
+                db.query(func.coalesce(func.sum(Consumo.importo), 0))
                 .filter(Consumo.evento_id == evento_id)
-                .scalar()
-                or 0
+                .scalar() or 0
             )
-            consumi_tot_evento = float(consumi_tot_evento) if consumi_tot_evento else 0.0
 
+            # Query feedback evento
             feedback_evento = db.query(
                 func.avg(Feedback.voto_musica),
                 func.avg(Feedback.voto_ingresso),
@@ -418,55 +279,52 @@ def admin_dashboard():
                 "capienza": capienza,
             }
 
-        # Ingressi (range selezionato)
-        ingressi_recenti = (
-            db.query(func.count(Ingresso.id_ingresso))
-            .filter(Ingresso.orario_ingresso >= start_period)
-            .scalar()
-            or 0
-        )
-        ingressi_prev = (
-            db.query(func.count(Ingresso.id_ingresso))
-            .filter(Ingresso.orario_ingresso >= prev_period_start)
-            .filter(Ingresso.orario_ingresso < prev_period_end)
-            .scalar()
-            or 0
-        )
+        # Query aggregate per ingressi (range + prev in singola query)
+        ingressi_stats = db.query(
+            func.sum(case((Ingresso.orario_ingresso >= start_period, 1), else_=0)).label('recenti'),
+            func.sum(case(
+                (Ingresso.orario_ingresso >= prev_period_start, 1),
+                else_=0
+            ) * case(
+                (Ingresso.orario_ingresso < prev_period_end, 1),
+                else_=0
+            )).label('prev')
+        ).one()
+        ingressi_recenti = int(ingressi_stats.recenti or 0)
+        ingressi_prev = int(ingressi_stats.prev or 0)
         
-        # Consumi (range selezionato)
-        consumi_recenti = (
-            db.query(func.sum(Consumo.importo))
-            .filter(Consumo.data_consumo >= start_period)
-            .scalar()
-            or 0
-        )
-        consumi_recenti = float(consumi_recenti) if consumi_recenti else 0.0
-        consumi_prev = (
-            db.query(func.sum(Consumo.importo))
-            .filter(Consumo.data_consumo >= prev_period_start)
-            .filter(Consumo.data_consumo < prev_period_end)
-            .scalar()
-            or 0
-        )
-        consumi_prev = float(consumi_prev) if consumi_prev else 0.0
+        # Query aggregate per consumi (range + prev in singola query)
+        consumi_stats = db.query(
+            func.coalesce(func.sum(case((Consumo.data_consumo >= start_period, Consumo.importo), else_=0)), 0).label('recenti'),
+            func.coalesce(func.sum(case(
+                (Consumo.data_consumo >= prev_period_start, Consumo.importo),
+                else_=0
+            ) * case(
+                (Consumo.data_consumo < prev_period_end, 1),
+                else_=0
+            )), 0).label('prev')
+        ).one()
+        consumi_recenti = float(consumi_stats.recenti or 0)
+        consumi_prev = float(consumi_stats.prev or 0)
 
-        # Prenotazioni attive
+        # Prenotazioni attive (già efficiente, singola query)
         prenotazioni_attive = (
             db.query(func.count(Prenotazione.id_prenotazione))
             .filter(Prenotazione.stato == "attiva")
-            .scalar()
-            or 0
+            .scalar() or 0
         )
         
         # Feedback (media generale)
         avg_feedback = db.query(
             func.avg(Feedback.voto_musica),
             func.avg(Feedback.voto_ingresso),
-            func.avg(Feedback.voto_ambiente)
+            func.avg(Feedback.voto_ambiente),
+            func.avg(Feedback.voto_servizio)
         ).one()
         avg_musica = round(avg_feedback[0] or 0, 1)
         avg_ingresso = round(avg_feedback[1] or 0, 1)
         avg_ambiente = round(avg_feedback[2] or 0, 1)
+        avg_servizio = round(avg_feedback[3] or 0, 1)
         
         # Distribuzione livelli clienti
         livelli_dist = dict(db.query(Cliente.livello, func.count(Cliente.id_cliente))
@@ -566,6 +424,7 @@ def admin_dashboard():
             avg_musica=avg_musica,
             avg_ingresso=avg_ingresso,
             avg_ambiente=avg_ambiente,
+            avg_servizio=avg_servizio,
             livelli_dist=livelli_dist,
             top_clienti=top_clienti,
             eventi_recenti=eventi_recenti,

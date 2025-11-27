@@ -8,51 +8,21 @@ from app.utils.decorators import require_admin
 
 promozioni_bp = Blueprint("promozioni", __name__, url_prefix="/promozioni")
 
-# --------------------------
-# ADMIN — Gestione Promozioni
-# --------------------------
 @promozioni_bp.route("/admin", methods=["GET"])
 @require_admin
 def admin_list():
-    db = SessionLocal()
-    try:
-        attiva = request.args.get("attiva")
-        q = db.query(Promozione)
-        if attiva == "true":
-            q = q.filter(Promozione.attiva == True)
-        elif attiva == "false":
-            q = q.filter(Promozione.attiva == False)
-        promozioni = q.order_by(Promozione.id_promozione.desc()).all()
-        return render_template("admin/promozioni_list.html", promozioni=promozioni, filtro={"attiva": attiva})
-    finally:
-        db.close()
+    """Vista legacy: le promozioni evento sono ora testo libero nella creazione evento.
+
+    Manteniamo la route solo per evitare 404 su eventuali link vecchi.
+    """
+    flash("La gestione promozioni è stata semplificata: usa il campo 'Promozione' nella scheda evento.", "info")
+    return redirect(url_for("eventi.admin_menu"))
 
 @promozioni_bp.route("/admin/new", methods=["GET", "POST"])
 @require_admin
 def admin_new():
-    db = SessionLocal()
-    try:
-        if request.method == "POST":
-            p = Promozione(
-                nome=request.form.get("nome", "").strip(),
-                descrizione=request.form.get("descrizione", "").strip() or None,
-                tipo=request.form.get("tipo", "altro"),
-                valore=request.form.get("valore", type=float) or None,
-                condizioni=request.form.get("condizioni", "").strip() or None,
-                attiva=request.form.get("attiva") == "on",
-                data_inizio=request.form.get("data_inizio") or None,
-                data_fine=request.form.get("data_fine") or None,
-                livello_richiesto=request.form.get("livello_richiesto") or None,
-                punti_richiesti=request.form.get("punti_richiesti", type=int) or None,
-                auto_assegnazione=request.form.get("auto_assegnazione") == "on"
-            )
-            db.add(p)
-            db.commit()
-            flash("Promozione creata.", "success")
-            return redirect(url_for("promozioni.admin_list"))
-        return render_template("admin/promozioni_form.html", p=None)
-    finally:
-        db.close()
+    flash("La creazione di promozioni dedicate non è più disponibile. Inserisci la promo direttamente nel campo 'Promozione' dell'evento.", "info")
+    return redirect(url_for("eventi.admin_menu"))
 
 @promozioni_bp.route("/admin/<int:promozione_id>", methods=["GET"])
 @require_admin

@@ -1,399 +1,409 @@
 {% extends "admin/base.html" %}
-{% block admin_title %}Centro di controllo{% endblock %}
+{% block admin_title %}Dashboard{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
 
 {% set has_trend_data = (ingressi_trend_values|sum > 0) or (consumi_trend_values|sum > 0) %}
 
 {% block admin_content %}
-<div class="dashboard">
-  <div class="dashboard__header fade-in" style="animation-delay: 0ms;">
-    <div class="dashboard__intro">
-      <h1 class="dashboard__title">Centro di Controllo</h1>
-      <p class="dashboard__subtitle">
-        Panoramica ultimi {{ range_days }} giorni · Aggiornato il {{ ultimo_aggiornamento.strftime("%d/%m/%Y %H:%M") }}
-      </p>
-    </div>
-    <form class="dashboard__range" method="get" aria-label="Filtra periodo di analisi">
-      <label for="dashboard-range" class="dashboard__range-label">Periodo</label>
-      <div class="dashboard__range-select">
-        <select id="dashboard-range" name="range" class="form__select form__select--dense" onchange="this.form.submit()">
-          {% for option in range_options %}
-          <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>
-            Ultimi {{ option }} giorni
-          </option>
-          {% endfor %}
-        </select>
-      </div>
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title="Dashboard Admin",
+    subtitle="Panoramica ultimi " ~ range_days ~ " giorni · Aggiornato: " ~ ultimo_aggiornamento.strftime("%d/%m/%Y %H:%M"),
+    actions=[
+      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': '+ Nuovo Evento', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=None
+  ) }}
+
+  <!-- Filtro Periodo -->
+  <section class="card" style="margin-bottom: 2rem;">
+    <form method="get" style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <label class="form__label" for="dashboard-range" style="margin: 0;">Periodo analisi:</label>
+      <select id="dashboard-range" name="range" class="form__input" style="width: auto; min-width: 200px;" onchange="this.form.submit()">
+        {% for option in range_options %}
+        <option value="{{ option }}" {% if option == range_days %}selected{% endif %}>Ultimi {{ option }} giorni</option>
+        {% endfor %}
+      </select>
     </form>
-  </div>
+  </section>
 
-  <div class="dashboard__quick-actions fade-in hover-elevate" style="animation-delay: 80ms;">
-    <span class="dashboard__quick-label">Azioni rapide</span>
-    <div class="dashboard__quick-buttons">
-      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary btn--small">Nuovo evento</a>
-      <a href="{{ url_for('promozioni.admin_new') }}" class="btn btn--secondary btn--small">Nuova promozione</a>
-      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="btn btn--ghost btn--small">Gestisci clienti</a>
+  <!-- Quick Actions -->
+  <section class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--gold-primary); background: linear-gradient(135deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.02));">
+    <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem; color: var(--admin-accent);">⚡ Accesso Rapido</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem;">
+      <a href="{{ url_for('eventi.admin_list') }}" class="admin-quick-link">
+        <span class="admin-quick-link__icon">📅</span>
+        <span class="admin-quick-link__text">
+          <strong>Eventi</strong>
+          <small>Gestione eventi</small>
+        </span>
+      </a>
+      <a href="{{ url_for('prenotazioni.admin_hub') }}" class="admin-quick-link">
+        <span class="admin-quick-link__icon">📋</span>
+        <span class="admin-quick-link__text">
+          <strong>Operativo</strong>
+          <small>Prenotazioni e ingressi</small>
+        </span>
+      </a>
+      <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="admin-quick-link">
+        <span class="admin-quick-link__icon">👥</span>
+        <span class="admin-quick-link__text">
+          <strong>Clienti</strong>
+          <small>Anagrafica e fedeltà</small>
+        </span>
+      </a>
+      <a href="{{ url_for('staff_admin.admin_hub') }}" class="admin-quick-link">
+        <span class="admin-quick-link__icon">⚙️</span>
+        <span class="admin-quick-link__text">
+          <strong>Configurazione</strong>
+          <small>Impostazioni sistema</small>
+        </span>
+      </a>
     </div>
-  </div>
+  </section>
 
-  <div class="dashboard__stats">
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 120ms;">
-      <div class="stat-card__label">Clienti totali</div>
-      <div class="stat-card__value">{{ tot_clienti }}</div>
-      <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
-    </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 180ms;">
-      <div class="stat-card__label">Nuovi clienti ({{ range_days }} gg)</div>
-      <div class="stat-card__value">{{ nuovi_clienti }}</div>
-      {% set nuovi_trend_class = 'stat-card__trend--neutral' %}
-      {% if nuovi_clienti_delta_abs > 0 %}
-        {% set nuovi_trend_class = 'stat-card__trend--up' %}
-      {% elif nuovi_clienti_delta_abs < 0 %}
-        {% set nuovi_trend_class = 'stat-card__trend--down' %}
-      {% endif %}
-      <div class="stat-card__trend {{ nuovi_trend_class }}">
-        <span class="stat-card__trend-value">
-          {% if nuovi_clienti_delta_abs > 0 %}+{% elif nuovi_clienti_delta_abs < 0 %}-{% endif %}
-          {{ nuovi_clienti_delta_abs|abs }}
-        </span>
-        {% if nuovi_clienti_delta_pct is not none %}
-        <span class="stat-card__trend-pct">
-          {% if nuovi_clienti_delta_pct > 0 %}+{% elif nuovi_clienti_delta_pct < 0 %}-{% endif %}
-          {{ "%.1f"|format(nuovi_clienti_delta_pct|abs) }}%
-        </span>
-        <span class="stat-card__trend-label">vs periodo precedente</span>
-        {% else %}
-        <span class="stat-card__trend-label">
-          {% if nuovi_clienti_delta_abs > 0 %}Nuovo picco{% elif nuovi_clienti_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
-        </span>
-        {% endif %}
+  <style>
+  .admin-quick-link {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-3) var(--spacing-4);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--admin-text);
+    transition: all var(--transition-base);
+  }
+  
+  .admin-quick-link:hover {
+    background: rgba(212, 175, 55, 0.1);
+    border-color: rgba(212, 175, 55, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
+  }
+  
+  .admin-quick-link__icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+  }
+  
+  .admin-quick-link__text {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1);
+  }
+  
+  .admin-quick-link__text strong {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--admin-text);
+  }
+  
+  .admin-quick-link__text small {
+    font-size: var(--font-size-xs);
+    color: rgba(255, 255, 255, 0.5);
+  }
+  </style>
+
+<!-- Statistiche Principali -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+  <!-- Clienti -->
+  <div class="card" style="padding: 1.5rem; border-left: 4px solid var(--gold-primary);">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+      <div>
+        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">👥 Clienti Totali</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: var(--gold-primary);">{{ tot_clienti }}</div>
+        <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">{{ clienti_attivi }} attivi</div>
       </div>
     </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 220ms;">
-      <div class="stat-card__label">Ingressi ({{ range_days }} gg)</div>
-      <div class="stat-card__value">{{ ingressi_recenti }}</div>
-      {% set ingressi_trend_class = 'stat-card__trend--neutral' %}
-      {% if ingressi_delta_abs > 0 %}
-        {% set ingressi_trend_class = 'stat-card__trend--up' %}
-      {% elif ingressi_delta_abs < 0 %}
-        {% set ingressi_trend_class = 'stat-card__trend--down' %}
-      {% endif %}
-      <div class="stat-card__trend {{ ingressi_trend_class }}">
-        <span class="stat-card__trend-value">
-          {% if ingressi_delta_abs > 0 %}+{% elif ingressi_delta_abs < 0 %}-{% endif %}
-          {{ ingressi_delta_abs|abs }}
-        </span>
-        {% if ingressi_delta_pct is not none %}
-        <span class="stat-card__trend-pct">
-          {% if ingressi_delta_pct > 0 %}+{% elif ingressi_delta_pct < 0 %}-{% endif %}
-          {{ "%.1f"|format(ingressi_delta_pct|abs) }}%
-        </span>
-        <span class="stat-card__trend-label">vs periodo precedente</span>
-        {% else %}
-        <span class="stat-card__trend-label">
-          {% if ingressi_delta_abs > 0 %}Nuovo picco{% elif ingressi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
-        </span>
-        {% endif %}
+    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div class="text--muted" style="font-size: 0.85rem;">Nuovi ({{ range_days }} gg)</div>
+      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ nuovi_clienti }}</div>
+      {% if nuovi_clienti_delta_abs != 0 %}
+      <div style="font-size: 0.75rem; margin-top: 0.25rem; color: {% if nuovi_clienti_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
+        {% if nuovi_clienti_delta_abs > 0 %}+{% endif %}{{ nuovi_clienti_delta_abs }}
+        {% if nuovi_clienti_delta_pct is not none %} ({% if nuovi_clienti_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(nuovi_clienti_delta_pct|abs) }}%){% endif %}
       </div>
-    </div>
-
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 260ms;">
-      <div class="stat-card__label">Consumi ({{ range_days }} gg)</div>
-      <div class="stat-card__value">€{{ "%.2f"|format(consumi_recenti) }}</div>
-      {% set consumi_trend_class = 'stat-card__trend--neutral' %}
-      {% if consumi_delta_abs > 0 %}
-        {% set consumi_trend_class = 'stat-card__trend--up' %}
-      {% elif consumi_delta_abs < 0 %}
-        {% set consumi_trend_class = 'stat-card__trend--down' %}
       {% endif %}
-      <div class="stat-card__trend {{ consumi_trend_class }}">
-        <span class="stat-card__trend-value">
-          {% if consumi_delta_abs > 0 %}+{% elif consumi_delta_abs < 0 %}-{% endif %}
-          €{{ "%.2f"|format(consumi_delta_abs|abs) }}
-        </span>
-        {% if consumi_delta_pct is not none %}
-        <span class="stat-card__trend-pct">
-          {% if consumi_delta_pct > 0 %}+{% elif consumi_delta_pct < 0 %}-{% endif %}
-          {{ "%.1f"|format(consumi_delta_pct|abs) }}%
-        </span>
-        <span class="stat-card__trend-label">vs periodo precedente</span>
-        {% else %}
-        <span class="stat-card__trend-label">
-          {% if consumi_delta_abs > 0 %}Nuovo picco{% elif consumi_delta_abs < 0 %}In calo{% else %}Stabile{% endif %}
-        </span>
-        {% endif %}
-      </div>
-    </div>
-    
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 300ms;">
-      <div class="stat-card__label">Eventi attivi</div>
-      <div class="stat-card__value">{{ eventi_attivi }}</div>
-      <div class="stat-card__meta">{{ tot_eventi }} totali</div>
-    </div>
-
-    <div class="stat-card fade-in hover-elevate" style="animation-delay: 340ms;">
-      <div class="stat-card__label">Prenotazioni attive</div>
-      <div class="stat-card__value">{{ prenotazioni_attive }}</div>
-      <div class="stat-card__meta">Stato "attiva"</div>
     </div>
   </div>
 
-  {% if prossimo_evento %}
-  {% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
-  <section class="card card--highlight event-control fade-in" style="animation-delay: 420ms;">
-    <div class="event-control__header">
-      <div class="event-control__intro">
-        <div class="event-control__eyebrow">Prossimo evento</div>
-        <div class="event-control__title-row">
-          <h2 class="event-control__title">{{ prossimo_evento.nome_evento }}</h2>
-          <div class="event-control__badges">
-      {% if giorni_al_prossimo_evento is not none %}
-      <span class="badge badge--primary">
-        {% if giorni_al_prossimo_evento <= 0 %}
-          In corso
-        {% elif giorni_al_prossimo_evento == 1 %}
-          Domani
-        {% else %}
-          Tra {{ giorni_al_prossimo_evento }} giorni
-        {% endif %}
-      </span>
-      {% endif %}
-            <span class="badge badge--secondary">{{ prossimo_evento.stato_pubblico|capitalize }}</span>
-            {% if is_staff_operativo %}
-            <span class="badge badge--success">Operativo per staff</span>
-            {% elif prossimo_evento.is_staff_operativo %}
-            <span class="badge badge--warning">Pending staff</span>
-            {% endif %}
-          </div>
-    </div>
-        <p class="event-control__meta">
-        {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
-        {% if prossimo_evento.dj_artista %}
-          · {{ prossimo_evento.dj_artista }}
-        {% endif %}
-      {% if prossimo_evento.categoria %}
-          · {{ prossimo_evento.categoria|capitalize }}
-      {% endif %}
-        </p>
-        <div class="event-control__tags">
-        {% if prossimo_evento.capienza_max %}
-        <span class="pill pill--outline">Capienza {{ prossimo_evento.capienza_max }}</span>
-          {% endif %}
-          <span class="pill pill--ghost">ID #{{ prossimo_evento.id_evento }}</span>
-        </div>
-      </div>
-      <div class="event-control__actions">
-        {% if not is_staff_operativo %}
-        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}">
-          <button type="submit" class="btn btn--primary btn--small" name="evento_id" value="{{ prossimo_evento.id_evento }}">
-            Apri allo staff
-          </button>
-        </form>
-        {% else %}
-        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}">
-          <input type="hidden" name="evento_id" value="clear">
-          <button type="submit" class="btn btn--ghost btn--small">
-            Chiudi accesso staff
-          </button>
-        </form>
-        {% endif %}
-        {% if prossimo_evento.stato_pubblico != 'chiuso' %}
-        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=prossimo_evento.id_evento) }}" onsubmit="return confirm('Confermi la chiusura dell\'evento? Le prenotazioni attive saranno marcate come no-show.');">
-          <button type="submit" class="btn btn--danger btn--small">
-            Chiudi evento
-          </button>
-        </form>
-        {% endif %}
+  <!-- Ingressi -->
+  <div class="card" style="padding: 1.5rem; border-left: 4px solid #3b82f6;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+      <div>
+        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">🚪 Ingressi ({{ range_days }} gg)</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #3b82f6;">{{ ingressi_recenti }}</div>
       </div>
     </div>
-
-    {% if prossimo_evento_stats %}
-    <div class="event-control__stats">
-      <div class="event-stat">
-        <span class="event-stat__label">Prenotazioni totali</span>
-        <span class="event-stat__value">{{ prossimo_evento_stats.prenotazioni_totali }}</span>
-        <span class="event-stat__meta">{{ prossimo_evento_stats.prenotazioni_attive }} attive · {{ prossimo_evento_stats.prenotazioni_usate }} utilizzate</span>
-      </div>
-      <div class="event-stat">
-        <span class="event-stat__label">Ingressi registrati</span>
-        <span class="event-stat__value">{{ prossimo_evento_stats.ingressi_totali }}</span>
-        <span class="event-stat__meta">
-          {% if prossimo_evento_stats.capienza %}
-          {{ prossimo_evento_stats.occupancy_pct }}% capienza
-          {% else %}
-          Capienza non definita
-          {% endif %}
-        </span>
-      </div>
-      <div class="event-stat">
-        <span class="event-stat__label">Consumi totali</span>
-        <span class="event-stat__value">€{{ "%.2f"|format(prossimo_evento_stats.consumi_totali) }}</span>
-        <span class="event-stat__meta">Aggiornato in tempo reale</span>
-      </div>
-      <div class="event-stat">
-        <span class="event-stat__label">Carico prenotazioni</span>
-        <span class="event-stat__value">{{ prossimo_evento_stats.booking_load_pct }}%</span>
-        <span class="event-stat__meta">
-          {% if prossimo_evento_stats.capienza %}
-          su {{ prossimo_evento_stats.capienza }} posti
-          {% else %}
-          Capienza non definita
-          {% endif %}
-        </span>
-      </div>
-      <div class="event-stat">
-        <span class="event-stat__label">Feedback evento</span>
-        <span class="event-stat__value">{{ "%.1f"|format(prossimo_evento_stats.feedback_media_generale) }}</span>
-        <span class="event-stat__meta">{{ prossimo_evento_stats.feedback_samples }} feedback raccolti</span>
+    {% if ingressi_delta_abs != 0 %}
+    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div style="font-size: 0.75rem; color: {% if ingressi_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
+        {% if ingressi_delta_abs > 0 %}+{% endif %}{{ ingressi_delta_abs }}
+        {% if ingressi_delta_pct is not none %} ({% if ingressi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(ingressi_delta_pct|abs) }}%){% endif %}
+        <span class="text--muted">vs periodo precedente</span>
       </div>
     </div>
     {% endif %}
+  </div>
 
-    <div class="event-control__footer">
-      <div class="event-control__links">
-        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">Dettaglio evento</a>
-        <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">Modifica</a>
-        <a href="{{ url_for('eventi.admin_analytics', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
+  <!-- Consumi -->
+  <div class="card" style="padding: 1.5rem; border-left: 4px solid #10b981;">
+    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.75rem;">
+      <div>
+        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">💰 Consumi ({{ range_days }} gg)</div>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #10b981;">€{{ "%.0f"|format(consumi_recenti) }}</div>
       </div>
-      <p class="event-control__hint">
-        Suggerimento: aprendo l'evento allo staff si aggiorna automaticamente la dashboard operativa nel backoffice staff.
+    </div>
+    {% if consumi_delta_abs != 0 %}
+    <div style="padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <div style="font-size: 0.75rem; color: {% if consumi_delta_abs > 0 %}#10b981{% else %}#ef4444{% endif %};">
+        {% if consumi_delta_abs > 0 %}+{% endif %}€{{ "%.0f"|format(consumi_delta_abs|abs) }}
+        {% if consumi_delta_pct is not none %} ({% if consumi_delta_pct > 0 %}+{% endif %}{{ "%.1f"|format(consumi_delta_pct|abs) }}%){% endif %}
+        <span class="text--muted">vs periodo precedente</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Eventi -->
+  <div class="card" style="padding: 1.5rem; border-left: 4px solid #8b5cf6;">
+    <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">📅 Eventi</div>
+    <div style="font-size: 2.5rem; font-weight: 700; color: #8b5cf6;">{{ eventi_attivi }}</div>
+    <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">{{ tot_eventi }} totali</div>
+  </div>
+
+  <!-- Prenotazioni -->
+  <div class="card" style="padding: 1.5rem; border-left: 4px solid #f59e0b;">
+    <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.25rem;">📋 Prenotazioni Attive</div>
+    <div style="font-size: 2.5rem; font-weight: 700; color: #f59e0b;">{{ prenotazioni_attive }}</div>
+    <div class="text--muted" style="font-size: 0.85rem; margin-top: 0.25rem;">Stato "attiva"</div>
+  </div>
+</div>
+
+<!-- Prossimo Evento -->
+{% if prossimo_evento %}
+{% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
+<section class="card" style="margin-bottom: 2rem; border-left: 4px solid {% if is_staff_operativo %}#10b981{% else %}#3b82f6{% endif %}; background: {% if is_staff_operativo %}linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%){% else %}rgba(59, 130, 246, 0.05){% endif %};">
+  <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 1.5rem;">
+    <div style="flex: 1; min-width: 250px;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+        <span style="font-size: 1.25rem; font-weight: 600;">📅 Prossimo Evento</span>
+        {% if giorni_al_prossimo_evento is not none %}
+        <span class="badge" style="background: {% if giorni_al_prossimo_evento <= 0 %}#10b981{% elif giorni_al_prossimo_evento == 1 %}#f59e0b{% else %}#3b82f6{% endif %}; color: white;">
+          {% if giorni_al_prossimo_evento <= 0 %}IN CORSO{% elif giorni_al_prossimo_evento == 1 %}DOMANI{% else %}TRA {{ giorni_al_prossimo_evento }} GIORNI{% endif %}
+        </span>
+        {% endif %}
+        <span class="badge badge--secondary">{{ prossimo_evento.stato_pubblico|upper }}</span>
+        {% if is_staff_operativo %}
+        <span class="badge" style="background: #10b981; color: white;">🟢 OPERATIVO STAFF</span>
+        {% endif %}
+      </div>
+      <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 0.75rem;">{{ prossimo_evento.nome_evento }}</h2>
+      <p class="text--muted" style="margin: 0 0 0.5rem;">
+        📅 {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
+        {% if prossimo_evento.dj_artista %} · 🎧 {{ prossimo_evento.dj_artista }}{% endif %}
+        {% if prossimo_evento.categoria %} · {{ prossimo_evento.categoria|capitalize }}{% endif %}
       </p>
+      {% if prossimo_evento.capienza_max %}
+      <p class="text--muted" style="margin: 0;">👥 Capienza: {{ prossimo_evento.capienza_max }}</p>
+      {% endif %}
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+      {% if not is_staff_operativo %}
+      <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+        <button type="submit" class="btn btn--primary btn--small" name="evento_id" value="{{ prossimo_evento.id_evento }}">
+          🟢 Attiva Staff
+        </button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+        <input type="hidden" name="evento_id" value="clear">
+        <button type="submit" class="btn btn--ghost btn--small">🔴 Disattiva Staff</button>
+      </form>
+      {% endif %}
+      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">
+        📊 Dashboard
+      </a>
+      <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">
+        ✏️ Modifica
+      </a>
+    </div>
+  </div>
+
+  {% if prossimo_evento_stats %}
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+    <div>
+      <div class="text--muted" style="font-size: 0.85rem;">Prenotazioni</div>
+      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ prossimo_evento_stats.prenotazioni_totali }}</div>
+      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.prenotazioni_attive }} attive</div>
+    </div>
+    <div>
+      <div class="text--muted" style="font-size: 0.85rem;">Ingressi</div>
+      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ prossimo_evento_stats.ingressi_totali }}</div>
+      {% if prossimo_evento_stats.capienza %}
+      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.occupancy_pct }}% capienza</div>
+      {% endif %}
+    </div>
+    <div>
+      <div class="text--muted" style="font-size: 0.85rem;">Consumi</div>
+      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">€{{ "%.0f"|format(prossimo_evento_stats.consumi_totali) }}</div>
+    </div>
+    {% if prossimo_evento_stats.feedback_samples > 0 %}
+    <div>
+      <div class="text--muted" style="font-size: 0.85rem;">Feedback</div>
+      <div style="font-size: 1.5rem; font-weight: 600; margin-top: 0.25rem;">{{ "%.1f"|format(prossimo_evento_stats.feedback_media_generale) }}/10</div>
+      <div class="text--muted" style="font-size: 0.75rem; margin-top: 0.25rem;">{{ prossimo_evento_stats.feedback_samples }} valutazioni</div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+<!-- Grafici e Insights -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <!-- Trend Grafico -->
+  <section class="card">
+    <div style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">📈 Trend Attività</h2>
+      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ingressi e consumi giornalieri ({{ range_days }} gg)</p>
+    </div>
+    {% if has_trend_data %}
+    <div style="height: 300px; position: relative;">
+      <canvas id="dashboard-trend-chart"></canvas>
+    </div>
+    {% else %}
+    <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun dato disponibile nel periodo selezionato.</p>
+    {% endif %}
+  </section>
+
+  <!-- Distribuzione Livelli -->
+  <section class="card">
+    <div style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">⭐ Distribuzione Livelli Fedeltà</h2>
+      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ripartizione clienti per tier</p>
+    </div>
+    {% set totale_livelli = livelli_dist.values()|sum %}
+    {% if totale_livelli %}
+    <div style="display: flex; flex-direction: column; gap: 1rem;">
+      {% for livello, count in livelli_dist.items() %}
+      {% set percent = (count / totale_livelli * 100) %}
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+          <span style="font-weight: 500;">{{ livello|capitalize }}</span>
+          <span class="badge badge--secondary">{{ count }} ({{ "%.1f"|format(percent) }}%)</span>
+        </div>
+        <div style="background: rgba(255,255,255,0.1); border-radius: 999px; height: 8px; overflow: hidden;">
+          <div style="width: {{ percent }}%; height: 100%; background: var(--gold-primary); transition: width 0.3s;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun cliente con livelli assegnati.</p>
+    {% endif %}
+  </section>
+</div>
+
+<!-- Feedback e Eventi Recenti -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+  <!-- Media Feedback -->
+  <section class="card">
+    <div style="margin-bottom: 1rem;">
+      <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">💬 Media Feedback</h2>
+      <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Valutazione media su scala 1-10</p>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span>🎵 Musica</span>
+        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_musica }}/10</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span>🚪 Ingresso</span>
+        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_ingresso }}/10</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span>🌟 Ambiente</span>
+        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_ambiente }}/10</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <span>🍽️ Servizio</span>
+        <span style="font-size: 1.25rem; font-weight: 600;">{{ avg_servizio }}/10</span>
+      </div>
     </div>
   </section>
-  {% endif %}
 
-  <div class="grid grid--2 dashboard__insights">
-    <section class="card fade-in card--with-chart" style="animation-delay: 520ms;">
-      <div class="card__header">
-        <h2 class="card__title">Trend attività</h2>
-        <span class="card__meta">Ingressi e consumi giornalieri ({{ range_days }} gg)</span>
+  <!-- Eventi Recenti -->
+  <section class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">📅 Eventi Recenti</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Ultimi 5 eventi</p>
       </div>
-      {% if has_trend_data %}
-      <div class="chart-container">
-        <canvas id="dashboard-trend-chart" role="img" aria-label="Grafico ingressi e consumi degli ultimi {{ range_days }} giorni"></canvas>
-      </div>
-      {% else %}
-      <p class="empty-state">Nessun dato disponibile nel periodo selezionato.</p>
-      {% endif %}
-    </section>
-
-    <section class="card fade-in" style="animation-delay: 540ms;">
-      <div class="card__header">
-        <h2 class="card__title">Distribuzione livelli</h2>
-        <span class="card__meta">Ripartizione clienti per tier fedeltà</span>
-      </div>
-      {% set totale_livelli = livelli_dist.values()|sum %}
-      {% if totale_livelli %}
-      <ul class="list list--progress">
-        {% for livello, count in livelli_dist.items() %}
-        {% set percent = (count / totale_livelli * 100) %}
-        <li class="list__item">
-          <div class="list__item-header">
-            <span class="list__item-title">{{ livello|capitalize }}</span>
-            <span class="badge badge--secondary">{{ "%.1f"|format(percent) }}%</span>
-          </div>
-          <div class="progress-bar">
-            <span class="progress-bar__value" style="width: {{ percent }}%;"></span>
-          </div>
-          <div class="list__item-meta">{{ count }} clienti</div>
-        </li>
-        {% endfor %}
-      </ul>
-      {% else %}
-      <p class="empty-state">Ancora nessun cliente con livelli assegnati.</p>
-      {% endif %}
-    </section>
-  </div>
-
-  <div class="grid grid--2 dashboard__insights">
-    <section class="card fade-in" style="animation-delay: 560ms;">
-      <div class="card__header">
-        <h2 class="card__title">Media feedback</h2>
-        <span class="card__meta">Valutazione media su scala 1-10</span>
-      </div>
-      <div class="score-grid">
-        <div class="score-pill">
-          <span class="score-pill__label">Musica</span>
-          <span class="score-pill__value">{{ avg_musica }}</span>
-        </div>
-        <div class="score-pill">
-          <span class="score-pill__label">Ingresso</span>
-          <span class="score-pill__value">{{ avg_ingresso }}</span>
-        </div>
-        <div class="score-pill">
-          <span class="score-pill__label">Ambiente</span>
-          <span class="score-pill__value">{{ avg_ambiente }}</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="card fade-in" style="animation-delay: 580ms;">
-      <div class="card__header">
-        <h2 class="card__title">Eventi recenti</h2>
-        <span class="card__meta">Ultimi 5 eventi pubblicati</span>
-      </div>
-      <div class="list">
-        {% for evento in eventi_recenti %}
-        <article class="list__item">
-          <div class="list__item-header">
-            <strong>{{ evento.nome_evento }}</strong>
-            <span class="badge badge--{{ 'success' if evento.stato == 'attivo' else 'secondary' }}">{{ evento.stato }}</span>
-          </div>
-          <div class="list__item-meta">
-            {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}
-            {% if evento.categoria %} · {{ evento.categoria|capitalize }}{% endif %}
-          </div>
-          <div class="form__actions">
-            <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--secondary btn--small">Modifica</a>
-            <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Analytics</a>
-          </div>
-        </article>
-        {% else %}
-        <p class="empty-state">Nessun evento registrato di recente.</p>
-        {% endfor %}
-      </div>
-      <div class="card__footer">
-        <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--ghost btn--small">Vedi tutti gli eventi</a>
-      </div>
-    </section>
-  </div>
-
-  <section class="card fade-in" style="animation-delay: 600ms;">
-    <div class="card__header">
-      <h2 class="card__title">Top 5 clienti per punti</h2>
-      <span class="card__meta">Vista rapida sui clienti più fidelizzati</span>
+      <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
     </div>
-    <div class="table-responsive">
-      <table class="table table--compact">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Punti</th>
-            <th>Livello</th>
-            <th>Azioni</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for cliente, punti in top_clienti %}
-          <tr>
-            <td>{{ cliente.nome }} {{ cliente.cognome }}</td>
-            <td>{{ punti or 0 }}</td>
-            <td>{{ cliente.livello|capitalize }}</td>
-            <td>
-              <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ cliente.id_cliente }}" class="btn btn--ghost btn--small">Vedi scheda</a>
-            </td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="4" class="empty-state">Non sono presenti clienti con punti registrati.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      {% for evento in eventi_recenti %}
+      <div style="padding: 0.75rem; background: rgba(255,255,255,0.05); border-radius: 8px;">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+          <strong style="font-size: 0.95rem;">{{ evento.nome_evento }}</strong>
+          <span class="badge badge--secondary" style="font-size: 0.75rem;">{{ evento.stato_pubblico|upper }}</span>
+        </div>
+        <div class="text--muted" style="font-size: 0.85rem; margin-bottom: 0.5rem;">
+          {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}
+          {% if evento.categoria %} · {{ evento.categoria|capitalize }}{% endif %}
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" style="font-size: 0.75rem;">✏️ Modifica</a>
+          <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" style="font-size: 0.75rem;">📊 Analytics</a>
+        </div>
+      </div>
+      {% else %}
+      <p class="text--muted" style="text-align: center; padding: 1rem;">Nessun evento recente.</p>
+      {% endfor %}
     </div>
   </section>
 </div>
+
+<!-- Top Clienti -->
+<section class="card">
+  <div style="margin-bottom: 1rem;">
+    <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.25rem;">🏆 Top 5 Clienti per Punti</h2>
+    <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Clienti più fidelizzati</p>
+  </div>
+  <div style="overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+          <th style="text-align: left; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Cliente</th>
+          <th style="text-align: right; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Punti</th>
+          <th style="text-align: left; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Livello</th>
+          <th style="text-align: right; padding: 0.75rem; font-weight: 600; font-size: 0.85rem;">Azioni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cliente, punti in top_clienti %}
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+          <td style="padding: 0.75rem;">{{ cliente.nome }} {{ cliente.cognome }}</td>
+          <td style="text-align: right; padding: 0.75rem; font-weight: 600;">{{ punti or 0 }}</td>
+          <td style="padding: 0.75rem;"><span class="badge badge--secondary">{{ cliente.livello|capitalize }}</span></td>
+          <td style="text-align: right; padding: 0.75rem;">
+            <a href="{{ url_for('clienti.admin_lista_clienti') }}#cliente-{{ cliente.id_cliente }}" class="btn btn--ghost btn--small">Vedi</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="4" class="text--muted" style="text-align: center; padding: 2rem;">Nessun cliente con punti registrati.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
 {% endblock %}
 
 {% block scripts %}
@@ -418,8 +428,8 @@
             {
               label: 'Ingressi',
               data: ingressiData,
-              borderColor: 'rgba(142, 197, 255, 0.95)',
-              backgroundColor: 'rgba(142, 197, 255, 0.12)',
+              borderColor: 'rgba(59, 130, 246, 0.95)',
+              backgroundColor: 'rgba(59, 130, 246, 0.12)',
               tension: 0.35,
               borderWidth: 2,
               pointRadius: 0,
@@ -493,4 +503,3 @@
   </script>
   {% endif %}
 {% endblock %}
-

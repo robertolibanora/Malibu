@@ -1,0 +1,42 @@
+{% extends "shared/base.html" %}
+
+{% block title %}Login Staff - Malibù{% endblock %}
+{% block body_class %}auth-page auth-page--staff{% endblock %}
+
+{% block content %}
+<section class="auth">
+  <div class="auth__brand">
+    <img class="auth__brand-logo" src="{{ url_for('static', filename='img/logo.png') }}" alt="Malibù">
+    <span class="auth__brand-subtitle">Area Operativa Staff</span>
+    <span class="auth__divider"></span>
+  </div>
+
+  <form class="auth-card form" method="post" action="{{ url_for('auth.auth_login_staff_submit') }}" onsubmit="handleFormSubmit(event, this)">
+    <div class="form__group">
+      <label class="form__label" for="username">Username</label>
+      <input class="form__input" id="username" type="text" name="username" required autocomplete="username" aria-label="Username" placeholder="Il tuo username operativo">
+    </div>
+    <div class="form__group">
+      <label class="form__label" for="password">Password</label>
+      <input class="form__input" id="password" type="password" name="password" required autocomplete="current-password" aria-label="Password">
+    </div>
+    <div class="form__actions">
+      <button class="btn btn--primary" type="submit" id="loginBtn">Accedi</button>
+    </div>
+    <p class="auth__alt" style="margin-top: 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+      Sei un cliente? <a href="{{ url_for('auth.auth_login_cliente_form') }}">Accedi come cliente</a>
+    </p>
+  </form>
+
+  <script>
+    function handleFormSubmit(event, form) {
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn && !submitBtn.classList.contains('btn--loading')) {
+        submitBtn.classList.add('btn--loading');
+        submitBtn.disabled = true;
+      }
+    }
+  </script>
+</section>
+{% endblock %}
+

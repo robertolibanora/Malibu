@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from app.routes import all_blueprints  # ✅ import centralizzato
 from app.routes.staff import staff_bp, staff_admin_bp
+from app.utils.limiter import init_limiter
 
 def create_app():
     load_dotenv()
@@ -16,6 +17,10 @@ def create_app():
     static_dir = base_dir / 'static'
     app = Flask(__name__, template_folder=str(template_dir), static_folder=str(static_dir))
     app.secret_key = os.getenv("SECRET_KEY")
+    
+    # ⚡ Configurazione Rate Limiting
+    limiter = init_limiter(app)
+    app.limiter = limiter
 
     # Configurazione database
     db_user = os.getenv("DB_USER")
@@ -104,10 +109,10 @@ def create_app():
         if app.logger:
             app.logger.error("Impossibile sincronizzare le migrazioni automatiche: %s", exc)
 
-    # Route root: reindirizza al login
+    # Route root: reindirizza al login cliente (pubblico)
     @app.route("/")
     def root():
-        return redirect(url_for("auth.auth_login_form"))
+        return redirect(url_for("auth.auth_login_cliente_form"))
 
     # Error handlers
     @app.errorhandler(401)
@@ -121,6 +126,20 @@ def create_app():
     @app.errorhandler(404)
     def not_found(e):
         return render_template("shared/404.html"), 404
+    
+    # Rate limiting error handler
+    from flask_limiter.errors import RateLimitExceeded
+    @app.errorhandler(RateLimitExceeded)
+    def handle_rate_limit(e):
+        from flask import flash, redirect, url_for, session
+        flash("Troppe richieste. Attendi qualche istante prima di riprovare.", "warning")
+        # Reindirizza in base al tipo di utente
+        if session.get("cliente_id"):
+            return redirect(url_for("clienti.area_personale"))
+        elif session.get("staff_id"):
+            return redirect(url_for("staff.home"))
+        else:
+            return redirect(url_for("auth.auth_login_cliente_form")), 429
 
     # Registra automaticamente tutti i blueprint
     for bp in all_blueprints:

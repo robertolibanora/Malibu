@@ -10,8 +10,10 @@ from app.models.clienti import Cliente
 from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.models.fedeltà import Fedelta
+from app.models.ingressi import Ingresso
 from app.utils.decorators import require_cliente, require_admin, require_staff
 from app.routes.fedelta import award_on_no_show, PUNTI_NO_SHOW
+from app.utils.limiter import limiter
 
 prenotazioni_bp = Blueprint("prenotazioni", __name__, url_prefix="/prenotazioni")
 
@@ -20,11 +22,9 @@ STATI = ("attiva", "no-show", "usata", "cancellata")
 
 
 # ---------------------------
-# Helpers
+# Helpers (usano modulo centralizzato)
 # ---------------------------
-def _get_current_cliente(db):
-    cid = session.get("cliente_id")
-    return db.query(Cliente).get(cid) if cid else None
+from app.utils.helpers import get_current_cliente as _get_current_cliente
 
 def _has_active_for_event(db, cliente_id, evento_id):
     return db.query(Prenotazione).filter(
@@ -49,7 +49,70 @@ def _cliente_can_cancel(pren, evento):
 # Crea prenotazione (da dettaglio evento)
 @prenotazioni_bp.route("/nuova", methods=["GET", "POST"])
 @require_cliente
+@limiter.limit("10 per minute", key_func=lambda: session.get("cliente_id") or request.remote_addr)
 def nuova():
+    db = SessionLocal()
+    try:
+        evento_id = request.args.get("evento_id", type=int) or request.form.get("evento_id", type=int)
+        tipo_param = request.args.get("tipo")  # Parametro per tipo predefinito
+        e = db.query(Evento).get(evento_id) if evento_id else None
+        if not e:
+            flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.lista_pubblica"))
+        if e.stato_pubblico not in ("programmato", "attivo"):
+            flash("Evento non disponibile per prenotazioni.", "warning")
+            return redirect(url_for("eventi.dettaglio_pubblico", evento_id=e.id_evento))
+
+        if request.method == "POST":
+            cli = _get_current_cliente(db)
+            if not cli:
+                abort(401)
+
+            # Regola: una sola prenotazione attiva per evento per cliente
+            if _has_active_for_event(db, cli.id_cliente, e.id_evento):
+                flash("Hai già una prenotazione attiva per questo evento.", "warning")
+                return redirect(url_for("prenotazioni.mie"))
+
+            tipo = request.form.get("tipo") or tipo_param
+            if tipo not in TIPI_CONSENTITI_CLIENTE:
+                flash("Tipo prenotazione non valido.", "danger")
+                return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
+
+            num_persone = request.form.get("num_persone", type=int)
+            note = (request.form.get("note") or "").strip()
+            orario_previsto = request.form.get("orario_previsto")  # opzionale (non usiamo prevendita)
+
+            # Vincoli: tavolo -> solo nome tavolo obbligatorio (num_persone calcolato dal sistema)
+            if tipo == "tavolo":
+                if not note:
+                    flash("Per il tavolo è obbligatorio indicare il nome del tavolo.", "danger")
+                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento, tipo="tavolo"))
+
+            pren = Prenotazione(
+                cliente_id=cli.id_cliente,
+                evento_id=e.id_evento,
+                tipo=tipo,
+                num_persone=None,  # Non più obbligatorio, calcolato dal sistema admin
+                orario_previsto=orario_previsto or None,
+                note=note or None,
+                stato="attiva"
+            )
+            db.add(pren)
+            db.commit()
+            flash("Prenotazione creata correttamente.", "success")
+            return redirect(url_for("prenotazioni.mie"))
+
+        # GET
+        tipo_default = tipo_param if tipo_param in TIPI_CONSENTITI_CLIENTE else None
+        return render_template("clienti/prenotazioni_new.html", e=e, TIPI=TIPI_CONSENTITI_CLIENTE, tipo_default=tipo_default)
+    finally:
+        db.close()
+
+
+# Crea prenotazione tavolo (flusso dedicato)
+@prenotazioni_bp.route("/nuova-tavolo", methods=["GET", "POST"])
+@require_cliente
+def nuova_tavolo():
     db = SessionLocal()
     try:
         evento_id = request.args.get("evento_id", type=int) or request.form.get("evento_id", type=int)
@@ -71,40 +134,27 @@ def nuova():
                 flash("Hai già una prenotazione attiva per questo evento.", "warning")
                 return redirect(url_for("prenotazioni.mie"))
 
-            tipo = request.form.get("tipo")
-            if tipo not in TIPI_CONSENTITI_CLIENTE:
-                flash("Tipo prenotazione non valido.", "danger")
-                return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
-
-            num_persone = request.form.get("num_persone", type=int)
             note = (request.form.get("note") or "").strip()
-            orario_previsto = request.form.get("orario_previsto")  # opzionale (non usiamo prevendita)
-
-            # Vincoli: tavolo -> num_persone obbligatorio + note con nome tavolo obbligatorie
-            if tipo == "tavolo":
-                if not num_persone or num_persone < 1:
-                    flash("Per il tavolo è obbligatorio indicare il numero di persone.", "danger")
-                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
-                if not note:
-                    flash("Per il tavolo è obbligatorio indicare il nome del tavolo.", "danger")
-                    return redirect(url_for("prenotazioni.nuova", evento_id=e.id_evento))
+            if not note:
+                flash("È obbligatorio indicare il nome del tavolo.", "danger")
+                return redirect(url_for("prenotazioni.nuova_tavolo", evento_id=e.id_evento))
 
             pren = Prenotazione(
                 cliente_id=cli.id_cliente,
                 evento_id=e.id_evento,
-                tipo=tipo,
-                num_persone=num_persone if tipo == "tavolo" else None,
-                orario_previsto=orario_previsto or None,
-                note=note or None,
+                tipo="tavolo",
+                num_persone=None,  # Calcolato dal sistema admin
+                orario_previsto=None,
+                note=note,
                 stato="attiva"
             )
             db.add(pren)
             db.commit()
-            flash("Prenotazione creata correttamente.", "success")
+            flash("Prenotazione tavolo creata correttamente.", "success")
             return redirect(url_for("prenotazioni.mie"))
 
         # GET
-        return render_template("clienti/prenotazioni_new.html", e=e, TIPI=TIPI_CONSENTITI_CLIENTE)
+        return render_template("clienti/prenotazioni_new_tavolo.html", e=e)
     finally:
         db.close()
 
@@ -113,24 +163,38 @@ def nuova():
 @prenotazioni_bp.route("/mie", methods=["GET"])
 @require_cliente
 def mie():
-    from app.utils.workflow import get_workflow_state
+    from app.utils.workflow import get_workflow_state, processa_no_show_automatico, verifica_e_aggiorna_prenotazione_cliente
+    from sqlalchemy.orm import joinedload
     db = SessionLocal()
     try:
         cli = _get_current_cliente(db)
         if not cli:
             abort(401)
 
-        pren = db.query(Prenotazione).join(Evento, Prenotazione.evento_id == Evento.id_evento) \
+        # ⚡ VERIFICA AUTOMATICA NO-SHOW: Processa tutte le prenotazioni del cliente che necessitano aggiornamento
+        processa_no_show_automatico(db, cliente_id=cli.id_cliente)
+
+        # Query ottimizzata con eager loading per evento
+        pren = db.query(Prenotazione)\
+            .options(joinedload(Prenotazione.evento))\
             .filter(
                 Prenotazione.cliente_id == cli.id_cliente,
                 Prenotazione.stato != "cancellata"
-            ) \
-            .order_by(Evento.data_evento.desc(), Prenotazione.id_prenotazione.desc()) \
+            )\
+            .join(Evento, Prenotazione.evento_id == Evento.id_evento)\
+            .order_by(Evento.data_evento.desc(), Prenotazione.id_prenotazione.desc())\
             .all()
         show_all = request.args.get("show_all")
         show_all_usate = (show_all == "usate")
 
-        pren_attive = [p for p in pren if p.stato == "attiva"]
+        oggi = date.today()
+        
+        # Batch load ingressi e feedback del cliente (già ottimizzato)
+        ingressi_map = {
+            ing.evento_id: ing for ing in db.query(Ingresso)
+            .filter(Ingresso.cliente_id == cli.id_cliente)
+            .all()
+        }
 
         feedbacks = {
             fb.evento_id: fb for fb in db.query(Feedback)
@@ -138,11 +202,35 @@ def mie():
             .all()
         }
 
-        pren_usate = [
-            (p, feedbacks.get(p.evento_id))
-            for p in pren if p.stato == "usata"
-        ]
-        pren_no_show = [p for p in pren if p.stato == "no-show"]
+        # Separa prenotazioni per stato (dopo verifica automatica)
+        pren_attive_future = []
+        pren_usate = []
+        pren_no_show = []
+        
+        for p in pren:
+            # Verifica finale per sicurezza (doppio controllo)
+            stato_finale = verifica_e_aggiorna_prenotazione_cliente(db, cli.id_cliente, p)
+            
+            if stato_finale == "attiva":
+                if p.evento.data_evento >= oggi:
+                    # Evento futuro: può ancora essere cancellata
+                    pren_attive_future.append(p)
+                else:
+                    # Evento passato ma ancora attiva (edge case): verifica manuale
+                    if p.evento_id in ingressi_map:
+                        p.stato = "usata"
+                        db.commit()
+                        pren_usate.append((p, feedbacks.get(p.evento_id)))
+                    else:
+                        # Dovrebbe essere già no-show, ma per sicurezza
+                        p.stato = "no-show"
+                        db.commit()
+                        pren_no_show.append(p)
+            elif stato_finale == "usata":
+                pren_usate.append((p, feedbacks.get(p.evento_id)))
+            elif stato_finale == "no-show":
+                pren_no_show.append(p)
+
         punti_per_no_show = abs(PUNTI_NO_SHOW)
         punti_persi = punti_per_no_show * len(pren_no_show)
 
@@ -158,14 +246,15 @@ def mie():
 
         return render_template(
             "clienti/prenotazioni_list.html",
-            prenotazioni_attive=pren_attive,
+            prenotazioni_attive=pren_attive_future,
             prenotazioni_usate=pren_usate,
             prenotazioni_no_show=pren_no_show,
             punti_per_no_show=punti_per_no_show,
             punti_persi_no_show=punti_persi,
             punti_evento=fedelta_map,
             workflow_map=workflow_map,
-            show_all_usate=show_all_usate
+            show_all_usate=show_all_usate,
+            oggi=oggi
         )
     finally:
         db.close()
@@ -261,6 +350,52 @@ def staff_lista_evento(evento_id):
             .all()
 
         return render_template("staff/prenotazioni_evento.html", e=e, prenotazioni=pren)
+    finally:
+        db.close()
+
+
+# ============================================
+# 👑 ADMIN — Hub Operativo
+# ============================================
+@prenotazioni_bp.route("/admin/hub", methods=["GET"])
+@require_admin
+def admin_hub():
+    """Hub centrale per la gestione operativa: prenotazioni, ingressi, consumi"""
+    from app.models.ingressi import Ingresso
+    from app.models.consumi import Consumo
+    from app.utils.events import get_evento_operativo
+    
+    db = SessionLocal()
+    try:
+        # Evento operativo
+        evento_operativo = get_evento_operativo(db)
+        
+        # Statistiche generali
+        tot_prenotazioni_attive = db.query(func.count(Prenotazione.id_prenotazione))\
+            .filter(Prenotazione.stato == "attiva").scalar() or 0
+        tot_prenotazioni_oggi = 0
+        tot_ingressi_oggi = 0
+        tot_consumi_oggi = 0
+        
+        if evento_operativo:
+            eid = evento_operativo.id_evento
+            tot_prenotazioni_oggi = db.query(func.count(Prenotazione.id_prenotazione))\
+                .filter(Prenotazione.evento_id == eid).scalar() or 0
+            tot_ingressi_oggi = db.query(func.count(Ingresso.id_ingresso))\
+                .filter(Ingresso.evento_id == eid).scalar() or 0
+            tot_consumi_oggi = db.query(func.coalesce(func.sum(Consumo.importo), 0))\
+                .filter(Consumo.evento_id == eid).scalar() or 0
+        
+        # Ultimi eventi per filtro rapido
+        eventi_recenti = db.query(Evento).order_by(Evento.data_evento.desc()).limit(10).all()
+        
+        return render_template("admin/operativo_hub.html",
+                             evento_operativo=evento_operativo,
+                             tot_prenotazioni_attive=tot_prenotazioni_attive,
+                             tot_prenotazioni_oggi=tot_prenotazioni_oggi,
+                             tot_ingressi_oggi=tot_ingressi_oggi,
+                             tot_consumi_oggi=float(tot_consumi_oggi),
+                             eventi_recenti=eventi_recenti)
     finally:
         db.close()
 

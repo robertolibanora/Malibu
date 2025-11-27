@@ -21,7 +21,7 @@
       {% elif session.get('staff_role') == 'admin' %}
         <a href="{{ url_for('dashboard.admin_dashboard') }}" class="btn btn--primary">Dashboard Admin</a>
       {% else %}
-        <a href="{{ url_for('auth.auth_login_form') }}" class="btn btn--primary">Vai al Login</a>
+        <a href="{{ url_for('auth.auth_login_cliente_form') }}" class="btn btn--primary">Vai al Login</a>
       {% endif %}
       <a href="/" class="btn btn--ghost">Torna alla Home</a>
     </div>

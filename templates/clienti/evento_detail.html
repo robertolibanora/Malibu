@@ -20,7 +20,20 @@
 
     {% if is_future %}
       {% if can_prenotare %}
-        <a class="btn btn--primary" href="{{ url_for('prenotazioni.nuova', evento_id=e.id_evento) }}">Prenota</a>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a class="btn btn--primary" href="{{ url_for('prenotazioni.nuova', evento_id=e.id_evento, tipo='lista') }}" style="flex: 1; min-width: 140px;">
+              📋 Prenota in Lista
+            </a>
+            <a class="btn btn--primary" href="{{ url_for('prenotazioni.nuova_tavolo', evento_id=e.id_evento) }}" style="flex: 1; min-width: 140px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.95) 0%, rgba(212, 175, 55, 0.85) 100%); border: 1px solid rgba(212, 175, 55, 0.4);">
+              🪑 Prenota Tavolo
+            </a>
+          </div>
+          <small class="text--muted" style="font-size: 0.85rem; line-height: 1.4;">
+            <strong>Prenota in Lista:</strong> prenotazione standard per entrare in lista d'attesa<br>
+            <strong>Prenota Tavolo:</strong> prenotazione riservata per un tavolo specifico
+          </small>
+        </div>
       {% elif prenotazione_attiva %}
         <button class="btn btn--ghost" type="button" aria-disabled="true">Prenotazione già attiva</button>
       {% else %}
@@ -39,9 +52,49 @@
 </article>
 
 {% if not is_future %}
+  {% set ha_ingresso = workflow_state.cliente_ha_ingresso_valido() if workflow_state else False %}
+  {% set ha_feedback = workflow_state.cliente_ha_feedback() if workflow_state else False %}
+  {% set puo_feedback = workflow_state.cliente_puo_lasciare_feedback() if workflow_state else False %}
+  
+  {% if ha_ingresso %}
+  <!-- Sezione Feedback per Eventi Passati -->
+  <section class="card" style="border-left: 4px solid var(--gold-primary);">
+    <div class="card__header card__header--compact">
+      <h2 class="card__title">💬 Il tuo Feedback</h2>
+      <p class="card__meta">Condividi la tua esperienza per questo evento.</p>
+    </div>
+    
+    {% if ha_feedback %}
+      {% set feedback = workflow_state.feedback_lasciato %}
+      {% set avg = ((feedback.voto_musica + feedback.voto_ingresso + feedback.voto_ambiente + feedback.voto_servizio) / 4.0) %}
+      <div style="padding: 1rem; background: rgba(212, 175, 55, 0.1); border-radius: 8px; margin-bottom: 1rem;">
+        <p style="margin: 0 0 0.75rem; font-weight: 600;">✅ Hai già lasciato un feedback</p>
+        <div class="rating-stars" aria-label="Valutazione media {{ avg|round(1) }}/10">
+          {% for star in range(1, 11) %}
+            <span class="rating-stars__star {% if star <= avg %}rating-stars__star--active{% endif %}">★</span>
+          {% endfor %}
+          <span class="rating-stars__label">{{ avg|round(1) }}/10</span>
+        </div>
+        {% if feedback.note %}
+          <p style="margin-top: 0.75rem; font-size: 0.9rem; color: rgba(255,255,255,0.7);">{{ feedback.note }}</p>
+        {% endif %}
+      </div>
+    {% elif puo_feedback %}
+      <div class="form__actions">
+        <a class="btn btn--primary" href="{{ url_for('feedback.nuovo', evento_id=e.id_evento) }}">
+          ⭐ Lascia Feedback
+        </a>
+        <p class="text--muted" style="margin-top: 0.5rem; font-size: 0.85rem;">
+          Condividi la tua opinione e guadagna <strong>2 punti fedeltà</strong>
+        </p>
+      </div>
+    {% endif %}
+  </section>
+  
+  <!-- Sezione Consumi per Eventi Passati -->
 <section class="card">
   <div class="card__header card__header--compact">
-    <h2 class="card__title">I miei acquisti durante la serata</h2>
+      <h2 class="card__title">🍾 I miei acquisti durante la serata</h2>
     <p class="card__meta">Vedi cosa hai acquistato in questo evento.</p>
   </div>
   {% if consumi_miei %}
@@ -57,10 +110,34 @@
         </li>
       {% endfor %}
     </ul>
+      <p class="text--muted" style="margin-top: 1rem; font-size: 0.9rem;">
+        Totale speso: <strong>€{{ "%.2f"|format(consumi_miei|sum(attribute='importo')) }}</strong>
+      </p>
   {% else %}
     <p class="empty-state">Non risultano acquisti per questa serata.</p>
   {% endif %}
 </section>
+  {% else %}
+  <!-- Cliente non entrato: mostra info prenotazione se presente -->
+  {% if workflow_state and workflow_state.prenotazione_attiva %}
+    {% set pren = workflow_state.prenotazione_attiva %}
+    <section class="card" style="border-left: 4px solid rgba(245, 158, 11, 0.5); background: rgba(245, 158, 11, 0.05);">
+      <div class="card__header card__header--compact">
+        <h2 class="card__title">⚠️ Prenotazione non utilizzata</h2>
+        <p class="card__meta">Non risulta un ingresso registrato per questo evento.</p>
+      </div>
+      <p class="text--muted">
+        Hai una prenotazione per questo evento ma non risulta che tu sia entrato.
+        {% if pren.stato == 'no-show' %}
+          <strong>Penalità applicata: -5 punti fedeltà.</strong>
+        {% endif %}
+      </p>
+      <p class="text--muted" style="margin-top: 0.5rem; font-size: 0.85rem;">
+        Vai a <a href="{{ url_for('prenotazioni.mie') }}">Le mie prenotazioni</a> per vedere i dettagli.
+      </p>
+    </section>
+  {% endif %}
+  {% endif %}
 {% endif %}
 {% endblock %}
 

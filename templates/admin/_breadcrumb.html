@@ -1,36 +1,34 @@
-{# Component: Breadcrumb per navigazione intuitiva #}
-{% if breadcrumbs %}
-<nav class="breadcrumb fade-in" aria-label="Breadcrumb" style="margin-bottom: var(--spacing-6);">
-  <ol class="breadcrumb__list">
-    <li class="breadcrumb__item">
-      <a href="{{ url_for('dashboard.admin_dashboard') }}" class="breadcrumb__link">
-        <span class="breadcrumb__icon">🏠</span>
+{# Breadcrumb Component per navigazione admin #}
+{% macro render_breadcrumb(items) %}
+<nav class="admin-breadcrumb" aria-label="Breadcrumb">
+  <ol class="admin-breadcrumb__list">
+    <li class="admin-breadcrumb__item">
+      <a href="{{ url_for('dashboard.admin_dashboard') }}" class="admin-breadcrumb__link">
+        <span class="admin-breadcrumb__icon">🏠</span>
         <span>Dashboard</span>
       </a>
     </li>
-    {% for item in breadcrumbs %}
-    <li class="breadcrumb__item {% if loop.last %}breadcrumb__item--active{% endif %}">
+    {% for item in items %}
+    <li class="admin-breadcrumb__item {% if loop.last %}admin-breadcrumb__item--current{% endif %}">
+      <span class="admin-breadcrumb__separator">›</span>
       {% if item.url and not loop.last %}
-        <span class="breadcrumb__separator">›</span>
-        <a href="{{ item.url }}" class="breadcrumb__link">{{ item.label }}</a>
+        <a href="{{ item.url }}" class="admin-breadcrumb__link">{{ item.label }}</a>
       {% else %}
-        <span class="breadcrumb__separator">›</span>
-        <span class="breadcrumb__current">{{ item.label }}</span>
+        <span class="admin-breadcrumb__current">{{ item.label }}</span>
       {% endif %}
     </li>
     {% endfor %}
   </ol>
 </nav>
+{% endmacro %}
 
 <style>
-.breadcrumb {
-  background-color: var(--admin-bg-secondary);
-  border: 1px solid var(--admin-border);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-3) var(--spacing-4);
+.admin-breadcrumb {
+  margin-bottom: var(--spacing-6);
+  padding: var(--spacing-2) 0;
 }
 
-.breadcrumb__list {
+.admin-breadcrumb__list {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -38,50 +36,49 @@
   list-style: none;
   margin: 0;
   padding: 0;
-}
-
-.breadcrumb__item {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
   font-size: var(--font-size-sm);
 }
 
-.breadcrumb__link {
+.admin-breadcrumb__item {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  color: var(--color-gray-light);
+}
+
+.admin-breadcrumb__separator {
+  color: rgba(255, 255, 255, 0.3);
+  font-weight: normal;
+  margin: 0 var(--spacing-1);
+}
+
+.admin-breadcrumb__link {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  color: rgba(255, 255, 255, 0.6);
   text-decoration: none;
   padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
 }
 
-.breadcrumb__link:hover {
+.admin-breadcrumb__link:hover {
   color: var(--admin-accent);
-  background-color: var(--admin-bg-primary);
+  background-color: rgba(212, 175, 55, 0.1);
 }
 
-.breadcrumb__icon {
+.admin-breadcrumb__icon {
   font-size: var(--font-size-base);
 }
 
-.breadcrumb__separator {
-  color: var(--color-gray-soft);
-  font-weight: var(--font-weight-normal);
-}
-
-.breadcrumb__current {
+.admin-breadcrumb__current {
   color: var(--admin-accent);
   font-weight: var(--font-weight-medium);
   padding: var(--spacing-1) var(--spacing-2);
 }
 
-.breadcrumb__item--active .breadcrumb__link {
+.admin-breadcrumb__item--current .admin-breadcrumb__link {
   color: var(--admin-accent);
   pointer-events: none;
 }
 </style>
-{% endif %}
-

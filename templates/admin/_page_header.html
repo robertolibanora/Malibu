@@ -1,0 +1,88 @@
+{# Page Header Component - Header unificato per pagine admin #}
+{% macro render_page_header(title, subtitle=None, actions=None, breadcrumbs=None) %}
+  {% if breadcrumbs %}
+    {% from "admin/_breadcrumb.html" import render_breadcrumb %}
+    {{ render_breadcrumb(breadcrumbs) }}
+  {% endif %}
+  
+  <div class="admin-page-header">
+    <div class="admin-page-header__content">
+      <div class="admin-page-header__text">
+        <h1 class="admin-page-header__title">{{ title }}</h1>
+        {% if subtitle %}
+        <p class="admin-page-header__subtitle">{{ subtitle }}</p>
+        {% endif %}
+      </div>
+      {% if actions %}
+      <div class="admin-page-header__actions">
+        {% for action in actions %}
+          {% if action.type == 'link' %}
+          <a href="{{ action.url }}" class="btn {{ action.class or 'btn--primary' }}">{{ action.label }}</a>
+          {% elif action.type == 'button' %}
+          <button type="button" class="btn {{ action.class or 'btn--primary' }}" onclick="{{ action.onclick }}">{{ action.label }}</button>
+          {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+<style>
+.admin-page-header {
+  margin-bottom: var(--spacing-6);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+}
+
+.admin-page-header__content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.admin-page-header__text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.admin-page-header__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--admin-text);
+  margin: 0 0 var(--spacing-2);
+  line-height: 1.2;
+}
+
+.admin-page-header__subtitle {
+  font-size: var(--font-size-sm);
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.admin-page-header__actions {
+  display: flex;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .admin-page-header__content {
+    flex-direction: column;
+  }
+  
+  .admin-page-header__actions {
+    width: 100%;
+  }
+  
+  .admin-page-header__actions .btn {
+    flex: 1;
+    min-width: 0;
+  }
+}
+</style>
+

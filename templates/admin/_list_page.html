@@ -1,0 +1,202 @@
+{# List Page Template - Template unificato per pagine lista admin #}
+{% macro render_list_page(title, items, columns, subtitle=None, actions=None, filters=None, empty_message="Nessun elemento trovato", breadcrumbs=None) %}
+  {% from "admin/_page_header.html" import render_page_header %}
+  {% from "admin/_secondary_nav.html" import render_secondary_nav %}
+  
+  <div class="admin-shell__content">
+    {{ render_page_header(
+      title=title,
+      subtitle=subtitle,
+      actions=actions,
+      breadcrumbs=breadcrumbs
+    ) }}
+    
+    {% if filters %}
+    <!-- Filtri -->
+    <section class="admin-list-filters card" style="margin-bottom: 2rem;">
+      <form method="get" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;">
+        {% for filter in filters %}
+        <div>
+          {% if filter.label %}
+          <label class="form__label" for="{{ filter.name }}">{{ filter.label }}</label>
+          {% endif %}
+          {% if filter.type == 'select' %}
+          <select id="{{ filter.name }}" name="{{ filter.name }}" class="form__input" onchange="this.form.submit()">
+            {% for option in filter.options %}
+            <option value="{{ option.value }}" {% if option.selected %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+          </select>
+          {% elif filter.type == 'text' %}
+          <input type="text" id="{{ filter.name }}" name="{{ filter.name }}" class="form__input" 
+                 value="{{ filter.value or '' }}" placeholder="{{ filter.placeholder or '' }}">
+          {% elif filter.type == 'date' %}
+          <input type="date" id="{{ filter.name }}" name="{{ filter.name }}" class="form__input" 
+                 value="{{ filter.value or '' }}">
+          {% endif %}
+        </div>
+        {% endfor %}
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="submit" class="btn btn--primary">Filtra</button>
+          {% if request.args %}
+          <a href="{{ request.path }}" class="btn btn--ghost">Reset</a>
+          {% endif %}
+        </div>
+      </form>
+    </section>
+    {% endif %}
+    
+    <!-- Lista -->
+    {% if items %}
+    <div class="admin-list-table card">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            {% for col in columns %}
+            <th class="admin-table__header">{{ col.label }}</th>
+            {% endfor %}
+            <th class="admin-table__header admin-table__header--actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr class="admin-table__row">
+            {% for col in columns %}
+            <td class="admin-table__cell">
+              {% if col.render %}
+                {{ col.render(item) | safe }}
+              {% else %}
+                {{ item[col.field] }}
+              {% endif %}
+            </td>
+            {% endfor %}
+            <td class="admin-table__cell admin-table__cell--actions">
+              {% if item.actions %}
+                {% for action in item.actions %}
+                <a href="{{ action.url }}" class="admin-table__action admin-table__action--{{ action.type or 'default' }}" 
+                   {% if action.confirm %}onclick="return confirm('{{ action.confirm }}')"{% endif %}
+                   title="{{ action.title or action.label }}">
+                  {% if action.icon %}{{ action.icon }}{% else %}{{ action.label }}{% endif %}
+                </a>
+                {% endfor %}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="admin-empty-state card">
+      <div class="admin-empty-state__content">
+        <span class="admin-empty-state__icon">📭</span>
+        <p class="admin-empty-state__message">{{ empty_message }}</p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  
+  <style>
+  .admin-list-filters {
+    background: rgba(12, 12, 12, 0.4);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+  }
+  
+  .admin-list-table {
+    overflow-x: auto;
+  }
+  
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .admin-table__header {
+    padding: var(--spacing-3) var(--spacing-4);
+    text-align: left;
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.7);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  }
+  
+  .admin-table__header--actions {
+    width: 120px;
+    text-align: center;
+  }
+  
+  .admin-table__row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color var(--transition-fast);
+  }
+  
+  .admin-table__row:hover {
+    background-color: rgba(212, 175, 55, 0.05);
+  }
+  
+  .admin-table__cell {
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-size-sm);
+    color: var(--admin-text);
+  }
+  
+  .admin-table__cell--actions {
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+  .admin-table__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0 var(--spacing-1);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.6);
+    transition: all var(--transition-fast);
+    font-size: var(--font-size-base);
+  }
+  
+  .admin-table__action:hover {
+    background-color: rgba(212, 175, 55, 0.2);
+    color: var(--admin-accent);
+    transform: scale(1.1);
+  }
+  
+  .admin-table__action--edit {
+    color: #3b82f6;
+  }
+  
+  .admin-table__action--delete {
+    color: #ef4444;
+  }
+  
+  .admin-empty-state {
+    padding: var(--spacing-12) var(--spacing-6);
+    text-align: center;
+  }
+  
+  .admin-empty-state__content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-3);
+  }
+  
+  .admin-empty-state__icon {
+    font-size: 4rem;
+    opacity: 0.5;
+  }
+  
+  .admin-empty-state__message {
+    font-size: var(--font-size-base);
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
+  </style>
+{% endmacro %}
+

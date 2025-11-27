@@ -2,6 +2,15 @@
 {% block admin_title %}Prenotazioni{% endblock %}
 
 {% block admin_content %}
+<!-- Navigazione Secondaria Operativo -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+  <a href="{{ url_for('prenotazioni.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Operativo</a>
+  <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--primary btn--small">📋 Prenotazioni</a>
+  <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--ghost btn--small">🚪 Ingressi</a>
+  <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost btn--small">💰 Consumi</a>
+  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
+</div>
+
 <section class="card">
   <h1 class="card__title">Prenotazioni</h1>
   <form class="form" method="get">
@@ -92,9 +101,20 @@
           <span class="badge badge--{{ 'success' if p.stato == 'usata' else 'warning' if p.stato == 'attiva' else 'secondary' if p.stato == 'no-show' else 'muted' }}">
             {{ p.stato|replace('_',' ')|capitalize }}
           </span>
+          {% if p.tipo == 'tavolo' %}
+            <span class="badge" style="background: rgba(212, 175, 55, 0.2); color: var(--gold-primary); border: 1px solid rgba(212, 175, 55, 0.4);">🪑 Tavolo</span>
+          {% elif p.tipo == 'lista' %}
+            <span class="badge badge--muted">📋 Lista</span>
+          {% else %}
           <span class="badge badge--muted">{{ p.tipo|capitalize }}</span>
-          {% if p.num_persone %}
+          {% endif %}
+          {% if p.tipo == 'tavolo' and p.num_persone %}
+          <span class="badge badge--muted">👥 {{ p.num_persone }} persone</span>
+          {% elif p.num_persone %}
           <span class="badge badge--muted">Persone {{ p.num_persone }}</span>
+          {% endif %}
+          {% if p.tipo == 'tavolo' and p.note %}
+          <span class="badge badge--muted" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ p.note }}">🪑 {{ p.note }}</span>
           {% endif %}
           {% if p.stato == 'usata' %}
           <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">

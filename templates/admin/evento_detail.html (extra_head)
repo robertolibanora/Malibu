@@ -1,0 +1,51 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}{{ evento.nome_evento }}{% endblock %}
+
+{% block extra_head %}
+  {{ super() }}
+  <style>
+    .chart-card {
+      border-radius: 16px;
+      padding: 1.25rem;
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chart-card__title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0;
+    }
+    .chart-card__empty {
+      display: none;
+      margin: 0.5rem 0 0;
+      color: rgba(255,255,255,0.7);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .evento-analytics-grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+    @media (min-width: 1024px) {
+      .evento-analytics-grid {
+        grid-template-columns: repeat(12, 1fr);
+      }
+      .chart-card--wide {
+        grid-column: span 8;
+      }
+      .chart-card--tall {
+        grid-column: span 4;
+      }
+      .chart-card--full {
+        grid-column: span 12;
+      }
+    }
+  </style>
+{% endblock %}
+
+{% block admin_content %}
+

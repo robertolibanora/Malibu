@@ -1,0 +1,203 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Impostazioni{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '⚙️'},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': '🍹'},
+    {'url': url_for('promozioni.admin_list'), 'endpoint': 'promozioni.admin_list', 'label': 'Promozioni', 'icon': '🎁'},
+    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '📋'},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📊'},
+  ], current_endpoint=request.endpoint) }}
+  
+  {{ render_page_header(
+    title="Impostazioni Sistema",
+    subtitle="Gestione staff, listino prodotti, format eventi e configurazioni sistema",
+    actions=None,
+    breadcrumbs=[
+      {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')}
+    ]
+  ) }}
+
+<!-- Statistiche Rapide -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #3b82f6;">
+    <div style="font-size: 2rem; font-weight: 700; color: #3b82f6;">{{ tot_staff }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem; font-size: 0.9rem;">Staff Totale</div>
+    <div class="text--muted" style="margin-top: 0.25rem; font-size: 0.75rem;">({{ staff_attivi }} attivi)</div>
+  </div>
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #10b981;">
+    <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{{ tot_prodotti }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem; font-size: 0.9rem;">Prodotti Listino</div>
+    <div class="text--muted" style="margin-top: 0.25rem; font-size: 0.75rem;">({{ prodotti_attivi }} attivi)</div>
+  </div>
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #8b5cf6;">
+    <div style="font-size: 2rem; font-weight: 700; color: #8b5cf6;">{{ tot_format }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem; font-size: 0.9rem;">Format Eventi</div>
+  </div>
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid var(--gold-primary);">
+    <div style="font-size: 2rem; font-weight: 700; color: var(--gold-primary);">{{ soglie|length }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem; font-size: 0.9rem;">Livelli Fedeltà</div>
+  </div>
+</div>
+
+<!-- Sezioni Impostazioni -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem;">
+  
+  <!-- Staff -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">👤</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Gestione Staff</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Utenti, ruoli e permessi</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('staff_admin.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📋 Lista Staff
+      </a>
+      <a href="{{ url_for('staff_admin.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        ➕ Nuovo Staff
+      </a>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
+        <strong>{{ staff_attivi }}</strong> membri attivi su <strong>{{ tot_staff }}</strong> totali
+      </p>
+    </div>
+  </section>
+
+  <!-- Listino Prodotti -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">🍹</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Listino Prodotti</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Bevande, snack e prezzi</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('prodotti.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📋 Lista Prodotti
+      </a>
+      <a href="{{ url_for('prodotti.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        ➕ Nuovo Prodotto
+      </a>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
+        <strong>{{ prodotti_attivi }}</strong> prodotti attivi su <strong>{{ tot_prodotti }}</strong> totali
+      </p>
+    </div>
+  </section>
+
+  <!-- Format Eventi -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">🎭</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Format Eventi</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Template per tipologie serate</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📋 Lista Format
+      </a>
+      <a href="{{ url_for('format.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        ➕ Nuovo Format
+      </a>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
+        <strong>{{ tot_format }}</strong> format configurati
+      </p>
+    </div>
+  </section>
+
+  <!-- Fedeltà e Soglie -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">⭐</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Sistema Fedeltà</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Soglie, livelli e punti</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('fedelta.admin_soglie') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        🎯 Configura Soglie
+      </a>
+      <a href="{{ url_for('fedelta.admin_movimenti') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📊 Storico Movimenti
+      </a>
+      <a href="{{ url_for('fedelta.admin_analytics') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📈 Analytics Fedeltà
+      </a>
+    </div>
+    {% if soglie %}
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0 0 0.5rem; font-size: 0.8rem;">Livelli attuali:</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+        {% for s in soglie %}
+        <span class="badge badge--secondary" style="font-size: 0.7rem;">
+          {{ s.nome|capitalize }}: {{ s.punti_min }}pt
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </section>
+
+  <!-- Log Attività -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">📜</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Log Attività</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Tracciamento operazioni sistema</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('log.list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📋 Visualizza Log
+      </a>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
+        Registro completo di tutte le operazioni eseguite nel sistema
+      </p>
+    </div>
+  </section>
+
+  <!-- Promozioni -->
+  <section class="card">
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <span style="font-size: 1.75rem;">🎁</span>
+      <div>
+        <h2 style="font-size: 1.1rem; font-weight: 600; margin: 0;">Promozioni</h2>
+        <p class="text--muted" style="margin: 0; font-size: 0.85rem;">Offerte e sconti speciali</p>
+      </div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+      <a href="{{ url_for('promozioni.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
+        📋 Lista Promozioni
+      </a>
+    </div>
+    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+      <p class="text--muted" style="margin: 0; font-size: 0.8rem;">
+        Le promozioni evento sono ora integrate nel campo Promo dell'evento
+      </p>
+    </div>
+  </section>
+
+</div>
+
+{% endblock %}
+

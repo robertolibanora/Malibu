@@ -1,35 +1,150 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}{{ evento.nome_evento }}{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block extra_head %}
+  {{ super() }}
+  <style>
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid rgba(212, 175, 55, 0.2);
+      margin-bottom: 2rem;
+      overflow-x: auto;
+      flex-wrap: wrap;
+    }
+    .tabs__item {
+      padding: 0.75rem 1.5rem;
+      background: transparent;
+      border: none;
+      border-bottom: 3px solid transparent;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .tabs__item:hover {
+      color: var(--gold-primary);
+      background: rgba(212, 175, 55, 0.05);
+    }
+    .tabs__item.active {
+      color: var(--gold-primary);
+      border-bottom-color: var(--gold-primary);
+      background: rgba(212, 175, 55, 0.08);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .chart-card {
+      border-radius: 16px;
+      padding: 1.5rem;
+      background: rgba(17, 24, 39, 0.6);
+      border: 1px solid rgba(255,255,255,0.08);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-height: 300px;
+    }
+    .chart-card__title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      color: var(--gold-primary);
+    }
+    .chart-card canvas {
+      max-height: 300px;
+    }
+    .chart-card__empty {
+      display: none;
+      margin: 2rem 0;
+      color: rgba(255,255,255,0.5);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .evento-analytics-grid {
+      display: grid;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    @media (min-width: 1024px) {
+      .evento-analytics-grid {
+        grid-template-columns: repeat(12, 1fr);
+      }
+      .chart-card--wide {
+        grid-column: span 8;
+      }
+      .chart-card--tall {
+        grid-column: span 4;
+      }
+      .chart-card--full {
+        grid-column: span 12;
+      }
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+{% endblock %}
+
 {% block admin_content %}
-<div class="evento-detail">
-  <!-- Header con info principali -->
-  <section class="card" style="margin-bottom:1.5rem;">
-    <div class="cliente-header">
-      <div class="cliente-header__main">
-        <h1 class="card__title">{{ evento.nome_evento }}</h1>
-        <div class="cliente-header__meta">
-          <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">
-            {{ evento.stato_pubblico|capitalize }}
-          </span>
-          <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
-          {% if evento.template %}
-          <span class="badge">Format: {{ evento.template.nome }}</span>
-          {% endif %}
-          {% if evento.is_staff_operativo %}
-          <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
-            Evento operativo staff
-          </span>
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title=evento.nome_evento,
+    subtitle="Data: " ~ (evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'N/A') ~ (" · " ~ evento.dj_artista if evento.dj_artista else ""),
+    actions=[
+      {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
+      {'type': 'link', 'url': url_for('eventi.admin_edit', evento_id=evento.id_evento), 'label': '✏️ Modifica', 'class': 'btn--secondary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
+      {'label': evento.nome_evento}
+    ]
+  ) }}
+  
+  <div class="evento-detail">
+    <!-- Badge e info principali -->
+    <section class="card" style="margin-bottom:1.5rem;">
+      <div class="cliente-header">
+        <div class="cliente-header__main">
+          <div class="cliente-header__meta">
+            <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'secondary' }}">
+              {{ evento.stato_pubblico|capitalize }}
+            </span>
+            <span class="badge badge--warning">{{ evento.categoria|capitalize }}</span>
+            {% if evento.template %}
+            <span class="badge">Format: {{ evento.template.nome }}</span>
+            {% endif %}
+            {% if evento.is_staff_operativo %}
+            <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
+              🟢 Evento operativo staff
+            </span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="cliente-header__actions">
+          {% if not evento.is_staff_operativo %}
+          <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display:inline;">
+            <button class="btn btn--primary btn--small" type="submit" name="evento_id" value="{{ evento.id_evento }}">🟢 Attiva Staff</button>
+          </form>
           {% endif %}
         </div>
       </div>
-      <div class="cliente-header__actions">
-        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--secondary">← Torna alla lista</a>
-        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display:inline;">
-          <button class="btn btn--primary" type="submit" name="evento_id" value="{{ evento.id_evento }}">Imposta operativo staff</button>
-        </form>
-      </div>
-    </div>
     <div style="margin-top: 1rem; padding: 1rem; background: rgba(212,175,55,0.06); border-radius: 12px;">
       <p style="margin:0; font-size:0.95rem;">
         <strong>Nota:</strong> chiudendo l'evento tutte le prenotazioni ancora attive saranno marcate come <em>no-show</em> e verranno scalati 5 punti fedeltà.
@@ -57,15 +172,27 @@
       <div class="stat-card__value">{{ tot_punti_fedelta }}</div>
       <div class="stat-card__label">Punti Assegnati</div>
     </div>
-    <div class="stat-card">
+      <div class="stat-card">
       <div class="stat-card__value">{{ tot_feedback }}</div>
       <div class="stat-card__label">Feedback</div>
       {% if tot_feedback > 0 %}
-      <div class="stat-card__meta">M: {{ avg_musica }} • I: {{ avg_ingresso }} • A: {{ avg_ambiente }}</div>
+      <div class="stat-card__meta">M: {{ avg_musica }} • I: {{ avg_ingresso }} • A: {{ avg_ambiente }} • S: {{ avg_servizio }}</div>
       {% endif %}
     </div>
   </div>
 
+  <!-- Navigazione Tab -->
+  <div class="tabs" id="eventoTabs">
+    <button class="tabs__item active" onclick="showTab('overview')">📊 Overview</button>
+    <button class="tabs__item" onclick="showTab('prenotazioni')">📋 Prenotazioni</button>
+    <button class="tabs__item" onclick="showTab('ingressi')">🚪 Ingressi</button>
+    <button class="tabs__item" onclick="showTab('consumi')">💰 Consumi</button>
+    <button class="tabs__item" onclick="showTab('analytics')">📈 Analytics</button>
+    <button class="tabs__item" onclick="showTab('feedback')">💬 Feedback</button>
+  </div>
+
+  <!-- Tab Content: Overview -->
+  <div id="tab-overview" class="tab-content active">
   <!-- Informazioni evento e gestione -->
   <div class="grid grid--2">
     <section class="card">
@@ -114,7 +241,7 @@
       <h2 class="card__title">Gestione Evento</h2>
       <div class="form__actions" style="margin-bottom: 1.5rem;">
         <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary">Modifica Evento</a>
-        <a href="{{ url_for('eventi.admin_analytics', evento_id=evento.id_evento) }}" class="btn btn--secondary">Analytics Dettagliati</a>
+        <button type="button" onclick="showTab('analytics'); window.location.hash='#analytics';" class="btn btn--secondary">Analytics evento</button>
       </div>
       <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
         <div class="form__group">
@@ -142,8 +269,10 @@
       </div>
     </section>
   </div>
+  </div>
 
-  <!-- Prenotazioni -->
+  <!-- Tab Content: Prenotazioni -->
+  <div id="tab-prenotazioni" class="tab-content">
   <section class="card">
     <h2 class="card__title">Prenotazioni</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -193,15 +322,51 @@
           {% for pren, cli in prenotazioni_evento %}
           <tr>
             <td>{{ cli.nome }} {{ cli.cognome }}</td>
-            <td>{{ pren.tipo|capitalize }}</td>
+            <td>
+              {% if pren.tipo == 'tavolo' %}
+                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <span>🪑</span>
+                  <strong style="color: var(--gold-primary);">Tavolo</strong>
+                </span>
+              {% elif pren.tipo == 'lista' %}
+                <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                  <span>📋</span>
+                  <span>Lista</span>
+                </span>
+              {% else %}
+                {{ pren.tipo|capitalize }}
+              {% endif %}
+            </td>
             <td>
               <span class="badge badge--{% if pren.stato == 'attiva' %}warning{% elif pren.stato == 'usata' %}success{% elif pren.stato == 'no-show' %}secondary{% else %}muted{% endif %}">
                 {{ pren.stato|replace('_',' ') }}
               </span>
             </td>
-            <td>{{ pren.num_persone or '—' }}</td>
+            <td>
+              {% if pren.tipo == 'tavolo' %}
+                {% if pren.num_persone %}
+                  <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                    <span>👥</span>
+                    <strong>{{ pren.num_persone }}</strong>
+                  </span>
+                {% else %}
+                  <span class="text--muted">Da confermare</span>
+                {% endif %}
+              {% else %}
+                {{ pren.num_persone or '—' }}
+              {% endif %}
+            </td>
             <td>{{ pren.orario_previsto.strftime('%H:%M') if pren.orario_previsto else '—' }}</td>
-            <td>{{ pren.note or '—' }}</td>
+            <td>
+              {% if pren.tipo == 'tavolo' and pren.note %}
+                <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <span>🪑</span>
+                  <strong style="color: var(--gold-primary);">{{ pren.note }}</strong>
+                </span>
+              {% else %}
+                {{ pren.note or '—' }}
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -211,8 +376,10 @@
     <p class="text--muted">Nessuna prenotazione per questo evento.</p>
     {% endif %}
   </section>
+  </div>
 
-  <!-- Ingressi -->
+  <!-- Tab Content: Ingressi -->
+  <div id="tab-ingressi" class="tab-content">
   <section class="card">
     <h2 class="card__title">Ingressi</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -271,8 +438,10 @@
     <p class="text--muted">Nessun ingresso registrato per questo evento.</p>
     {% endif %}
   </section>
+  </div>
 
-  <!-- Consumi -->
+  <!-- Tab Content: Consumi -->
+  <div id="tab-consumi" class="tab-content">
   <section class="card">
     <h2 class="card__title">Consumi</h2>
     <div class="grid grid--2" style="margin-bottom: 1.5rem;">
@@ -337,8 +506,47 @@
     <p class="text--muted">Nessun consumo registrato per questo evento.</p>
     {% endif %}
   </section>
+  </div>
 
-  <!-- Feedback -->
+  <!-- Tab Content: Analytics -->
+  <div id="tab-analytics" class="tab-content">
+  <section class="card">
+    <h2 class="card__title">Analytics evento</h2>
+    <p class="text--muted" style="margin-bottom: 1rem;">Panoramica visiva di ingressi, prenotazioni, prodotti e feedback per questo evento.</p>
+    <div class="evento-analytics-grid">
+      <!-- Grafico ingressi temporali -->
+      <article class="chart-card chart-card--wide">
+        <h3 class="chart-card__title">Andamento ingressi (per ora)</h3>
+        <canvas id="chartIngressiTemporali"></canvas>
+        <p class="chart-card__empty">Nessun dato di ingresso orario disponibile per questo evento.</p>
+      </article>
+
+      <!-- Prenotazioni per tipo -->
+      <article class="chart-card chart-card--tall">
+        <h3 class="chart-card__title">Prenotazioni per tipologia</h3>
+        <canvas id="chartPrenotazioni"></canvas>
+        <p class="chart-card__empty">Nessuna prenotazione registrata.</p>
+      </article>
+
+      <!-- Prodotti più venduti -->
+      <article class="chart-card chart-card--wide">
+        <h3 class="chart-card__title">Top prodotti</h3>
+        <canvas id="chartProdotti"></canvas>
+        <p class="chart-card__empty">Nessun consumo registrato per questo evento.</p>
+      </article>
+
+      <!-- Feedback -->
+      <article class="chart-card chart-card--tall">
+        <h3 class="chart-card__title">Feedback (media voti)</h3>
+        <canvas id="chartFeedback"></canvas>
+        <p class="chart-card__empty">Nessun feedback disponibile.</p>
+      </article>
+    </div>
+  </section>
+  </div>
+
+  <!-- Tab Content: Feedback -->
+  <div id="tab-feedback" class="tab-content">
   <section class="card">
     <h2 class="card__title">Feedback</h2>
     {% if feedback_evento %}
@@ -354,6 +562,7 @@
             <span class="badge">Musica: {{ fb.voto_musica }}</span>
             <span class="badge">Ingresso: {{ fb.voto_ingresso }}</span>
             <span class="badge">Ambiente: {{ fb.voto_ambiente }}</span>
+            <span class="badge">Servizio: {{ fb.voto_servizio }}</span>
           </div>
         </div>
         {% if fb.note %}
@@ -370,6 +579,233 @@
     <p class="text--muted">Nessun feedback registrato per questo evento.</p>
     {% endif %}
   </section>
+  </div>
+</div>
+
+<script>
+  // Tab navigation
+  function showTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => {
+      tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tabs__item').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    
+    // Show selected tab
+    document.getElementById('tab-' + tabName).classList.add('active');
+    event.target.classList.add('active');
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Update URL hash
+    if (tabName === 'analytics') {
+      window.location.hash = '#analytics';
+    }
+  }
+  
+  // Check URL hash on load
+  if (window.location.hash === '#analytics') {
+    setTimeout(() => {
+      const analyticsTab = document.querySelector('.tabs__item[onclick*="analytics"]');
+      if (analyticsTab) analyticsTab.click();
+    }, 100);
+  }
+</script>
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <script src="{{ url_for('static', filename='js/chart.umd.min.js') }}"></script>
+  <script>
+    const GOLD = 'rgba(212, 175, 55, 0.95)';
+    const GOLD_LIGHT = 'rgba(212, 175, 55, 0.15)';
+    const GOLD_DARK = 'rgba(212, 175, 55, 0.7)';
+    
+    // Dati per i grafici
+    const ingressiData = {{ ingressi_temporali_data|tojson }};
+    const prenotazioniData = {{ prenotazioni_chart_data|tojson }};
+    const prodottiData = {{ prodotti_chart_data|tojson }};
+    const feedbackData = {
+      labels: ['Musica', 'Ingresso', 'Ambiente', 'Servizio'],
+      values: [{{ avg_musica }}, {{ avg_ingresso }}, {{ avg_ambiente }}, {{ avg_servizio }}]
+    };
+    
+    let chartInstances = {};
+    
+    function renderChart(canvasId, configFn) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas || typeof Chart === 'undefined') return;
+      
+      // Destroy existing chart
+      if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+      }
+      
+      const ctx = canvas.getContext('2d');
+      const config = configFn();
+      chartInstances[canvasId] = new Chart(ctx, config);
+    }
+    
+    // Ingressi temporali
+    if (ingressiData && ingressiData.length > 0) {
+      renderChart('chartIngressiTemporali', () => ({
+        type: 'line',
+        data: {
+          labels: ingressiData.map(d => d.slot),
+          datasets: [{
+            label: 'Ingressi',
+            data: ingressiData.map(d => d.value),
+            borderColor: GOLD,
+            backgroundColor: GOLD_LIGHT,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: GOLD
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { color: 'rgba(255,255,255,0.7)' },
+              grid: { color: 'rgba(255,255,255,0.08)' }
+            },
+            x: {
+              ticks: { color: 'rgba(255,255,255,0.7)' },
+              grid: { display: false }
+            }
+          }
+        }
+      }));
+    } else {
+      document.querySelector('#chartIngressiTemporali').parentElement.querySelector('.chart-card__empty').style.display = 'block';
+    }
+    
+    // Prenotazioni
+    if (prenotazioniData && prenotazioniData.length > 0) {
+      renderChart('chartPrenotazioni', () => ({
+        type: 'doughnut',
+        data: {
+          labels: prenotazioniData.map(d => d.label),
+          datasets: [{
+            data: prenotazioniData.map(d => d.value),
+            backgroundColor: [
+              GOLD,
+              GOLD_DARK,
+              'rgba(212, 175, 55, 0.5)',
+              'rgba(212, 175, 55, 0.3)'
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: 'rgba(255,255,255,0.8)' }
+            }
+          }
+        }
+      }));
+    } else {
+      document.querySelector('#chartPrenotazioni').parentElement.querySelector('.chart-card__empty').style.display = 'block';
+    }
+    
+    // Prodotti
+    if (prodottiData && prodottiData.length > 0) {
+      const top5 = prodottiData.slice(0, 5);
+      renderChart('chartProdotti', () => ({
+        type: 'bar',
+        data: {
+          labels: top5.map(d => d.label),
+          datasets: [{
+            label: 'Ricavi (€)',
+            data: top5.map(d => d.revenue),
+            backgroundColor: GOLD,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { 
+                color: 'rgba(255,255,255,0.7)',
+                callback: function(value) {
+                  return '€' + value.toFixed(0);
+                }
+              },
+              grid: { color: 'rgba(255,255,255,0.08)' }
+            },
+            x: {
+              ticks: { color: 'rgba(255,255,255,0.7)' },
+              grid: { display: false }
+            }
+          }
+        }
+      }));
+    } else {
+      document.querySelector('#chartProdotti').parentElement.querySelector('.chart-card__empty').style.display = 'block';
+    }
+    
+    // Feedback
+    if (feedbackData && feedbackData.values.some(v => v > 0)) {
+      renderChart('chartFeedback', () => ({
+        type: 'radar',
+        data: {
+          labels: feedbackData.labels,
+          datasets: [{
+            label: 'Valutazione media',
+            data: feedbackData.values,
+            backgroundColor: GOLD_LIGHT,
+            borderColor: GOLD,
+            pointBackgroundColor: GOLD,
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: GOLD
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 10,
+              ticks: {
+                stepSize: 2,
+                color: 'rgba(255,255,255,0.7)',
+                backdropColor: 'transparent'
+              },
+              grid: { color: 'rgba(255,255,255,0.1)' },
+              pointLabels: { color: 'rgba(255,255,255,0.8)' }
+            }
+          },
+          plugins: {
+            legend: { display: false }
+          }
+        }
+      }));
+    } else {
+      document.querySelector('#chartFeedback').parentElement.querySelector('.chart-card__empty').style.display = 'block';
+    }
+  </script>
+  </div>
 </div>
 {% endblock %}
 

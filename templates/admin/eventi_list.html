@@ -1,222 +1,219 @@
 {% extends "admin/base.html" %}
 {% block admin_title %}Eventi{% endblock %}
 
+{% from "admin/_page_header.html" import render_page_header %}
+
 {% block admin_content %}
-{% macro evento_card(e, timeframe_label, timeframe_style) %}
-{% set ingressi_tot = ingressi_map.get(e.id_evento, 0) if ingressi_map else 0 %}
-{% set capienza = e.capienza_max or 0 %}
-{% set saturazione = (ingressi_tot / capienza * 100) if capienza > 0 else 0 %}
-<article class="card list__item">
-  <div class="list__item-header">
-    <div>
-      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" style="text-decoration: none;">
-        <strong style="font-size: 1.1rem; background: var(--gold-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-          {{ e.nome_evento }}
-        </strong>
-      </a>
-      <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
-        <span class="badge badge--{{ 'success' if e.stato_pubblico == 'attivo' else 'secondary' }}">{{ e.stato_pubblico|capitalize }}</span>
-        {% if e.is_staff_operativo %}
-        <span class="badge badge--success" style="background: rgba(212,175,55,0.15); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.35);">
-          Evento operativo staff
-        </span>
-        {% endif %}
-        <span class="badge badge--warning">{{ e.categoria|capitalize }}</span>
-        <span class="badge badge--{{ timeframe_style }}">{{ timeframe_label }}</span>
-      </div>
-    </div>
-    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
-      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost">Dettagli</a>
-      <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary">Dashboard</a>
-      <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display:inline;">
-        <button class="btn btn--secondary" type="submit" name="evento_id" value="{{ e.id_evento }}">Imposta operativo staff</button>
-      </form>
-    </div>
-  </div>
-  <div class="card__meta">
-    <div style="margin-top: 0.75rem; display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: flex-start;">
-      {% if e.cover_url %}
-      <div style="flex-shrink: 0;">
-        <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" alt="{{ e.nome_evento }}" style="width: 120px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid rgba(212, 175, 55, 0.2);">
-      </div>
-      {% endif %}
-      <div style="flex: 1;">
-        <div>
-          <strong>Data:</strong> {{ e.data_evento }}
-          {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
-          {% if e.tipo_musica %} • <strong>Musica:</strong> {{ e.tipo_musica }}{% endif %}
-          {% if e.capienza_max %} • <strong>Capienza:</strong> {{ e.capienza_max }}{% endif %}
-        </div>
-        <div style="margin-top: 0.75rem;">
-          <span class="badge" style="background: rgba(212,175,55,0.12); color: var(--gold-primary); border: 1px solid rgba(212,175,55,0.25);">
-            Ingressi {{ ingressi_tot }}{% if capienza %} / {{ capienza }}{% endif %}
-          </span>
-          {% if capienza %}
-          <div style="margin-top: 0.5rem; background: rgba(255,255,255,0.08); border-radius: 999px; overflow: hidden; height: 8px;">
-            <div style="width: {{ saturazione|round(0, 'floor') }}%; height: 100%; background: var(--gold-primary); transition: width 0.3s;"></div>
-          </div>
-          <small class="text--muted">Saturazione {{ saturazione|round(0, 'floor') }}%</small>
-          {% endif %}
-        </div>
-        {% if e.promozione %}
-        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.05); border-left: 3px solid var(--gold-primary); border-radius: 4px;">
-          <strong>Promozione:</strong> {{ e.promozione }}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</article>
-{% endmacro %}
+<div class="admin-shell__content">
+  {{ render_page_header(
+    title="Gestione Eventi",
+    subtitle="Oggi: " ~ (oggi.strftime('%d/%m/%Y') if oggi else 'N/A'),
+    actions=[
+      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': '+ Nuovo Evento', 'class': 'btn--primary'}
+    ],
+    breadcrumbs=[
+      {'label': 'Eventi', 'url': url_for('eventi.admin_list')}
+    ]
+  ) }}
 
+<!-- Statistiche rapide -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid var(--gold-primary);">
+    <div style="font-size: 2rem; font-weight: 700; color: var(--gold-primary);">{{ eventi|length }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem;">Totale Eventi</div>
+  </div>
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #10b981;">
+    <div style="font-size: 2rem; font-weight: 700; color: #10b981;">{{ eventi_programmati|length }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem;">Programmati</div>
+  </div>
+  <div class="card" style="padding: 1.25rem; text-align: center; border-left: 4px solid #6b7280;">
+    <div style="font-size: 2rem; font-weight: 700; color: #6b7280;">{{ eventi_passati|length }}</div>
+    <div class="text--muted" style="margin-top: 0.5rem;">Passati</div>
+    </div>
+  </div>
+
+<!-- Filtri semplici -->
 <section class="card" style="margin-bottom: 2rem;">
-  <div style="display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap;">
-    <div>
-      <h1 class="card__title" style="margin: 0;">Gestione Eventi</h1>
-      <p class="text--muted" style="margin-top: 0.5rem;">Controlla eventi programmati e passati. Oggi è {{ oggi.strftime('%d/%m/%Y') }}.</p>
-    </div>
-    <div style="display: flex; align-items: center; gap: 0.75rem;">
-      <a href="{{ url_for('eventi.admin_new') }}" class="btn btn--primary">Nuovo Evento</a>
-      <a href="{{ url_for('eventi.admin_menu') }}" class="btn btn--ghost">Torna al menu</a>
-    </div>
-  </div>
-
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem;">
-    <div class="card card--muted" style="padding: 1rem;">
-      <p class="text--muted" style="margin: 0;">Totale</p>
-      <p style="font-size: 1.6rem; font-weight: 600; margin: 0.25rem 0 0;">{{ eventi|length }}</p>
-    </div>
-    <div class="card card--muted" style="padding: 1rem;">
-      <p class="text--muted" style="margin: 0;">Programmato</p>
-      <p style="font-size: 1.6rem; font-weight: 600; margin: 0.25rem 0 0;">{{ eventi_programmati|length }}</p>
-    </div>
-    <div class="card card--muted" style="padding: 1rem;">
-      <p class="text--muted" style="margin: 0;">Passato</p>
-      <p style="font-size: 1.6rem; font-weight: 600; margin: 0.25rem 0 0;">{{ eventi_passati|length }}</p>
-    </div>
-    <div class="card card--muted" style="padding: 1rem;">
-      <p class="text--muted" style="margin: 0;">Filtro attivo</p>
-      <p style="font-size: 1.1rem; font-weight: 500; margin: 0.5rem 0 0;">{{ stato|default('Tutti')|capitalize }} • {{ periodo|default('Tutti')|replace('_',' ')|capitalize }}</p>
-    </div>
-  </div>
-</section>
-
-{% set prossimo_evento = eventi_programmati[0] if eventi_programmati %}
-{% if prossimo_evento %}
-<section class="card" style="margin-bottom: 2rem; border-left: 4px solid var(--gold-primary);">
-  <div style="display: flex; flex-direction: column; gap: 1rem;">
-    <div style="display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start;">
-      <div>
-        <h2 class="card__title" style="margin: 0;">Prossimo evento</h2>
-        <p class="text--muted" style="margin-top: 0.35rem;">In programma il {{ prossimo_evento.data_evento }} • {{ prossimo_evento.categoria|capitalize }}</p>
-      </div>
-      <div style="display: flex; gap: 0.75rem;">
-        <a class="btn btn--ghost" href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}">Modifica</a>
-        <a class="btn btn--primary" href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}">Apri dettaglio</a>
-      </div>
-    </div>
-    <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; align-items: center;">
-      {% if prossimo_evento.cover_url %}
-      <img src="{{ url_for('static', filename='uploads/eventi/' + prossimo_evento.cover_url) }}" alt="{{ prossimo_evento.nome_evento }}" style="width: 220px; height: 140px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(212, 175, 55, 0.25);">
-      {% endif %}
-      <div style="flex: 1; min-width: 240px;">
-        <h3 style="margin: 0 0 0.5rem;">{{ prossimo_evento.nome_evento }}</h3>
-        <p style="margin: 0; line-height: 1.45;">
-          {% if prossimo_evento.dj_artista %}<strong>DJ</strong>: {{ prossimo_evento.dj_artista }} • {% endif %}
-          {% if prossimo_evento.tipo_musica %}<strong>Musica</strong>: {{ prossimo_evento.tipo_musica }} • {% endif %}
-          {% if prossimo_evento.capienza_max %}<strong>Capienza</strong>: {{ prossimo_evento.capienza_max }}{% endif %}
-        </p>
-        {% if prossimo_evento.promozione %}
-        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(212, 175, 55, 0.07); border-left: 3px solid var(--gold-primary); border-radius: 4px;">
-          <strong>Promozione attiva:</strong> {{ prossimo_evento.promozione }}
-        </div>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<section class="card" style="margin-bottom: 2rem;">
-  <form class="form" method="get">
-    <div class="grid grid--2" style="gap: 1.5rem;">
-      <div class="form__group">
+  <form method="get" style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+    <div style="flex: 1; min-width: 200px;">
         <label class="form__label">Filtra per stato</label>
-        <select class="form__input" name="stato">
-          <option value="">Tutti</option>
+      <select class="form__input" name="stato" onchange="this.form.submit()">
+        <option value="">Tutti gli stati</option>
           <option value="programmato" {% if stato=='programmato' %}selected{% endif %}>Programmato</option>
-          <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivi</option>
-          <option value="chiuso" {% if stato=='chiuso' %}selected{% endif %}>Chiusi</option>
+        <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivo (pubblico)</option>
+        <option value="chiuso" {% if stato=='chiuso' %}selected{% endif %}>Chiuso</option>
         </select>
       </div>
-      <div class="form__group">
-        <label class="form__label">Periodo</label>
-        <select class="form__input" name="periodo">
-          <option value="">Programmati + Passati</option>
-          <option value="programmati" {% if periodo=='programmati' %}selected{% endif %}>Solo programmati</option>
+    <div style="flex: 1; min-width: 200px;">
+      <label class="form__label">Filtra per periodo</label>
+      <select class="form__input" name="periodo" onchange="this.form.submit()">
+        <option value="">Tutti</option>
+        <option value="programmati" {% if periodo=='programmati' %}selected{% endif %}>Solo futuri</option>
           <option value="passati" {% if periodo=='passati' %}selected{% endif %}>Solo passati</option>
         </select>
-        <small class="text--muted">Classificazione automatica rispetto alla data odierna.</small>
-      </div>
     </div>
-    <div class="form__actions" style="justify-content: flex-end;">
-      <a class="btn btn--ghost" href="{{ url_for('eventi.admin_list') }}">Reset</a>
-      <button class="btn btn--secondary" style="margin-left: 0.5rem;">Applica filtri</button>
-    </div>
+    {% if stato or periodo %}
+    <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost">Reset</a>
+    {% endif %}
   </form>
 </section>
 
+<!-- Lista eventi programmati -->
 {% if not periodo or periodo == 'programmati' %}
+{% if eventi_programmati %}
 <section style="margin-bottom: 2.5rem;">
-  <div class="card" style="margin-bottom: 1rem;">
-    <h2 class="card__title" style="margin-bottom: 0.35rem;">Eventi programmati</h2>
-    <p class="text--muted" style="margin: 0;">Eventi con data a partire da oggi.</p>
-  </div>
-  <section class="list">
+  <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">
+    📅 Eventi Programmati ({{ eventi_programmati|length }})
+  </h2>
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
     {% for e in eventi_programmati %}
-      {{ evento_card(e, "Programmato", "success") }}
+    <article class="card" style="border-left: 4px solid {% if e.is_staff_operativo %}#10b981{% elif e.stato_pubblico == 'attivo' %}#3b82f6{% else %}#6b7280{% endif %};">
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        {% if e.cover_url %}
+        <div style="flex-shrink: 0;">
+          <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" 
+               alt="{{ e.nome_evento }}" 
+               style="width: 120px; height: 80px; object-fit: cover; border-radius: 8px;">
+        </div>
+        {% endif %}
+        <div style="flex: 1; min-width: 250px;">
+          <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+            <div>
+              <h3 style="font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text-primary);">
+                {{ e.nome_evento }}
+              </h3>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <span class="badge" style="background: {% if e.stato_pubblico == 'attivo' %}#10b981{% elif e.stato_pubblico == 'programmato' %}#3b82f6{% else %}#6b7280{% endif %}; color: white; font-weight: 500;">
+                  {% if e.stato_pubblico == 'attivo' %}✅ ATTIVO (pubblico){% elif e.stato_pubblico == 'programmato' %}📋 PROGRAMMATO{% else %}🔒 CHIUSO{% endif %}
+                </span>
+                {% if e.is_staff_operativo %}
+                <span class="badge" style="background: #10b981; color: white; font-weight: 500;">
+                  🟢 OPERATIVO STAFF
+                </span>
+                {% endif %}
+                <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
+              </div>
+            </div>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.75rem;">
+            <div style="margin-bottom: 0.25rem;">
+              <strong>📅 Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+              {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
+            </div>
+            {% if e.capienza_max %}
+            <div>
+              <strong>👥 Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}
+              {% set saturazione = ((ingressi_map.get(e.id_evento, 0) / e.capienza_max * 100) if e.capienza_max > 0 else 0)|round(0) %}
+              <span style="color: {% if saturazione >= 80 %}#ef4444{% elif saturazione >= 50 %}#f59e0b{% else %}#10b981{% endif %};">
+                ({{ saturazione }}%)
+              </span>
+            </div>
+            {% endif %}
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
+              📊 Dashboard
+            </a>
+            <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
+              ✏️ Modifica
+            </a>
+            {% if not e.is_staff_operativo %}
+            <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+              <button type="submit" name="evento_id" value="{{ e.id_evento }}" class="btn btn--secondary btn--small">
+                🟢 Attiva Staff
+              </button>
+            </form>
     {% else %}
-    <div class="card">
-      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento programmato.</p>
+            <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
+              <button type="submit" name="evento_id" value="clear" class="btn btn--ghost btn--small">
+                🔴 Disattiva Staff
+              </button>
+            </form>
+            {% endif %}
+            {% if e.stato_pubblico != 'attivo' %}
+            <form method="post" action="{{ url_for('eventi.admin_attiva_pubblico', evento_id=e.id_evento) }}" style="display: inline;">
+              <button type="submit" class="btn btn--secondary btn--small">
+                🌐 Attiva Pubblico
+              </button>
+            </form>
+            {% endif %}
+            {% if e.stato_pubblico == 'attivo' %}
+            <form method="post" action="{{ url_for('eventi.admin_chiudi_pubblico', evento_id=e.id_evento) }}" style="display: inline;">
+              <button type="submit" class="btn btn--ghost btn--small" onclick="return confirm('Chiudere l\'evento al pubblico?');">
+                🔒 Chiudi Pubblico
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
     </div>
+    </article>
     {% endfor %}
+  </div>
   </section>
+{% else %}
+<section class="card" style="text-align: center; padding: 2rem; margin-bottom: 2rem;">
+  <p class="text--muted">Nessun evento programmato.</p>
 </section>
 {% endif %}
+{% endif %}
 
+<!-- Lista eventi passati -->
 {% if not periodo or periodo == 'passati' %}
+{% if eventi_passati %}
 <section>
-  <div class="card" style="margin-bottom: 1rem;">
-    <h2 class="card__title" style="margin-bottom: 0.35rem;">Eventi passati</h2>
-    <p class="text--muted" style="margin: 0;">Storico degli eventi già conclusi.</p>
-  </div>
-  <section class="list">
+  <h2 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-primary);">
+    📚 Eventi Passati ({{ eventi_passati|length }})
+  </h2>
+  <div style="display: flex; flex-direction: column; gap: 1rem;">
     {% for e in eventi_passati %}
-      {{ evento_card(e, "Passato", "secondary") }}
-    {% else %}
-    <div class="card">
-      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento passato.</p>
+    <article class="card" style="border-left: 4px solid #6b7280; opacity: 0.85;">
+      <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+        {% if e.cover_url %}
+        <div style="flex-shrink: 0;">
+          <img src="{{ url_for('static', filename='uploads/eventi/' + e.cover_url) }}" 
+               alt="{{ e.nome_evento }}" 
+               style="width: 100px; height: 70px; object-fit: cover; border-radius: 8px; opacity: 0.7;">
+        </div>
+        {% endif %}
+        <div style="flex: 1; min-width: 250px;">
+          <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+            <div>
+              <h3 style="font-size: 1.1rem; font-weight: 600; margin: 0 0 0.5rem; color: var(--text-secondary);">
+                {{ e.nome_evento }}
+              </h3>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+                <span class="badge badge--secondary">🔒 CHIUSO</span>
+                <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
+              </div>
+            </div>
+          </div>
+          <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.75rem;">
+            <div>
+              <strong>Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+              {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
+              {% if e.capienza_max %} • <strong>Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}{% endif %}
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
+              📊 Dettagli
+            </a>
+            <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
+              ✏️ Modifica
+            </a>
+          </div>
+        </div>
     </div>
+    </article>
     {% endfor %}
+  </div>
   </section>
+{% else %}
+<section class="card" style="text-align: center; padding: 2rem;">
+  <p class="text--muted">Nessun evento passato.</p>
 </section>
+{% endif %}
 {% endif %}
 
-{% if periodo and periodo not in ['programmati', 'passati'] %}
-<section>
-  <div class="card" style="margin-bottom: 1rem;">
-    <h2 class="card__title" style="margin-bottom: 0.35rem;">Risultati filtrati</h2>
-    <p class="text--muted" style="margin: 0;">Tutti gli eventi che corrispondono ai filtri impostati.</p>
-  </div>
-  <section class="list">
-    {% for e in eventi %}
-      {{ evento_card(e, 'Programmato' if e.data_evento >= oggi else 'Passato', 'success' if e.data_evento >= oggi else 'secondary') }}
-    {% else %}
-    <div class="card">
-      <p class="text--muted" style="text-align: center; padding: 2rem;">Nessun evento trovato.</p>
-    </div>
-    {% endfor %}
-  </section>
-</section>
-{% endif %}
 {% endblock %}

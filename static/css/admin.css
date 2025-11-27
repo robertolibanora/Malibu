@@ -3364,12 +3364,274 @@
   }
 }
 
+/* ============================================
+   ADMIN SHELL - Layout Sidebar + Main
+   ============================================ */
+
 .admin-shell {
-  max-width: 1200px;
-  margin: var(--spacing-3) auto var(--spacing-2);
-  padding: 0 var(--spacing-3);
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--admin-bg-primary);
 }
 
+/* Sidebar */
+.admin-shell__sidebar {
+  width: 280px;
+  min-width: 280px;
+  background: rgba(12, 12, 12, 0.95);
+  border-right: 1px solid rgba(212, 175, 55, 0.15);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  backdrop-filter: blur(20px);
+}
+
+.admin-shell__sidebar-header {
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-3);
+  border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.admin-shell__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  text-decoration: none;
+  color: var(--admin-text);
+  transition: opacity var(--transition-base);
+}
+
+.admin-shell__logo:hover {
+  opacity: 0.8;
+}
+
+.admin-shell__logo img {
+  height: 48px;
+  width: auto;
+  display: block;
+}
+
+.admin-shell__logo-text {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--admin-accent);
+  letter-spacing: 0.05em;
+}
+
+/* Navigation */
+.admin-shell__nav {
+  flex: 1;
+  padding: var(--spacing-2) 0;
+  overflow-y: auto;
+}
+
+.admin-shell__nav-section {
+  margin-bottom: var(--spacing-1);
+}
+
+.admin-shell__nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  transition: all var(--transition-base);
+  border-left: 3px solid transparent;
+}
+
+.admin-shell__nav-item:hover {
+  color: var(--admin-accent);
+  background-color: rgba(212, 175, 55, 0.08);
+  border-left-color: rgba(212, 175, 55, 0.3);
+}
+
+.admin-shell__nav-item--active {
+  color: var(--admin-accent);
+  background-color: rgba(212, 175, 55, 0.12);
+  border-left-color: var(--admin-accent);
+  font-weight: var(--font-weight-semibold);
+}
+
+.admin-shell__nav-icon {
+  font-size: var(--font-size-lg);
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.admin-shell__nav-label {
+  flex: 1;
+}
+
+/* Submenu */
+.admin-shell__nav-submenu {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-left: 2px solid rgba(212, 175, 55, 0.2);
+  margin-left: var(--spacing-4);
+  padding: var(--spacing-2) 0;
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.admin-shell__nav-subitem {
+  display: block;
+  padding: var(--spacing-2) var(--spacing-4) var(--spacing-2) var(--spacing-6);
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  font-size: var(--font-size-xs);
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.admin-shell__nav-subitem::before {
+  content: "→";
+  position: absolute;
+  left: var(--spacing-4);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  color: var(--admin-accent);
+}
+
+.admin-shell__nav-subitem:hover {
+  color: var(--admin-accent);
+  background-color: rgba(212, 175, 55, 0.05);
+  padding-left: var(--spacing-7);
+}
+
+.admin-shell__nav-subitem:hover::before {
+  opacity: 1;
+}
+
+.admin-shell__nav-subitem--active {
+  color: var(--admin-accent);
+  background-color: rgba(212, 175, 55, 0.1);
+  font-weight: var(--font-weight-medium);
+  padding-left: var(--spacing-7);
+}
+
+.admin-shell__nav-subitem--active::before {
+  opacity: 1;
+}
+
+/* Sidebar Footer */
+.admin-shell__sidebar-footer {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-top: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.admin-shell__logout {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+  background-color: rgba(196, 30, 58, 0.1);
+  border: 1px solid rgba(196, 30, 58, 0.2);
+}
+
+.admin-shell__logout:hover {
+  color: #fff;
+  background-color: rgba(196, 30, 58, 0.2);
+  border-color: rgba(196, 30, 58, 0.4);
+}
+
+.admin-shell__logout-icon {
+  font-size: var(--font-size-base);
+}
+
+/* Main Content Area */
+.admin-shell__main {
+  flex: 1;
+  padding: var(--spacing-6) var(--spacing-8);
+  overflow-x: hidden;
+  max-width: calc(100vw - 280px);
+}
+
+.admin-shell__content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .admin-shell__sidebar {
+    width: 240px;
+    min-width: 240px;
+  }
+  
+  .admin-shell__main {
+    padding: var(--spacing-4) var(--spacing-6);
+    max-width: calc(100vw - 240px);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-shell {
+    flex-direction: column;
+  }
+  
+  .admin-shell__sidebar {
+    width: 100%;
+    height: auto;
+    position: relative;
+    border-right: none;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.15);
+  }
+  
+  .admin-shell__nav {
+    display: flex;
+    overflow-x: auto;
+    padding: var(--spacing-2);
+    gap: var(--spacing-2);
+  }
+  
+  .admin-shell__nav-section {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  
+  .admin-shell__nav-item {
+    white-space: nowrap;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+  
+  .admin-shell__nav-item--active {
+    border-left: none;
+    border-bottom-color: var(--admin-accent);
+  }
+  
+  .admin-shell__nav-submenu {
+    display: none; /* Hide submenu on mobile - can be enhanced with toggle */
+  }
+  
+  .admin-shell__main {
+    padding: var(--spacing-4);
+    max-width: 100%;
+  }
+}
+
+/* Legacy support - manterremo anche gli stili vecchi per retrocompatibilità */
 .admin-shell__bar {
   display: flex;
   align-items: center;

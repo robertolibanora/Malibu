@@ -2,6 +2,15 @@
 {% block admin_title %}Ingressi{% endblock %}
 
 {% block admin_content %}
+<!-- Navigazione Secondaria Operativo -->
+<div style="display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; padding-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08);">
+  <a href="{{ url_for('prenotazioni.admin_hub') }}" class="btn btn--ghost btn--small">🏠 Hub Operativo</a>
+  <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--ghost btn--small">📋 Prenotazioni</a>
+  <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary btn--small">🚪 Ingressi</a>
+  <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost btn--small">💰 Consumi</a>
+  <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">💬 Feedback</a>
+</div>
+
 <section class="card">
   <h1 class="card__title">Ingressi</h1>
   <form class="form" method="get">

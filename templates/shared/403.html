@@ -28,7 +28,7 @@
         <a href="{{ url_for('staff.home') }}" class="btn btn--primary">Torna alla Home Staff</a>
         <a href="{{ url_for('auth.logout') }}" class="btn btn--ghost">Logout</a>
       {% else %}
-        <a href="{{ url_for('auth.auth_login_form') }}" class="btn btn--primary">Vai al Login</a>
+        <a href="{{ url_for('auth.auth_login_cliente_form') }}" class="btn btn--primary">Vai al Login</a>
         <a href="/" class="btn btn--ghost">Torna alla Home</a>
       {% endif %}
     </div>

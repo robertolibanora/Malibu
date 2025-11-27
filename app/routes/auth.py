@@ -1,5 +1,5 @@
 # app/routes/auth.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from sqlalchemy.exc import IntegrityError
 from app.database import SessionLocal
 from app.models.clienti import Cliente
@@ -7,6 +7,7 @@ from app.models.staff import Staff
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.qr import generate_short_code
 from app.utils.auth import hash_password
+from app.utils.limiter import limiter
 import os
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
@@ -65,9 +66,10 @@ def _verify_and_upgrade_password(db, instance, field_name: str, password: str) -
 # -----------------------
 @auth_bp.route("/register", methods=["GET"])
 def auth_register_form():
-    return render_template("shared/register.html")
+    return render_template("clienti/register.html")
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("5 per minute")
 def auth_register_submit():
     nome = request.form.get("nome", "").strip()
     cognome = request.form.get("cognome", "").strip()
@@ -107,6 +109,33 @@ def auth_register_submit():
             stato_account="attivo"
         )
         db.add(nuovo)
+        db.flush()  # Per ottenere l'ID del cliente
+        
+        # Assegna automaticamente le promozioni con auto_assegnazione=True
+        from app.models.promozioni import Promozione, ClientePromozione
+        from datetime import date
+        promozioni_auto = db.query(Promozione).filter(
+            Promozione.auto_assegnazione == True,
+            Promozione.attiva == True
+        ).filter(
+            (Promozione.data_inizio.is_(None)) | (Promozione.data_inizio <= date.today()),
+            (Promozione.data_fine.is_(None)) | (Promozione.data_fine >= date.today())
+        ).all()
+        
+        for prom in promozioni_auto:
+            # Verifica condizioni (livello e punti)
+            if prom.livello_richiesto and nuovo.livello != prom.livello_richiesto:
+                continue
+            if prom.punti_richiesti and (nuovo.punti_fedelta or 0) < prom.punti_richiesti:
+                continue
+            
+            cp = ClientePromozione(
+                cliente_id=nuovo.id_cliente,
+                promozione_id=prom.id_promozione,
+                data_scadenza=prom.data_fine
+            )
+            db.add(cp)
+        
         db.commit()
         _clear_identities()
         session["cliente_id"] = nuovo.id_cliente
@@ -115,46 +144,75 @@ def auth_register_submit():
     except IntegrityError:
         db.rollback()
         flash("Sembra che questo numero sia già registrato. Hai già un account? Prova ad accedere.", "info")
-        return redirect(url_for("auth.auth_login_form"))
+        return redirect(url_for("auth.auth_login_cliente_form"))
     finally:
         db.close()
 
 # -----------------------
-# UNIFIED LOGIN — Cliente o Admin
+# CLIENTE — Login Separato
 # -----------------------
-@auth_bp.route("/login", methods=["GET"])
-def auth_login_form():
-    return render_template("shared/login.html")
+@auth_bp.route("/login-cliente", methods=["GET"])
+def auth_login_cliente_form():
+    """Login dedicato per i clienti"""
+    return render_template("clienti/login.html")
 
-@auth_bp.route("/login", methods=["POST"])
-def auth_login_submit():
-    identifier = request.form.get("identifier", "").strip()
+@auth_bp.route("/login-cliente", methods=["POST"])
+@limiter.limit("5 per minute")
+def auth_login_cliente_submit():
+    """Processa login cliente con rate limiting"""
+    telefono = request.form.get("telefono", "").strip()
     password = request.form.get("password", "").strip()
 
-    if not identifier or not password:
+    if not telefono or not password:
         flash("Per favore, inserisci il tuo numero di telefono e la password.", "warning")
-        return redirect(url_for("auth.auth_login_form"))
+        return redirect(url_for("auth.auth_login_cliente_form"))
 
     db = SessionLocal()
     try:
-        # Prova prima come CLIENTE (cerca per telefono)
-        cli = db.query(Cliente).filter(Cliente.telefono == identifier).first()
+        cli = db.query(Cliente).filter(Cliente.telefono == telefono).first()
         if cli and _verify_and_upgrade_password(db, cli, "password_hash", password):
             if cli.stato_account == "disattivato":
                 flash("Il tuo account risulta temporaneamente disattivato. Per assistenza, contattaci.", "danger")
-                return redirect(url_for("auth.auth_login_form"))
+                return redirect(url_for("auth.auth_login_cliente_form"))
 
             _clear_identities()
             session["cliente_id"] = cli.id_cliente
             flash(f"Bentornato, {cli.nome}! 👋", "success")
             return redirect(url_for("clienti.area_personale"))
 
-        # Se non è un cliente, prova come STAFF (cerca per username)
-        staff = db.query(Staff).filter(Staff.username == identifier).first()
+        # Credenziali errate
+        flash("Numero di telefono o password non corretti. Riprova.", "danger")
+        return redirect(url_for("auth.auth_login_cliente_form"))
+    finally:
+        db.close()
+
+# -----------------------
+# STAFF — Login Separato
+# -----------------------
+@auth_bp.route("/login-staff", methods=["GET"])
+def auth_login_staff_form():
+    """Login dedicato per lo staff (baristi, ingressisti, admin)"""
+    return render_template("staff/login.html")
+
+@auth_bp.route("/login-staff", methods=["POST"])
+@limiter.limit("5 per minute")
+def auth_login_staff_submit():
+    """Processa login staff con rate limiting"""
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "").strip()
+
+    if not username or not password:
+        flash("Per favore, inserisci username e password.", "warning")
+        return redirect(url_for("auth.auth_login_staff_form"))
+
+    db = SessionLocal()
+    try:
+        # Prova come STAFF (cerca per username)
+        staff = db.query(Staff).filter(Staff.username == username).first()
         if staff:
             if not staff.attivo:
                 flash("Il tuo account staff risulta disattivato. Contatta l'amministratore per assistenza.", "danger")
-                return redirect(url_for("auth.auth_login_form"))
+                return redirect(url_for("auth.auth_login_staff_form"))
 
             if _verify_and_upgrade_password(db, staff, "password_hash", password):
                 _clear_identities()
@@ -166,25 +224,20 @@ def auth_login_submit():
                     return redirect(url_for("dashboard.admin_dashboard"))
                 return redirect(url_for("staff.home"))
 
-        # Se non è un cliente né staff, prova come ADMIN .env (cerca per username)
+        # Se non è staff, prova come ADMIN .env
         env_user = os.getenv("ADMIN_USER")
         env_pw_hash = os.getenv("ADMIN_PASSWORD_HASH", "").strip()
         env_pw_plain = os.getenv("ADMIN_PASSWORD", "").strip()
 
-        if env_user and identifier == env_user:
+        if env_user and username == env_user:
             ok_pass = False
             
-            # Se esiste ADMIN_PASSWORD_HASH, verifica se è un hash valido o una password in chiaro
             if env_pw_hash:
-                # Controlla se è un hash valido (inizia con algoritmo: scrypt:, pbkdf2:, ecc.)
                 if env_pw_hash.startswith(("scrypt:", "pbkdf2:", "bcrypt:", "$2b$", "$2a$")):
-                    # È un hash valido, verifica con check_password_hash
                     ok_pass = check_password_hash(env_pw_hash, password)
                 else:
-                    # Non è un hash, tratta come password in chiaro
                     ok_pass = (password == env_pw_hash)
             
-            # Se non c'è hash o non ha funzionato, prova con ADMIN_PASSWORD
             if not ok_pass and env_pw_plain:
                 ok_pass = (password == env_pw_plain)
 
@@ -195,20 +248,41 @@ def auth_login_submit():
                 flash("Benvenuto, Amministratore! 🔐", "success")
                 return redirect(url_for("dashboard.admin_dashboard"))
 
-        # Nessuna corrispondenza trovata
-        flash("Le credenziali inserite non sono corrette. Riprova o contattaci per assistenza.", "danger")
-        return redirect(url_for("auth.auth_login_form"))
+        # Credenziali errate
+        flash("Username o password non corretti. Riprova.", "danger")
+        return redirect(url_for("auth.auth_login_staff_form"))
     finally:
         db.close()
 
+# -----------------------
+# LOGIN UNIFICATO (Legacy - Deprecato)
+# -----------------------
+@auth_bp.route("/login", methods=["GET"])
+def auth_login_form():
+    """Login unificato legacy - reindirizza al login cliente"""
+    flash("Questa pagina è deprecata. Usa il login dedicato.", "info")
+    return redirect(url_for("auth.auth_login_cliente_form"))
+
+@auth_bp.route("/login", methods=["POST"])
+@limiter.limit("5 per minute")
+def auth_login_submit():
+    """Login unificato legacy - reindirizza al login cliente"""
+    flash("Questa pagina è deprecata. Usa il login dedicato.", "info")
+    return redirect(url_for("auth.auth_login_cliente_form"))
+
 @auth_bp.route("/logout")
 def logout():
+    """Logout universale - pulisce tutte le sessioni"""
     _clear_identities()
     flash("Disconnessione avvenuta con successo. A presto! 👋", "success")
-    return redirect(url_for("auth.auth_login_form"))
+    # Reindirizza in base al tipo di utente che era loggato
+    if session.get("cliente_id"):
+        return redirect(url_for("auth.auth_login_cliente_form"))
+    else:
+        return redirect(url_for("auth.auth_login_staff_form"))
 
-# Route login-admin mantenuta per retrocompatibilità, ma reindirizza al login unificato
+# Route login-admin mantenuta per retrocompatibilità
 @auth_bp.route("/login-admin", methods=["GET", "POST"])
 def auth_admin_login_form():
-    # Reindirizza al login unificato
-    return redirect(url_for("auth.auth_login_form"))
+    """Route legacy - reindirizza al login staff"""
+    return redirect(url_for("auth.auth_login_staff_form"))
