@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script per ricreare e popolare il database con dati realistici
+Script per ricreare e popolare il database con dati realistici e coerenti
+Ogni cliente ha una storia completa: prenotazioni → ingressi → consumi → punti → livello
 """
 
 import sys
@@ -10,6 +11,7 @@ from datetime import datetime, date, time, timedelta
 from random import choice, randint, uniform, random
 import secrets
 import string
+from decimal import Decimal
 
 # Aggiungi il percorso dell'app al path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -22,18 +24,15 @@ from app.models.staff import Staff
 from app.models.eventi import Evento
 from app.models.prenotazioni import Prenotazione
 from app.models.tavoli_evento import TavoloEvento
-INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
-
-def generate_invite_code(db):
-    while True:
-        code = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
-        if not db.query(Prenotazione.id_prenotazione).filter(Prenotazione.codice_invito == code).first():
-            return code
 from app.models.ingressi import Ingresso
 from app.models.feedback import Feedback
+from app.models.consumi import Consumo
 from app.models.prodotti import Prodotto
+from app.models.fedeltà import Fedelta
 from app.utils.qr import generate_short_code
+from app.routes.fedelta import PUNTI_INGRESSO_PRENOTAZIONE, PUNTI_INGRESSO_LIBERO, compute_level, get_thresholds
+
+INVITE_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
 # Nomi italiani realistici
 NOMI = [
@@ -100,6 +99,30 @@ PROMOZIONI = [
     None
 ]
 
+# Prodotti tipici di un locale
+PRODOTTI_DATA = [
+    {"nome": "Birra", "prezzo": 5.00, "categoria": "Drink"},
+    {"nome": "Cocktail", "prezzo": 10.00, "categoria": "Drink"},
+    {"nome": "Vodka Red Bull", "prezzo": 12.00, "categoria": "Drink"},
+    {"nome": "Gin Tonic", "prezzo": 11.00, "categoria": "Drink"},
+    {"nome": "Whiskey", "prezzo": 15.00, "categoria": "Drink"},
+    {"nome": "Champagne", "prezzo": 80.00, "categoria": "Bottiglia"},
+    {"nome": "Bottiglia Vodka", "prezzo": 120.00, "categoria": "Bottiglia"},
+    {"nome": "Bottiglia Whiskey", "prezzo": 150.00, "categoria": "Bottiglia"},
+    {"nome": "Acqua", "prezzo": 3.00, "categoria": "Drink"},
+    {"nome": "Coca Cola", "prezzo": 4.00, "categoria": "Drink"},
+    {"nome": "Aperitivo", "prezzo": 8.00, "categoria": "Drink"},
+    {"nome": "Shot", "prezzo": 6.00, "categoria": "Drink"},
+]
+
+TAVOLI_DATA = [
+    {"numero_tavolo": 1, "capienza": 2},
+    {"numero_tavolo": 2, "capienza": 4},
+    {"numero_tavolo": 3, "capienza": 6},
+    {"numero_tavolo": 4, "capienza": 8},
+    {"numero_tavolo": 5, "capienza": 10},
+]
+
 ALPHABET = string.ascii_uppercase + string.digits
 
 def generate_unique_qr_code(db):
@@ -116,20 +139,21 @@ def generate_phone():
                 "366", "380", "388", "389", "391", "392", "393"]
     return f"+39{choice(prefixes)}{randint(1000000, 9999999)}"
 
+def generate_invite_code(db):
+    while True:
+        code = "".join(secrets.choice(INVITE_CODE_ALPHABET) for _ in range(6))
+        if not db.query(Prenotazione.id_prenotazione).filter(Prenotazione.codice_invito == code).first():
+            return code
+
 def create_database():
     """Ricrea il database da zero"""
     print("🗑️  Eliminazione e ricreazione database...")
     
-    # Crea tutte le tabelle tramite SQLAlchemy (questo ricrea le tabelle se non esistono)
-    # Prima droppa tutte le tabelle
     Base.metadata.drop_all(bind=engine)
-    # Poi ricreale
     Base.metadata.create_all(bind=engine)
     
-    # Ora inserisci i dati iniziali (soglie_fedelta)
     db = SessionLocal()
     try:
-        # Inserisci le soglie fedeltà
         insert_soglie = text("""
             INSERT IGNORE INTO soglie_fedelta (livello, punti_min) VALUES
             ('base', 0),
@@ -176,41 +200,81 @@ def seed_staff(db):
     print(f"✅ Creati {len(staff_members)} membri dello staff")
     return credentials_staff
 
-def seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4):
-    """Crea tavoli da 1 a num_tavoli per un evento specifico"""
-    print(f"🪑 Creazione tavoli per evento_id={evento_id}...")
+def seed_prodotti(db):
+    """Crea prodotti se non esistono"""
+    print("🍹 Creazione prodotti...")
     
-    # Verifica che l'evento esista
+    prodotti_esistenti = {p.nome: p for p in db.query(Prodotto).all()}
+    prodotti_creati = 0
+    
+    for prod_data in PRODOTTI_DATA:
+        if prod_data["nome"] not in prodotti_esistenti:
+            prodotto = Prodotto(
+                nome=prod_data["nome"],
+                prezzo=Decimal(str(prod_data["prezzo"])),
+                categoria=prod_data["categoria"],
+                attivo=True
+            )
+            db.add(prodotto)
+            prodotti_creati += 1
+    
+    db.commit()
+    print(f"✅ Creati {prodotti_creati} prodotti (totale: {len(PRODOTTI_DATA)})")
+    return db.query(Prodotto).all()
+
+def seed_tavoli_evento(db, evento_id, num_tavoli=20):
+    """
+    Crea tavoli da 1 a num_tavoli per un evento specifico
+    Ogni tavolo ha una capienza fissa e realistica (non decisa dal cliente)
+    """
     evento = db.query(Evento).get(evento_id)
     if not evento:
-        print(f"❌ Evento con id {evento_id} non trovato")
         return []
     
     tavoli_creati = []
     
+    # Distribuzione realistica delle capienze:
+    # - 20% tavoli da 2 persone (intimi)
+    # - 40% tavoli da 4 persone (più comuni)
+    # - 25% tavoli da 6 persone (gruppi medi)
+    # - 10% tavoli da 8 persone (gruppi grandi)
+    # - 5% tavoli da 10+ persone (VIP/gruppi molto grandi)
+    
+    capienze_distribuzione = []
+    for i in range(num_tavoli):
+        rand = random()
+        if rand < 0.20:
+            capienza = 2
+        elif rand < 0.60:
+            capienza = 4
+        elif rand < 0.85:
+            capienza = 6
+        elif rand < 0.95:
+            capienza = 8
+        else:
+            capienza = 10
+        capienze_distribuzione.append(capienza)
+    
     for numero in range(1, num_tavoli + 1):
-        # Verifica se il tavolo esiste già
         esistente = db.query(TavoloEvento).filter(
             TavoloEvento.evento_id == evento_id,
             TavoloEvento.numero_tavolo == numero
         ).first()
         
         if not esistente:
+            capienza = capienze_distribuzione[numero - 1]
             tavolo = TavoloEvento(
                 evento_id=evento_id,
                 numero_tavolo=numero,
-                nome_tavolo=None,  # Opzionale
-                capienza=capienza_default,
-                prezzo_minimo=None,  # Opzionale
+                nome_tavolo=None,
+                capienza=capienza,  # Capienza fissa del tavolo
+                prezzo_minimo=None,
                 attivo=True
             )
             db.add(tavolo)
             tavoli_creati.append(tavolo)
-        else:
-            print(f"   ⚠️  Tavolo {numero} già esistente per evento {evento_id}")
     
     db.commit()
-    print(f"✅ Creati {len(tavoli_creati)} tavoli per evento {evento.nome_evento} (ID: {evento_id})")
     return tavoli_creati
 
 def seed_eventi(db):
@@ -221,11 +285,10 @@ def seed_eventi(db):
     oggi = date.today()
     
     # Eventi passati (ultimi 2 mesi)
-    for i in range(30, 0, -7):  # Ogni settimana
+    for i in range(30, 0, -7):
         data_evt = oggi - timedelta(days=i)
         
-        # Middle (musica commerciale) - ogni venerdì e sabato
-        if data_evt.weekday() in [4, 5]:  # Venerdì o sabato
+        if data_evt.weekday() in [4, 5]:
             eventi_data.append({
                 "nome_evento": "Middle",
                 "data_evento": data_evt,
@@ -237,8 +300,7 @@ def seed_eventi(db):
                 "is_staff_operativo": False
             })
         
-        # El Moro (reggaeton) - ogni giovedì e domenica
-        if data_evt.weekday() in [3, 6]:  # Giovedì o domenica
+        if data_evt.weekday() in [3, 6]:
             eventi_data.append({
                 "nome_evento": "El Moro",
                 "data_evento": data_evt,
@@ -250,8 +312,7 @@ def seed_eventi(db):
                 "is_staff_operativo": False
             })
         
-        # Attico (techno) - ogni sabato sera
-        if data_evt.weekday() == 5:  # Sabato
+        if data_evt.weekday() == 5:
             eventi_data.append({
                 "nome_evento": "Attico",
                 "data_evento": data_evt,
@@ -264,12 +325,11 @@ def seed_eventi(db):
             })
     
     # Eventi futuri (prossimi 2 mesi)
-    for i in range(7, 60, 7):  # Ogni settimana
+    for i in range(7, 60, 7):
         data_evt = oggi + timedelta(days=i)
+        stato = "attivo" if i <= 14 else "programmato"
         
-        # Middle
         if data_evt.weekday() in [4, 5]:
-            stato = "attivo" if i <= 14 else "programmato"
             eventi_data.append({
                 "nome_evento": "Middle",
                 "data_evento": data_evt,
@@ -281,9 +341,7 @@ def seed_eventi(db):
                 "is_staff_operativo": stato == "attivo"
             })
         
-        # El Moro
         if data_evt.weekday() in [3, 6]:
-            stato = "attivo" if i <= 14 else "programmato"
             eventi_data.append({
                 "nome_evento": "El Moro",
                 "data_evento": data_evt,
@@ -295,9 +353,7 @@ def seed_eventi(db):
                 "is_staff_operativo": stato == "attivo"
             })
         
-        # Attico
         if data_evt.weekday() == 5:
-            stato = "attivo" if i <= 14 else "programmato"
             eventi_data.append({
                 "nome_evento": "Attico",
                 "data_evento": data_evt,
@@ -320,45 +376,280 @@ def seed_eventi(db):
     print(f"✅ Creati {len(eventi_data)} eventi")
     return eventi_ids
 
-def seed_clienti(db, num_clienti=100):
-    """Crea clienti con dati realistici"""
-    print(f"👤 Creazione {num_clienti} clienti...")
+def seed_cliente_completo(db, cliente_id, profilo_cliente, eventi_passati, prodotti, staff_ids, baristi_ids):
+    """
+    Crea una storia completa per un cliente:
+    - Eventi frequentati (in base al profilo)
+    - Prenotazioni
+    - Ingressi
+    - Consumi (che generano punti)
+    - Movimenti fedeltà
+    - Feedback
+    """
+    cliente = db.query(Cliente).get(cliente_id)
+    if not cliente:
+        return
+    
+    # Profilo cliente: determina quanti eventi frequenta
+    num_eventi_target = profilo_cliente["num_eventi"]
+    eventi_frequentati = secrets.SystemRandom().sample(eventi_passati, min(num_eventi_target, len(eventi_passati)))
+    
+    punti_totali = 0
+    movimenti_fedelta = []
+    consumi_creati = []
+    
+    for evento in eventi_frequentati:
+        # Decidi se ha prenotazione o walk-in
+        ha_prenotazione = random() < 0.7  # 70% con prenotazione
+        
+        prenotazione_id = None
+        tavolo_selezionato = None
+        if ha_prenotazione:
+            # Crea prenotazione
+            tipo = choice(["lista", "tavolo", "prevendita"])
+            
+            # Se è prenotazione tavolo, seleziona un tavolo disponibile e rispetta la sua capienza
+            if tipo == "tavolo":
+                # Recupera tavoli disponibili per questo evento
+                tavoli_disponibili = db.query(TavoloEvento).filter(
+                    TavoloEvento.evento_id == evento.id_evento,
+                    TavoloEvento.attivo == True
+                ).all()
+                
+                # Verifica quali tavoli sono già prenotati
+                tavoli_prenotati = db.query(Prenotazione.numero_tavolo).filter(
+                    Prenotazione.evento_id == evento.id_evento,
+                    Prenotazione.stato == "attiva",
+                    Prenotazione.numero_tavolo.isnot(None)
+                ).all()
+                tavoli_prenotati_ids = {t[0] for t in tavoli_prenotati}
+                
+                # Filtra tavoli disponibili
+                tavoli_liberi = [t for t in tavoli_disponibili if t.id_tavolo not in tavoli_prenotati_ids]
+                
+                if tavoli_liberi:
+                    # Seleziona un tavolo casuale tra quelli disponibili
+                    tavolo_selezionato = choice(tavoli_liberi)
+                    # Il numero di persone deve rispettare la capienza del tavolo
+                    num_persone = randint(1, tavolo_selezionato.capienza)
+                else:
+                    # Nessun tavolo disponibile, cambia tipo a "lista"
+                    tipo = "lista"
+                    num_persone = randint(1, 4)
+            else:
+                num_persone = randint(1, 4)
+            
+            # Per eventi passati: stato realista
+            if evento.data_evento < date.today():
+                rand = random()
+                if rand < 0.15:
+                    stato = "no-show"
+                elif rand < 0.70:
+                    stato = "usata"
+                elif rand < 0.85:
+                    stato = "cancellata"
+                else:
+                    stato = "attiva"
+            else:
+                stato = "attiva"
+            
+            codice_invito = generate_invite_code(db) if tipo == "tavolo" else None
+            prenotazione = Prenotazione(
+                cliente_id=cliente_id,
+                evento_id=evento.id_evento,
+                tipo=tipo,
+                num_persone=num_persone,
+                orario_previsto=time(hour=randint(22, 23), minute=randint(0, 59)),
+                stato=stato,
+                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
+                codice_invito=codice_invito,
+                numero_tavolo=tavolo_selezionato.id_tavolo if tavolo_selezionato else None,
+                nome_tavolo_gruppo=f"Gruppo {cliente.nome}" if tipo == "tavolo" and tavolo_selezionato else None
+            )
+            db.add(prenotazione)
+            db.flush()
+            prenotazione_id = prenotazione.id_prenotazione
+            
+            # Se no-show, penalità punti
+            if stato == "no-show":
+                punti_no_show = -5
+                movimento = Fedelta(
+                    cliente_id=cliente_id,
+                    evento_id=evento.id_evento,
+                    punti=punti_no_show,
+                    motivo=f"No-show evento #{evento.id_evento}"
+                )
+                db.add(movimento)
+                punti_totali += punti_no_show
+                movimenti_fedelta.append(movimento)
+        
+        # Crea ingresso solo se prenotazione usata/attiva o walk-in
+        crea_ingresso = False
+        if not ha_prenotazione:
+            crea_ingresso = True
+        elif ha_prenotazione and stato in ["usata", "attiva"]:
+            crea_ingresso = True
+        
+        if crea_ingresso:
+            ora_ingresso = randint(22, 23)
+            if randint(0, 2) == 0:
+                ora_ingresso = randint(0, 1)
+            
+            orario_ingresso = datetime.combine(
+                evento.data_evento,
+                time(hour=ora_ingresso, minute=randint(0, 59))
+            )
+            
+            ingresso = Ingresso(
+                cliente_id=cliente_id,
+                evento_id=evento.id_evento,
+                prenotazione_id=prenotazione_id,
+                staff_id=choice(staff_ids) if staff_ids else None,
+                tipo_ingresso=choice(["lista", "tavolo", "prevendita", "omaggio"]),
+                orario_ingresso=orario_ingresso
+            )
+            db.add(ingresso)
+            db.flush()
+            
+            # Punti per ingresso
+            punti_ingresso = PUNTI_INGRESSO_PRENOTAZIONE if ha_prenotazione else PUNTI_INGRESSO_LIBERO
+            movimento = Fedelta(
+                cliente_id=cliente_id,
+                evento_id=evento.id_evento,
+                punti=punti_ingresso,
+                motivo=f"Ingresso evento #{evento.id_evento} ({'prenotazione' if ha_prenotazione else 'walk-in'})"
+            )
+            db.add(movimento)
+            punti_totali += punti_ingresso
+            movimenti_fedelta.append(movimento)
+            
+            # Crea consumi per questo evento (solo se ha ingresso)
+            # Importo target basato sul profilo cliente
+            importo_target = profilo_cliente["importo_per_evento"]
+            importo_attuale = Decimal("0.00")
+            
+            # Crea consumi fino a raggiungere l'importo target
+            while float(importo_attuale) < importo_target:
+                prodotto = choice(prodotti)
+                quantita = randint(1, 3)
+                importo_consumo = Decimal(str(prodotto.prezzo)) * quantita
+                
+                # Non superare troppo l'importo target
+                if float(importo_attuale + importo_consumo) > importo_target * 1.2:
+                    break
+                
+                consumo = Consumo(
+                    cliente_id=cliente_id,
+                    evento_id=evento.id_evento,
+                    staff_id=choice(baristi_ids) if baristi_ids else None,
+                    prodotto_id=prodotto.id_prodotto,
+                    prodotto=f"{prodotto.nome}" + (f" x{quantita}" if quantita > 1 else ""),
+                    importo=importo_consumo,
+                    punto_vendita=choice(["bar", "tavolo", "privè"]),
+                    data_consumo=orario_ingresso + timedelta(minutes=randint(30, 180))
+                )
+                db.add(consumo)
+                db.flush()
+                consumi_creati.append(consumo)
+                
+                # Punti da consumo: 1 punto ogni 10€
+                punti_consumo = int(float(importo_consumo) // 10.0)
+                if punti_consumo > 0:
+                    movimento = Fedelta(
+                        cliente_id=cliente_id,
+                        evento_id=evento.id_evento,
+                        punti=punti_consumo,
+                        motivo=f"Consumo evento #{evento.id_evento}"
+                    )
+                    db.add(movimento)
+                    punti_totali += punti_consumo
+                    movimenti_fedelta.append(movimento)
+                
+                importo_attuale += importo_consumo
+            
+            # Crea feedback (solo per eventi passati, 40% probabilità)
+            if evento.data_evento < date.today() and random() < 0.4:
+                feedback = Feedback(
+                    cliente_id=cliente_id,
+                    evento_id=evento.id_evento,
+                    voto_musica=randint(6, 10) if random() < 0.7 else randint(4, 7),
+                    voto_ingresso=randint(7, 10) if random() < 0.8 else randint(5, 8),
+                    voto_ambiente=randint(7, 10) if random() < 0.75 else randint(5, 8),
+                    voto_servizio=randint(7, 10) if random() < 0.75 else randint(5, 8),
+                    data_feedback=datetime.combine(
+                        evento.data_evento + timedelta(days=1),
+                        time(hour=randint(10, 18), minute=randint(0, 59))
+                    ),
+                    note=choice([None, None, None, "Serata fantastica!", "Ottima musica", "Tornerò sicuramente"])
+                )
+                db.add(feedback)
+    
+    # Aggiorna punti e livello cliente
+    cliente.punti_fedelta = punti_totali
+    thresholds = get_thresholds(db)
+    cliente.livello = compute_level(punti_totali, thresholds)
+    
+    db.commit()
+    return {
+        "prenotazioni": len(eventi_frequentati),
+        "ingressi": len(consumi_creati) > 0,  # Se ha consumi, ha avuto ingresso
+        "consumi": len(consumi_creati),
+        "punti": punti_totali
+    }
+
+def seed_clienti_completi(db, eventi_passati, prodotti, staff_ids, baristi_ids, num_clienti=100):
+    """Crea clienti con storie complete e coerenti"""
+    print(f"👤 Creazione {num_clienti} clienti con storie complete...")
     
     clienti_ids = []
     credentials_cliente = None
     
+    # Definisci profili cliente
+    profili = []
     for i in range(num_clienti):
+        if i < 10:  # 10 VIP
+            profili.append({
+                "livello_target": "vip",
+                "punti_target": randint(500, 1000),
+                "num_eventi": randint(15, 25),  # Molti eventi
+                "importo_per_evento": randint(80, 200)  # Spende molto
+            })
+        elif i < 30:  # 20 Premium
+            profili.append({
+                "livello_target": "premium",
+                "punti_target": randint(250, 499),
+                "num_eventi": randint(8, 15),
+                "importo_per_evento": randint(50, 120)
+            })
+        elif i < 60:  # 30 Loyal
+            profili.append({
+                "livello_target": "loyal",
+                "punti_target": randint(100, 249),
+                "num_eventi": randint(4, 10),
+                "importo_per_evento": randint(30, 80)
+            })
+        else:  # 40 Base
+            profili.append({
+                "livello_target": "base",
+                "punti_target": randint(0, 99),
+                "num_eventi": randint(0, 5),
+                "importo_per_evento": randint(10, 50)
+            })
+    
+    # Crea clienti
+    for i, profilo in enumerate(profili):
         nome = choice(NOMI)
         cognome = choice(COGNOMI)
         
-        # Calcola età tra 18 e 50 anni
         anni = randint(18, 50)
         data_nascita = date.today() - timedelta(days=anni * 365 + randint(0, 364))
         
-        # Genera telefono unico
         telefono = generate_phone()
         while db.query(Cliente).filter_by(telefono=telefono).first():
             telefono = generate_phone()
         
-        # Genera QR code unico
         qr_code = generate_unique_qr_code(db)
-        
-        # Password semplice per tutti (useremo "cliente123")
         password = "cliente123"
-        
-        # Livello fedeltà basato su punti (distribuzione realistica)
-        if i < 10:  # 10 VIP
-            livello = "vip"
-            punti = randint(500, 1000)
-        elif i < 30:  # 20 Premium
-            livello = "premium"
-            punti = randint(250, 499)
-        elif i < 60:  # 30 Loyal
-            livello = "loyal"
-            punti = randint(100, 249)
-        else:  # 40 Base
-            livello = "base"
-            punti = randint(0, 99)
         
         cliente = Cliente(
             nome=nome,
@@ -368,10 +659,10 @@ def seed_clienti(db, num_clienti=100):
             telefono=telefono,
             password_hash=generate_password_hash(password),
             qr_code=qr_code,
-            livello=livello,
-            punti_fedelta=punti,
+            livello="base",  # Sarà aggiornato dopo i consumi
+            punti_fedelta=0,  # Sarà calcolato
             stato_account="attivo",
-            data_registrazione=datetime.now() - timedelta(days=randint(1, 365))
+            data_registrazione=datetime.now() - timedelta(days=randint(30, 365))
         )
         
         db.add(cliente)
@@ -387,252 +678,30 @@ def seed_clienti(db, num_clienti=100):
             }
     
     db.commit()
-    print(f"✅ Creati {num_clienti} clienti")
+    print(f"✅ Creati {num_clienti} clienti base")
+    
+    # Ora crea la storia completa per ogni cliente
+    print("📚 Creazione storie complete per ogni cliente...")
+    stats_totali = {"prenotazioni": 0, "ingressi": 0, "consumi": 0}
+    
+    for i, cliente_id in enumerate(clienti_ids):
+        if i % 10 == 0:
+            print(f"   Progresso: {i}/{num_clienti} clienti processati...")
+        
+        stats = seed_cliente_completo(
+            db, cliente_id, profili[i], eventi_passati, prodotti, staff_ids, baristi_ids
+        )
+        if stats:
+            stats_totali["prenotazioni"] += stats.get("prenotazioni", 0)
+            stats_totali["ingressi"] += stats.get("ingressi", 0)
+            stats_totali["consumi"] += stats.get("consumi", 0)
+    
+    print(f"✅ Storie complete create:")
+    print(f"   - Prenotazioni: {stats_totali['prenotazioni']}")
+    print(f"   - Ingressi: {stats_totali['ingressi']}")
+    print(f"   - Consumi: {stats_totali['consumi']}")
+    
     return clienti_ids, credentials_cliente
-
-def seed_prenotazioni(db, clienti_ids, eventi_ids):
-    """Crea prenotazioni con show/no show"""
-    print("📅 Creazione prenotazioni...")
-    
-    prenotazioni = []
-    staff_ids = [s.id_staff for s in db.query(Staff).all()]
-    
-    # Per ogni evento passato, crea prenotazioni
-    eventi_passati = db.query(Evento).filter(Evento.data_evento < date.today()).all()
-    
-    for evento in eventi_passati:
-        # Numero di prenotazioni per evento (variabile)
-        num_pren = randint(20, 80)
-        clienti_evento = secrets.SystemRandom().sample(clienti_ids, min(num_pren, len(clienti_ids)))
-        
-        for cliente_id in clienti_evento:
-            tipo = choice(["lista", "tavolo", "prevendita"])
-            num_persone = randint(1, 8) if tipo == "tavolo" else randint(1, 4)
-            
-            # Stato: attiva, usata, no-show, cancellata
-            # Per eventi passati, distribuzione realistica
-            rand = random()
-            if rand < 0.15:  # 15% no-show
-                stato = "no-show"
-            elif rand < 0.70:  # 55% usata
-                stato = "usata"
-            elif rand < 0.85:  # 15% cancellata
-                stato = "cancellata"
-            else:  # 15% ancora attiva (strano ma possibile)
-                stato = "attiva"
-            
-            # Orario previsto tra 22:00 e 01:00
-            ora_prevista = time(hour=randint(22, 23), minute=randint(0, 59))
-            if randint(0, 1):
-                ora_prevista = time(hour=0, minute=randint(0, 59))
-            
-            codice_invito = generate_invite_code(db) if tipo == "tavolo" else None
-            prenotazione = Prenotazione(
-                cliente_id=cliente_id,
-                evento_id=evento.id_evento,
-                tipo=tipo,
-                num_persone=num_persone,
-                orario_previsto=ora_prevista,
-                stato=stato,
-                note=choice([None, "Compleanno", "Anniversario", "Tavolo preferito", None, None]),
-                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
-                codice_invito=codice_invito
-            )
-            
-            db.add(prenotazione)
-            db.flush()
-            prenotazioni.append({
-                "id": prenotazione.id_prenotazione,
-                "cliente_id": cliente_id,
-                "evento_id": evento.id_evento,
-                "stato": stato
-            })
-    
-    # Alcune prenotazioni per eventi futuri
-    eventi_futuri = db.query(Evento).filter(Evento.data_evento >= date.today()).limit(10).all()
-    for evento in eventi_futuri:
-        num_pren = randint(10, 40)
-        clienti_evento = secrets.SystemRandom().sample(clienti_ids, min(num_pren, len(clienti_ids)))
-        
-        for cliente_id in clienti_evento:
-            tipo = choice(["lista", "tavolo", "prevendita"])
-            num_persone = randint(1, 8) if tipo == "tavolo" else randint(1, 4)
-            
-            codice_invito = generate_invite_code(db) if tipo == "tavolo" else None
-            prenotazione = Prenotazione(
-                cliente_id=cliente_id,
-                evento_id=evento.id_evento,
-                tipo=tipo,
-                num_persone=num_persone,
-                orario_previsto=time(hour=randint(22, 23), minute=randint(0, 59)),
-                stato="attiva",
-                ruolo_tavolo="referente" if tipo == "tavolo" else "none",
-                codice_invito=codice_invito
-            )
-            
-            db.add(prenotazione)
-            db.flush()
-            prenotazioni.append({
-                "id": prenotazione.id_prenotazione,
-                "cliente_id": cliente_id,
-                "evento_id": evento.id_evento,
-                "stato": "attiva"
-            })
-    
-    db.commit()
-    print(f"✅ Create {len(prenotazioni)} prenotazioni")
-    return prenotazioni
-
-def seed_ingressi(db, prenotazioni):
-    """Crea ingressi collegati alle prenotazioni"""
-    print("🚪 Creazione ingressi...")
-    
-    staff_ids = [s.id_staff for s in db.query(Staff).filter(Staff.ruolo == "ingressista").all()]
-    
-    ingressi_count = 0
-    
-    for pren in prenotazioni:
-        # Crea ingresso solo per prenotazioni "usate" o "attiva" (non per no-show o cancellate)
-        if pren["stato"] in ["usata", "attiva"]:
-            evento = db.get(Evento, pren["evento_id"])
-            if not evento:
-                continue
-            
-            # Data e ora ingresso
-            data_evento = evento.data_evento
-            # Ora ingresso tra 22:00 e 01:00
-            ora_ingresso = randint(22, 23)
-            if randint(0, 2) == 0:  # 33% dopo mezzanotte
-                ora_ingresso = randint(0, 1)
-            minuto_ingresso = randint(0, 59)
-            
-            orario_ingresso = datetime.combine(data_evento, time(hour=ora_ingresso, minute=minuto_ingresso))
-            
-            # Tipo ingresso (coerente con prenotazione quando possibile)
-            tipo_ingresso = pren.get("tipo", choice(["lista", "tavolo", "prevendita", "omaggio"]))
-            
-            ingresso = Ingresso(
-                cliente_id=pren["cliente_id"],
-                evento_id=pren["evento_id"],
-                prenotazione_id=pren["id"],
-                staff_id=choice(staff_ids) if staff_ids else None,
-                tipo_ingresso=tipo_ingresso,
-                orario_ingresso=orario_ingresso,
-                note=choice([None, "Check-in rapido", "Gruppo numeroso", None])
-            )
-            
-            try:
-                db.add(ingresso)
-                db.flush()
-                ingressi_count += 1
-            except Exception as e:
-                # Potrebbe esserci un vincolo unique (cliente, evento)
-                db.rollback()
-                continue
-    
-    # Aggiungi alcuni ingressi senza prenotazione (walk-in)
-    eventi_passati = db.query(Evento).filter(Evento.data_evento < date.today()).limit(15).all()
-    clienti_ids = [c.id_cliente for c in db.query(Cliente).all()]
-    
-    for evento in eventi_passati:
-        num_walkin = randint(5, 20)
-        clienti_walkin = secrets.SystemRandom().sample(clienti_ids, min(num_walkin, len(clienti_ids)))
-        
-        for cliente_id in clienti_walkin:
-            # Verifica che non ci sia già un ingresso
-            if db.query(Ingresso).filter_by(cliente_id=cliente_id, evento_id=evento.id_evento).first():
-                continue
-            
-            ora_ingresso = randint(22, 23)
-            if randint(0, 2) == 0:
-                ora_ingresso = randint(0, 1)
-            
-            orario_ingresso = datetime.combine(
-                evento.data_evento,
-                time(hour=ora_ingresso, minute=randint(0, 59))
-            )
-            
-            ingresso = Ingresso(
-                cliente_id=cliente_id,
-                evento_id=evento.id_evento,
-                prenotazione_id=None,
-                staff_id=choice(staff_ids) if staff_ids else None,
-                tipo_ingresso=choice(["lista", "omaggio"]),
-                orario_ingresso=orario_ingresso
-            )
-            
-            try:
-                db.add(ingresso)
-                db.flush()
-                ingressi_count += 1
-            except Exception:
-                db.rollback()
-                continue
-    
-    db.commit()
-    print(f"✅ Creati {ingressi_count} ingressi")
-    return ingressi_count
-
-def seed_feedback(db, clienti_ids, eventi_ids):
-    """Crea feedback per vari eventi"""
-    print("⭐ Creazione feedback...")
-    
-    feedback_count = 0
-    eventi_passati = db.query(Evento).filter(Evento.data_evento < date.today()).all()
-    
-    for evento in eventi_passati:
-        # Verifica quali clienti hanno avuto un ingresso per questo evento
-        ingressi = db.query(Ingresso).filter_by(evento_id=evento.id_evento).all()
-        clienti_evento = list(set([ing.cliente_id for ing in ingressi]))
-        
-        # Solo una percentuale di clienti lascia feedback (30-50%)
-        num_feedback = int(len(clienti_evento) * uniform(0.3, 0.5))
-        clienti_feedback = secrets.SystemRandom().sample(clienti_evento, min(num_feedback, len(clienti_evento)))
-        
-        for cliente_id in clienti_feedback:
-            # Verifica che non ci sia già un feedback
-            if db.query(Feedback).filter_by(cliente_id=cliente_id, evento_id=evento.id_evento).first():
-                continue
-            
-            # Voti realistici (distribuzione leggermente positiva)
-            voto_musica = randint(6, 10) if random() < 0.7 else randint(4, 7)
-            voto_ingresso = randint(7, 10) if random() < 0.8 else randint(5, 8)
-            voto_ambiente = randint(7, 10) if random() < 0.75 else randint(5, 8)
-            voto_servizio = randint(7, 10) if random() < 0.75 else randint(5, 8)
-            
-            note_options = [
-                None, None, None, None,  # 50% senza note
-                "Serata fantastica!",
-                "Ottima musica",
-                "Tornerò sicuramente",
-                "Un po' affollato ma bello",
-                "Servizio veloce",
-                "Ambiente perfetto"
-            ]
-            
-            data_feedback = datetime.combine(
-                evento.data_evento + timedelta(days=1),
-                time(hour=randint(10, 18), minute=randint(0, 59))
-            )
-            
-            feedback = Feedback(
-                cliente_id=cliente_id,
-                evento_id=evento.id_evento,
-                voto_musica=voto_musica,
-                voto_ingresso=voto_ingresso,
-                voto_ambiente=voto_ambiente,
-                voto_servizio=voto_servizio,
-                data_feedback=data_feedback,
-                note=choice(note_options)
-            )
-            
-            db.add(feedback)
-            db.flush()
-            feedback_count += 1
-    
-    db.commit()
-    print(f"✅ Creati {feedback_count} feedback")
-    return feedback_count
 
 def main():
     """Funzione principale"""
@@ -648,25 +717,32 @@ def main():
         
         # 2. Crea staff
         credentials_staff = seed_staff(db)
+        staff_ids = [s.id_staff for s in db.query(Staff).all()]
+        baristi_ids = [s.id_staff for s in db.query(Staff).filter(Staff.ruolo == "barista").all()]
+        ingressisti_ids = [s.id_staff for s in db.query(Staff).filter(Staff.ruolo == "ingressista").all()]
         
-        # 3. Crea eventi
+        # 3. Crea prodotti
+        prodotti = seed_prodotti(db)
+        
+        # 4. Crea eventi
         eventi_ids = seed_eventi(db)
         
-        # 3.5. Crea tavoli per tutti gli eventi (da 1 a 20)
+        # 5. Crea tavoli per tutti gli eventi (con capienze fisse)
+        print("🪑 Creazione tavoli per eventi...")
         for evento_id in eventi_ids:
-            seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4)
+            seed_tavoli_evento(db, evento_id, num_tavoli=20)
+        print("✅ Tavoli creati con capienze fisse")
         
-        # 4. Crea clienti
-        clienti_ids, credentials_cliente = seed_clienti(db, num_clienti=100)
-        
-        # 5. Crea prenotazioni
-        prenotazioni = seed_prenotazioni(db, clienti_ids, eventi_ids)
-        
-        # 6. Crea ingressi
-        seed_ingressi(db, prenotazioni)
-        
-        # 7. Crea feedback
-        seed_feedback(db, clienti_ids, eventi_ids)
+        # 6. Crea clienti con storie complete
+        eventi_passati = db.query(Evento).filter(Evento.data_evento < date.today()).all()
+        clienti_ids, credentials_cliente = seed_clienti_completi(
+            db,
+            eventi_passati=eventi_passati,
+            prodotti=prodotti,
+            staff_ids=ingressisti_ids,
+            baristi_ids=baristi_ids,
+            num_clienti=100
+        )
         
         print("\n" + "=" * 60)
         print("✅ POPOLAMENTO COMPLETATO CON SUCCESSO!")
@@ -686,6 +762,15 @@ def main():
             print(f"   Ruolo: {cred['ruolo']}")
             print()
         
+        # Verifica coerenza
+        print("\n🔍 VERIFICA COERENZA DATI:")
+        clienti_vip = db.query(Cliente).filter(Cliente.livello == "vip").all()
+        print(f"   Clienti VIP: {len(clienti_vip)}")
+        for c in clienti_vip[:3]:
+            consumi_count = db.query(Consumo).filter(Consumo.cliente_id == c.id_cliente).count()
+            ingressi_count = db.query(Ingresso).filter(Ingresso.cliente_id == c.id_cliente).count()
+            print(f"   - {c.nome} {c.cognome}: {c.punti_fedelta} punti, {ingressi_count} ingressi, {consumi_count} consumi")
+        
     except Exception as e:
         print(f"\n❌ ERRORE: {e}")
         import traceback
@@ -696,13 +781,12 @@ def main():
 
 if __name__ == "__main__":
     import sys
-    # Se viene passato un evento_id come argomento, aggiungi solo i tavoli per quell'evento
     if len(sys.argv) > 1 and sys.argv[1].isdigit():
         evento_id = int(sys.argv[1])
         db = SessionLocal()
         try:
-            seed_tavoli_evento(db, evento_id, num_tavoli=20, capienza_default=4)
-            print(f"\n✅ Tavoli aggiunti per evento_id={evento_id}")
+            seed_tavoli_evento(db, evento_id, num_tavoli=20)
+            print(f"\n✅ Tavoli aggiunti per evento_id={evento_id} (con capienze fisse)")
         except Exception as e:
             print(f"\n❌ ERRORE: {e}")
             import traceback
@@ -712,4 +796,3 @@ if __name__ == "__main__":
             db.close()
     else:
         main()
-
