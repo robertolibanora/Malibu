@@ -37,13 +37,10 @@ def lista_pubblica():
     from app.utils.workflow import get_workflow_state, evento_stato_badge
     db = SessionLocal()
     try:
-        cat = request.args.get("categoria")
         dal = request.args.get("dal")   # yyyy-mm-dd
         al  = request.args.get("al")    # yyyy-mm-dd
         # Costruisce filtro base da riusare
         def apply_common_filters(query):
-            if cat and cat in CATEGORIES_PUBLIC:
-                query = query.filter(Evento.categoria == cat)
             if dal:
                 try:
                     dal_d = datetime.strptime(dal, "%Y-%m-%d").date()
@@ -105,8 +102,7 @@ def lista_pubblica():
                                eventi_prenotati=prenotati_ids,
                                workflow_map=workflow_map,
                                evento_badge_map=evento_badge_map,
-                               CATEGORIES_PUBLIC=CATEGORIES_PUBLIC,
-                               filtri={"categoria": cat, "dal": dal, "al": al},
+                               filtri={"dal": dal, "al": al},
                                show_all_past=show_all_past)
     finally:
         db.close()
@@ -254,21 +250,29 @@ def admin_evento_attivo():
                 ev = db.query(Evento).get(evento_id)
                 if not ev:
                     flash("Evento non valido.", "danger")
+                elif ev.stato_pubblico == "chiuso":
+                    flash("Non puoi attivare lo staff per un evento chiuso.", "warning")
                 else:
-                    # Assicura unicità: spegni gli altri e abilita questo
-                    for other in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
-                        other.is_staff_operativo = False
-                    ev.is_staff_operativo = True
+                    # Se l'evento non è attivo, attivalo prima (questo attiverà anche lo staff)
+                    if ev.stato_pubblico != "attivo":
+                        from app.utils.eventi_stato import imposta_stato_evento
+                        imposta_stato_evento(db, ev, "attivo", staff_id=session.get("staff_id"), automatico=False)
+                    else:
+                        # Se è già attivo, assicura solo che sia operativo
+                        # Assicura unicità: spegni gli altri e abilita questo
+                        for other in db.query(Evento).filter(Evento.is_staff_operativo == True).all():
+                            other.is_staff_operativo = False
+                        ev.is_staff_operativo = True
+                        set_evento_operativo_id(db, ev.id_evento)
+                        log_action(
+                            db,
+                            tabella="eventi",
+                            record_id=ev.id_evento,
+                            staff_id=session.get("staff_id"),
+                            azione="set_operativo",
+                            note=f"evento_id={ev.id_evento}"
+                        )
                     db.commit()
-                    set_evento_operativo_id(db, ev.id_evento)
-                    log_action(
-                        db,
-                        tabella="eventi",
-                        record_id=ev.id_evento,
-                        staff_id=session.get("staff_id"),
-                        azione="set_operativo",
-                        note=f"evento_id={ev.id_evento}"
-                    )
                     flash(f"Evento operativo staff impostato su {ev.nome_evento}.", "success")
             return redirect(url_for("eventi.admin_evento_attivo"))
 
@@ -353,14 +357,42 @@ def admin_new():
                     file_path = Path(current_app.config['UPLOAD_FOLDER']) / cover_filename
                     file.save(str(file_path))
             
+            # Gestione data evento (converti stringa in date per SQLite)
+            data_evento_str = request.form.get("data_evento")
+            data_evento_obj = None
+            if data_evento_str:
+                try:
+                    data_evento_obj = datetime.strptime(data_evento_str, "%Y-%m-%d").date()
+                except ValueError:
+                    flash("Data evento non valida.", "danger")
+                    return redirect(url_for("eventi.admin_new"))
+            
+            # Gestione data/ora apertura e chiusura automatica
+            data_ora_apertura = request.form.get("data_ora_apertura_auto")
+            data_ora_chiusura = request.form.get("data_ora_chiusura_auto")
+            
+            data_ora_apertura_auto = None
+            if data_ora_apertura:
+                try:
+                    data_ora_apertura_auto = datetime.strptime(data_ora_apertura, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            
+            data_ora_chiusura_auto = None
+            if data_ora_chiusura:
+                try:
+                    data_ora_chiusura_auto = datetime.strptime(data_ora_chiusura, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            
             e = Evento(
                 nome_evento=request.form.get("nome_evento"),
-                data_evento=request.form.get("data_evento"),
+                data_evento=data_evento_obj,
                 tipo_musica=request.form.get("tipo_musica"),
                 dj_artista=request.form.get("dj_artista"),
                 promozione=request.form.get("promozione"),
                 capienza_max=request.form.get("capienza_max", type=int),
-                categoria=request.form.get("categoria"),
+                categoria="altro",  # Default fisso
                 stato_pubblico=(request.form.get("stato_pubblico") or "programmato"),
                 is_staff_operativo=False,
                 cover_url=cover_filename,
@@ -368,6 +400,8 @@ def admin_new():
                     int(request.form.get("template_evento").split("-",1)[1])
                     if (request.form.get("template_evento") or '').startswith("db-") else None
                 ),
+                data_ora_apertura_auto=data_ora_apertura_auto,
+                data_ora_chiusura_auto=data_ora_chiusura_auto,
             )
             db.add(e)
             db.flush()
@@ -553,13 +587,45 @@ def admin_edit(evento_id):
             return redirect(url_for("eventi.admin_list"))
         if request.method == "POST":
             e.nome_evento = request.form.get("nome_evento")
-            e.data_evento = request.form.get("data_evento")
+            # Converti data_evento da stringa a date per SQLite
+            data_evento_str = request.form.get("data_evento")
+            if data_evento_str:
+                try:
+                    e.data_evento = datetime.strptime(data_evento_str, "%Y-%m-%d").date()
+                except ValueError:
+                    flash("Data evento non valida.", "danger")
+                    return redirect(url_for("eventi.admin_edit", evento_id=evento_id))
             e.tipo_musica = request.form.get("tipo_musica")
             e.dj_artista = request.form.get("dj_artista")
             e.promozione = request.form.get("promozione")
             e.capienza_max = request.form.get("capienza_max", type=int)
-            e.categoria = request.form.get("categoria")
-            e.stato_pubblico = request.form.get("stato_pubblico") or e.stato_pubblico
+            # Categoria non più modificabile - mantiene valore esistente
+            
+            # Gestione cambio stato usando la funzione centralizzata
+            nuovo_stato = request.form.get("stato_pubblico")
+            if nuovo_stato and nuovo_stato != e.stato_pubblico:
+                from app.utils.eventi_stato import imposta_stato_evento
+                imposta_stato_evento(db, e, nuovo_stato, staff_id=session.get("staff_id"), automatico=False)
+            
+            # Gestione data/ora apertura e chiusura automatica
+            data_ora_apertura = request.form.get("data_ora_apertura_auto")
+            data_ora_chiusura = request.form.get("data_ora_chiusura_auto")
+            
+            if data_ora_apertura:
+                try:
+                    e.data_ora_apertura_auto = datetime.strptime(data_ora_apertura, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            else:
+                e.data_ora_apertura_auto = None
+            
+            if data_ora_chiusura:
+                try:
+                    e.data_ora_chiusura_auto = datetime.strptime(data_ora_chiusura, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            else:
+                e.data_ora_chiusura_auto = None
             
             # Gestione upload immagine
             if 'cover_image' in request.files:
@@ -594,41 +660,49 @@ def admin_edit(evento_id):
     finally:
         db.close()
 
-@eventi_bp.route("/admin/<int:evento_id>/attiva-pubblico", methods=["POST"])
+@eventi_bp.route("/admin/<int:evento_id>/set-stato/<stato>", methods=["POST"])
 @require_admin
-def admin_attiva_pubblico(evento_id):
-    """Attiva l'evento al pubblico (stato_pubblico = 'attivo')"""
+def admin_set_stato(evento_id, stato):
+    """
+    Cambia lo stato di un evento manualmente.
+    Stati: programmato, attivo, chiuso
+    """
+    from app.utils.eventi_stato import imposta_stato_evento
+    
+    if stato not in ("programmato", "attivo", "chiuso"):
+        flash("Stato non valido.", "danger")
+        return redirect(url_for("eventi.admin_list"))
+    
     db = SessionLocal()
     try:
         e = db.query(Evento).get(evento_id)
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
-        e.stato_pubblico = "attivo"
-        db.commit()
-        log_action(db, tabella="eventi", record_id=evento_id, staff_id=session.get("staff_id"), azione="update", note="stato_pubblico=attivo")
-        flash(f"Evento '{e.nome_evento}' attivato al pubblico.", "success")
-        return redirect(url_for("eventi.admin_list"))
+        
+        if imposta_stato_evento(db, e, stato, staff_id=session.get("staff_id"), automatico=False):
+            db.commit()
+            stato_label = {"programmato": "programmato", "attivo": "attivato", "chiuso": "chiuso"}[stato]
+            flash(f"Evento '{e.nome_evento}' impostato a {stato_label}.", "success")
+        else:
+            flash(f"Evento già nello stato '{stato}'.", "info")
+        
+        return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
     finally:
         db.close()
+
+# Route legacy per compatibilità (deprecate, usano la nuova funzione)
+@eventi_bp.route("/admin/<int:evento_id>/attiva-pubblico", methods=["POST"])
+@require_admin
+def admin_attiva_pubblico(evento_id):
+    """Route legacy: reindirizza alla nuova funzione"""
+    return admin_set_stato(evento_id, "attivo")
 
 @eventi_bp.route("/admin/<int:evento_id>/chiudi-pubblico", methods=["POST"])
 @require_admin
 def admin_chiudi_pubblico(evento_id):
-    """Chiude l'evento al pubblico (stato_pubblico = 'chiuso')"""
-    db = SessionLocal()
-    try:
-        e = db.query(Evento).get(evento_id)
-        if not e:
-            flash("Evento non trovato.", "danger")
-            return redirect(url_for("eventi.admin_list"))
-        e.stato_pubblico = "chiuso"
-        db.commit()
-        log_action(db, tabella="eventi", record_id=evento_id, staff_id=session.get("staff_id"), azione="update", note="stato_pubblico=chiuso")
-        flash(f"Evento '{e.nome_evento}' chiuso al pubblico.", "info")
-        return redirect(url_for("eventi.admin_list"))
-    finally:
-        db.close()
+    """Route legacy: reindirizza alla nuova funzione"""
+    return admin_set_stato(evento_id, "chiuso")
 
 @eventi_bp.route("/admin/<int:evento_id>/delete", methods=["POST"])
 @require_admin
@@ -660,25 +734,34 @@ def admin_duplicate(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
-        new_date = request.form.get("data_evento")
-        if not new_date:
+        new_date_str = request.form.get("data_evento")
+        if not new_date_str:
             # default a oggi + 7 giorni
-            new_date = (date.today() + timedelta(days=7)).isoformat()
+            new_date_obj = date.today() + timedelta(days=7)
+        else:
+            try:
+                new_date_obj = datetime.strptime(new_date_str, "%Y-%m-%d").date()
+            except ValueError:
+                flash("Data evento non valida.", "danger")
+                return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
+        
         # warning se esiste già evento con stessa data
-        exists_same_date = db.query(Evento.id_evento).filter(Evento.data_evento == new_date).first()
+        exists_same_date = db.query(Evento.id_evento).filter(Evento.data_evento == new_date_obj).first()
         if exists_same_date:
             flash("Attenzione: esiste già un evento con la stessa data.", "warning")
         dup = Evento(
-            nome_evento=f"{e.nome_evento} • {new_date}",
-            data_evento=new_date,
+            nome_evento=f"{e.nome_evento} • {new_date_obj}",
+            data_evento=new_date_obj,
             tipo_musica=e.tipo_musica,
             dj_artista=e.dj_artista,
             promozione=e.promozione,
             capienza_max=e.capienza_max,
-            categoria=e.categoria if e.categoria in CATEGORIES_PUBLIC else "altro",
+            categoria="altro",  # Default fisso
             stato_pubblico="programmato",
             is_staff_operativo=False,
-            cover_url=None
+            cover_url=None,
+            data_ora_apertura_auto=None,  # Non duplicare gli orari automatici
+            data_ora_chiusura_auto=None
         )
         db.add(dup)
         db.flush()
@@ -712,36 +795,33 @@ def admin_duplicate(evento_id):
 @eventi_bp.route("/admin/<int:evento_id>/close", methods=["POST"])
 @require_admin
 def admin_close(evento_id):
+    """
+    Route legacy per chiusura evento con processamento no-show.
+    Ora usa la funzione centralizzata per lo stato.
+    """
     from app.utils.workflow import processa_no_show_automatico
+    from app.utils.eventi_stato import imposta_stato_evento
+    
     db = SessionLocal()
     try:
         e = db.query(Evento).get(evento_id)
         if not e:
             flash("Evento non trovato.", "danger")
+            return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
+        
+        # Imposta stato a chiuso usando la funzione centralizzata
+        imposta_stato_evento(db, e, "chiuso", staff_id=session.get("staff_id"), automatico=False)
+        
+        # Processa no-show per le prenotazioni residue
+        count_marcate, count_già, count_con_ingresso = processa_no_show_automatico(db, evento_id=evento_id)
+        
+        db.commit()
+        
+        if count_marcate > 0:
+            flash(f"Evento chiuso. {count_marcate} prenotazione/i marcate come no-show.", "success")
         else:
-            # Chiusura atomica: stato finale + cleanup operatività + prenotazioni residue a no-show
-            e.stato_pubblico = "chiuso"
-            e.is_staff_operativo = False
-            # reset fonte unica evento operativo
-            set_evento_operativo_id(db, None)
-            
-            # ⚡ Usa funzione centralizzata per processare no-show
-            count_marcate, count_già, count_con_ingresso = processa_no_show_automatico(db, evento_id=evento_id)
-            
-            log_action(
-                db,
-                tabella="eventi",
-                record_id=evento_id,
-                staff_id=session.get("staff_id"),
-                azione="event_close",
-                note=f"evento_id={evento_id}, no_show_processati={count_marcate}"
-            )
-            db.commit()
-            
-            if count_marcate > 0:
-                flash(f"Evento chiuso. {count_marcate} prenotazione/i marcate come no-show.", "success")
-            else:
-                flash("Evento chiuso. Nessuna prenotazione da processare.", "success")
+            flash("Evento chiuso. Nessuna prenotazione da processare.", "success")
+        
         return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
     finally:
         db.close()

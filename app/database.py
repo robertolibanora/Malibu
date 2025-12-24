@@ -13,8 +13,17 @@ DB_PASSWORD = os.getenv("DB_PASSWORD")
 DB_HOST = os.getenv("DB_HOST")
 DB_NAME = os.getenv("DB_NAME")
 DB_PORT = os.getenv("DB_PORT")
+USE_SQLITE = os.getenv("USE_SQLITE", "false").lower() == "true"
 
-SQLALCHEMY_DATABASE_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Se USE_SQLITE è true, usa SQLite per lo sviluppo locale
+if USE_SQLITE:
+    from pathlib import Path
+    base_dir = Path(__file__).parent.parent
+    db_path = base_dir / "malibu.db"
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
+else:
+    # Usa MySQL come di default
+    SQLALCHEMY_DATABASE_URL = f"mysql+mysqlconnector://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 # Connessione
 engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=False)

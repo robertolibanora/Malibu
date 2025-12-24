@@ -329,7 +329,6 @@ def close_active():
 def admin_hub():
     """Hub centrale per tutte le impostazioni del sistema"""
     from app.models.prodotti import Prodotto
-    from app.models.template_eventi import TemplateEvento
     from app.models.soglie_fedelta import SogliaFedelta
     
     db = SessionLocal()
@@ -341,8 +340,6 @@ def admin_hub():
         tot_prodotti = db.query(Prodotto).count()
         prodotti_attivi = db.query(Prodotto).filter(Prodotto.attivo == True).count()
         
-        tot_format = db.query(TemplateEvento).count()
-        
         # Soglie fedeltà
         soglie = db.query(SogliaFedelta).order_by(SogliaFedelta.punti_min.asc()).all()
         
@@ -351,7 +348,6 @@ def admin_hub():
                              staff_attivi=staff_attivi,
                              tot_prodotti=tot_prodotti,
                              prodotti_attivi=prodotti_attivi,
-                             tot_format=tot_format,
                              soglie=soglie)
     finally:
         db.close()

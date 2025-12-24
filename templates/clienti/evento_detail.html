@@ -9,7 +9,7 @@
   <div class="card__header">
     <div>
       <h1 class="card__title">{{ e.nome_evento }}</h1>
-      <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+      <div class="card__meta">{{ e.data_evento }}{% if e.tipo_musica %} • {{ e.tipo_musica }}{% endif %}</div>
       {% if e.dj_artista %}<p class="text--muted">DJ: {{ e.dj_artista }}</p>{% endif %}
       {% if e.promozione %}<p class="text--muted">Promo: {{ e.promozione }}</p>{% endif %}
     </div>

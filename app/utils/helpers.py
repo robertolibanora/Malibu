@@ -4,6 +4,7 @@ Helper centralizzati per MalibuApp.
 Questo modulo raccoglie tutte le funzioni helper comuni usate nelle route,
 eliminando duplicazioni e garantendo consistenza.
 """
+from typing import Optional
 from flask import session
 from app.database import SessionLocal
 from app.models.clienti import Cliente
@@ -15,12 +16,12 @@ from app.models.ingressi import Ingresso
 # CLIENTE HELPERS
 # ─────────────────────────────────────────
 
-def get_current_cliente_id() -> int | None:
+def get_current_cliente_id() -> Optional[int]:
     """Ottiene l'ID del cliente dalla sessione."""
     return session.get("cliente_id")
 
 
-def get_current_cliente(db) -> Cliente | None:
+def get_current_cliente(db) -> Optional[Cliente]:
     """
     Ottiene il cliente attualmente loggato dalla sessione.
     
@@ -36,7 +37,7 @@ def get_current_cliente(db) -> Cliente | None:
     return db.query(Cliente).get(cid)
 
 
-def get_cliente_by_qr(db, qr: str) -> Cliente | None:
+def get_cliente_by_qr(db, qr: str) -> Optional[Cliente]:
     """
     Cerca un cliente tramite QR code.
     
@@ -74,12 +75,12 @@ def cliente_has_ingresso(db, cliente_id: int, evento_id: int) -> bool:
 # STAFF HELPERS
 # ─────────────────────────────────────────
 
-def get_current_staff_id() -> int | None:
+def get_current_staff_id() -> Optional[int]:
     """Ottiene l'ID dello staff dalla sessione."""
     return session.get("staff_id")
 
 
-def get_current_staff_role() -> str | None:
+def get_current_staff_role() -> Optional[str]:
     """Ottiene il ruolo dello staff dalla sessione."""
     return session.get("staff_role")
 
@@ -98,7 +99,7 @@ def is_staff_operative() -> bool:
 # EVENTO HELPERS (wrapper per compatibilità)
 # ─────────────────────────────────────────
 
-def get_evento_attivo(db) -> Evento | None:
+def get_evento_attivo(db) -> Optional[Evento]:
     """
     Ottiene l'evento operativo attivo.
     Wrapper per get_evento_operativo per retrocompatibilità.

@@ -9,7 +9,7 @@
       <h1 class="card__title" style="margin:0;">Entra in un Tavolo Esistente</h1>
     </div>
     <div class="card__meta">{{ e.nome_evento }}</div>
-    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+    <div class="card__meta">{{ e.data_evento }}{% if e.tipo_musica %} • {{ e.tipo_musica }}{% endif %}</div>
   </div>
 
   <div style="padding: 1rem; border-radius: 8px; border: 2px solid rgba(34,197,94,0.4); background: rgba(34,197,94,0.1); margin-bottom: 1.5rem;">

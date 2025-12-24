@@ -10,14 +10,13 @@
     {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '⚙️'},
     {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
     {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': '🍹'},
-    {'url': url_for('promozioni.admin_list'), 'endpoint': 'promozioni.admin_list', 'label': 'Promozioni', 'icon': '🎁'},
-    {'url': url_for('format.admin_list'), 'endpoint': 'format.admin_list', 'label': 'Format', 'icon': '📋'},
+    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': '⭐'},
     {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📊'},
   ], current_endpoint=request.endpoint) }}
   
   {{ render_page_header(
     title="Impostazioni Sistema",
-    subtitle="Gestione staff, listino prodotti, format eventi e configurazioni sistema",
+    subtitle="Gestione staff, listino prodotti e configurazioni sistema",
     actions=None,
     breadcrumbs=[
       {'label': 'Configurazione', 'url': url_for('staff_admin.admin_hub')}
@@ -35,10 +34,6 @@
       <div class="stat-card__value" style="color: #3fc380;">{{ tot_prodotti }}</div>
       <div class="stat-card__label">Prodotti Listino</div>
       <div class="stat-card__meta">({{ prodotti_attivi }} attivi)</div>
-    </div>
-    <div class="stat-card" style="border-left: 4px solid #8b5cf6; text-align: center;">
-      <div class="stat-card__value" style="color: #8b5cf6;">{{ tot_format }}</div>
-      <div class="stat-card__label">Format Eventi</div>
     </div>
     <div class="stat-card" style="border-left: 4px solid #d4af37; text-align: center;">
       <div class="stat-card__value" style="color: #d4af37;">{{ soglie|length }}</div>
@@ -104,34 +99,6 @@
       </div>
     </section>
 
-    <!-- Format Eventi -->
-    <section class="card">
-      <div class="card__header">
-        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">🎭</span>
-          <div>
-            <h2 class="card__title" style="margin: 0;">Format Eventi</h2>
-            <p class="card__meta" style="margin: 0;">Template per tipologie serate</p>
-          </div>
-        </div>
-      </div>
-      <div class="card__content">
-        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-          <a href="{{ url_for('format.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            📋 Lista Format
-          </a>
-          <a href="{{ url_for('format.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            ➕ Nuovo Format
-          </a>
-        </div>
-      </div>
-      <div class="card__footer">
-        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
-          <strong>{{ tot_format }}</strong> format configurati
-        </p>
-      </div>
-    </section>
-
     <!-- Fedeltà e Soglie -->
     <section class="card">
       <div class="card__header">
@@ -191,31 +158,6 @@
       <div class="card__footer">
         <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
           Registro completo di tutte le operazioni eseguite nel sistema
-        </p>
-      </div>
-    </section>
-
-    <!-- Promozioni -->
-    <section class="card">
-      <div class="card__header">
-        <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">🎁</span>
-          <div>
-            <h2 class="card__title" style="margin: 0;">Promozioni</h2>
-            <p class="card__meta" style="margin: 0;">Offerte e sconti speciali</p>
-          </div>
-        </div>
-      </div>
-      <div class="card__content">
-        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-          <a href="{{ url_for('promozioni.admin_list') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            📋 Lista Promozioni
-          </a>
-        </div>
-      </div>
-      <div class="card__footer">
-        <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
-          Le promozioni evento sono ora integrate nel campo Promo dell'evento
         </p>
       </div>
     </section>

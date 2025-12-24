@@ -8,7 +8,7 @@
       <span style="font-size: 2rem;">🎟️</span>
       <h1 class="card__title" style="margin: 0;">Prenota per {{ e.nome_evento }}</h1>
     </div>
-    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+    <div class="card__meta">{{ e.data_evento }}{% if e.tipo_musica %} • {{ e.tipo_musica }}{% endif %}</div>
   </div>
 
   <!-- 3 Bottoni principali -->

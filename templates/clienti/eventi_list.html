@@ -38,7 +38,7 @@
         <p class="event-card__meta">
           <span class="event-card__date">{{ e.data_evento.strftime('%d %b %Y') if e.data_evento else '' }}</span>
           <span class="event-card__dot">•</span>
-          <span class="event-card__genre">{{ e.tipo_musica or e.categoria }}</span>
+          <span class="event-card__genre">{{ e.tipo_musica or '' }}</span>
         </p>
         
         {% if e.dj_artista %}
@@ -125,7 +125,7 @@
         <p class="event-card__meta">
           <span class="event-card__date">{{ e.data_evento.strftime('%d %b %Y') if e.data_evento else '' }}</span>
           <span class="event-card__dot">•</span>
-          <span class="event-card__genre">{{ e.tipo_musica or e.categoria }}</span>
+          <span class="event-card__genre">{{ e.tipo_musica or '' }}</span>
         </p>
         {% if e.dj_artista %}
           <p class="event-card__dj">DJ set: <strong>{{ e.dj_artista }}</strong></p>
@@ -144,9 +144,6 @@
 <div class="form__actions">
   <form method="get" action="{{ url_for('eventi.lista_pubblica') }}">
     <input type="hidden" name="show_all" value="past">
-    {% if filtri.categoria %}
-      <input type="hidden" name="categoria" value="{{ filtri.categoria }}">
-    {% endif %}
     {% if filtri.dal %}
       <input type="hidden" name="dal" value="{{ filtri.dal }}">
     {% endif %}
@@ -164,15 +161,6 @@
   <h1 class="card__title">Filtra eventi</h1>
   <form class="form" method="get">
     <div class="grid grid--2">
-      <div class="form__group">
-        <label class="form__label">Categoria</label>
-        <select class="form__input" name="categoria">
-          <option value="">Tutte</option>
-          {% for c in CATEGORIES_PUBLIC %}
-            <option value="{{ c }}" {% if filtri.categoria==c %}selected{% endif %}>{{ c|capitalize }}</option>
-          {% endfor %}
-        </select>
-      </div>
       <div class="form__group">
         <label class="form__label">Dal</label>
         <input class="form__input" type="date" name="dal" value="{{ filtri.dal or '' }}">

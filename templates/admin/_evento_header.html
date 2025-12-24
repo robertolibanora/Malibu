@@ -23,13 +23,8 @@
       <!-- Stato e Badge -->
       <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
         <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'primary' if evento.stato_pubblico == 'programmato' else 'secondary' }}" style="font-size: var(--font-size-sm); padding: var(--spacing-2) var(--spacing-3);">
-          {{ evento.stato_pubblico|upper }}
+          {% if evento.stato_pubblico == 'attivo' %}✅ ATTIVO{% elif evento.stato_pubblico == 'programmato' %}📋 PROGRAMMATO{% else %}🔒 CHIUSO{% endif %}
         </span>
-        {% if evento.is_staff_operativo %}
-        <span class="badge badge--success" style="font-size: var(--font-size-sm); padding: var(--spacing-2) var(--spacing-3);">
-          🟢 OPERATIVO
-        </span>
-        {% endif %}
       </div>
 
       <!-- Azioni Principali -->
@@ -38,23 +33,32 @@
         <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}" style="display: inline;">
           <button type="submit" class="btn btn--secondary btn--small" title="Duplica evento">📋 Duplica</button>
         </form>
-        {% if not evento.is_staff_operativo %}
-        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-          <button class="btn btn--secondary btn--small" type="submit" name="evento_id" value="{{ evento.id_evento }}">🟢 Attiva Staff</button>
-        </form>
-        {% else %}
-        <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-          <input type="hidden" name="evento_id" value="clear">
-          <button class="btn btn--ghost btn--small" type="submit">🔴 Disattiva</button>
-        </form>
-        {% endif %}
-        {% if evento.stato_pubblico != 'chiuso' %}
-        <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
-              style="display: inline;" 
-              onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
-          <button class="btn btn--danger btn--small" type="submit">🔒 Chiudi</button>
-        </form>
-        {% endif %}
+        <!-- Menu Stato Evento -->
+        <div class="dropdown-container" style="position: relative; display: inline-block;">
+          <button type="button" class="btn btn--secondary btn--small dropdown-toggle" data-event-id="{{ evento.id_evento }}" style="display: flex; align-items: center; gap: var(--spacing-1); cursor: pointer;">
+            ⚙️ Cambia Stato
+            <span style="font-size: 0.7em; margin-left: 2px;">▼</span>
+          </button>
+          <div class="dropdown-menu" id="dropdown-{{ evento.id_evento }}" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; background: #1a1a1a; border: 2px solid rgba(212, 175, 55, 0.6); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1), 0 0 20px rgba(212, 175, 55, 0.3); z-index: 10000; min-width: 240px; padding: 12px;">
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='programmato') }}" style="margin: 0;">
+                <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if evento.stato_pubblico == 'programmato' %}rgba(212, 175, 55, 0.25); color: #d4af37; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" {% if evento.stato_pubblico == 'programmato' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                  📋 Programmato{% if evento.stato_pubblico == 'programmato' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                </button>
+              </form>
+              <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='attivo') }}" style="margin: 0;">
+                <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if evento.stato_pubblico == 'attivo' %}rgba(59, 130, 246, 0.25); color: #60a5fa; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" onclick="if(!this.disabled) return confirm('Attivare l\'evento? Staff e pubblico saranno attivati automaticamente.');" {% if evento.stato_pubblico == 'attivo' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                  ✅ Attivo{% if evento.stato_pubblico == 'attivo' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                </button>
+              </form>
+              <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='chiuso') }}" style="margin: 0;">
+                <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if evento.stato_pubblico == 'chiuso' %}rgba(107, 114, 128, 0.25); color: #9ca3af; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" onclick="if(!this.disabled) return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');" {% if evento.stato_pubblico == 'chiuso' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                  🔒 Chiuso{% if evento.stato_pubblico == 'chiuso' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

@@ -15,7 +15,7 @@
   {% set is_clienti = endpoint.startswith('clienti.admin_') or endpoint.startswith('fedelta.admin_') %}
   {% set is_operativo = endpoint.startswith('prenotazioni.admin_') or endpoint.startswith('ingressi.admin_') or endpoint.startswith('consumi.admin_') or endpoint.startswith('feedback.admin_') %}
   {% set is_stats = endpoint.startswith('stats.admin_') %}
-  {% set is_config = endpoint.startswith('staff_admin.admin_') or endpoint.startswith('prodotti.admin_') or endpoint.startswith('log.') or endpoint.startswith('format.admin_') or endpoint.startswith('promozioni.admin_') %}
+  {% set is_config = endpoint.startswith('staff_admin.admin_') or endpoint.startswith('prodotti.admin_') or endpoint.startswith('log.') %}
   
   <div class="admin-shell">
     <!-- Sidebar Principale -->

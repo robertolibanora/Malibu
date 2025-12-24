@@ -87,11 +87,8 @@
                   </h3>
                   <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
                     <span class="badge {% if e.stato_pubblico == 'attivo' %}badge--success{% elif e.stato_pubblico == 'programmato' %}badge--secondary{% else %}badge--secondary{% endif %}">
-                      {% if e.stato_pubblico == 'attivo' %}✅ ATTIVO (pubblico){% elif e.stato_pubblico == 'programmato' %}📋 PROGRAMMATO{% else %}🔒 CHIUSO{% endif %}
+                      {% if e.stato_pubblico == 'attivo' %}✅ ATTIVO{% elif e.stato_pubblico == 'programmato' %}📋 PROGRAMMATO{% else %}🔒 CHIUSO{% endif %}
                     </span>
-                    {% if e.is_staff_operativo %}
-                    <span class="badge badge--success">🟢 OPERATIVO STAFF</span>
-                    {% endif %}
                     <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
                   </div>
                 </div>
@@ -118,33 +115,32 @@
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
                   ✏️ Modifica
                 </a>
-                {% if not e.is_staff_operativo %}
-                <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-                  <button type="submit" name="evento_id" value="{{ e.id_evento }}" class="btn btn--secondary btn--small">
-                    🟢 Attiva Staff
+                <!-- Menu Stato Evento -->
+                <div class="dropdown-container" style="position: relative; display: inline-block;">
+                  <button type="button" class="btn btn--secondary btn--small dropdown-toggle" data-event-id="{{ e.id_evento }}" style="display: flex; align-items: center; gap: var(--spacing-1); cursor: pointer;">
+                    ⚙️ Cambia Stato
+                    <span style="font-size: 0.7em; margin-left: 2px;">▼</span>
                   </button>
-                </form>
-                {% else %}
-                <form method="post" action="{{ url_for('eventi.admin_evento_attivo') }}" style="display: inline;">
-                  <button type="submit" name="evento_id" value="clear" class="btn btn--ghost btn--small">
-                    🔴 Disattiva Staff
-                  </button>
-                </form>
-                {% endif %}
-                {% if e.stato_pubblico != 'attivo' %}
-                <form method="post" action="{{ url_for('eventi.admin_attiva_pubblico', evento_id=e.id_evento) }}" style="display: inline;">
-                  <button type="submit" class="btn btn--secondary btn--small">
-                    🌐 Attiva Pubblico
-                  </button>
-                </form>
-                {% endif %}
-                {% if e.stato_pubblico == 'attivo' %}
-                <form method="post" action="{{ url_for('eventi.admin_chiudi_pubblico', evento_id=e.id_evento) }}" style="display: inline;">
-                  <button type="submit" class="btn btn--ghost btn--small" onclick="return confirm('Chiudere l\'evento al pubblico?');">
-                    🔒 Chiudi Pubblico
-                  </button>
-                </form>
-                {% endif %}
+                  <div class="dropdown-menu" id="dropdown-{{ e.id_evento }}" style="display: none; position: absolute; top: 100%; left: 0; margin-top: 4px; background: #1a1a1a; border: 2px solid rgba(212, 175, 55, 0.6); border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.8), 0 0 0 1px rgba(255,255,255,0.1), 0 0 20px rgba(212, 175, 55, 0.3); z-index: 10000; min-width: 240px; padding: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px;">
+                      <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='programmato') }}" style="margin: 0;">
+                        <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if e.stato_pubblico == 'programmato' %}rgba(212, 175, 55, 0.25); color: #d4af37; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" {% if e.stato_pubblico == 'programmato' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                          📋 Programmato{% if e.stato_pubblico == 'programmato' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                        </button>
+                      </form>
+                      <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='attivo') }}" style="margin: 0;">
+                        <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if e.stato_pubblico == 'attivo' %}rgba(59, 130, 246, 0.25); color: #60a5fa; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" onclick="if(!this.disabled) return confirm('Attivare l\'evento? Staff e pubblico saranno attivati automaticamente.');" {% if e.stato_pubblico == 'attivo' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                          ✅ Attivo{% if e.stato_pubblico == 'attivo' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                        </button>
+                      </form>
+                      <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='chiuso') }}" style="margin: 0;">
+                        <button type="submit" class="dropdown-item" style="width: 100%; justify-content: flex-start; padding: 12px 16px; text-align: left; border-radius: 6px; border: none; background: {% if e.stato_pubblico == 'chiuso' %}rgba(107, 114, 128, 0.25); color: #9ca3af; font-weight: 600; cursor: not-allowed;{% else %}transparent; color: #ffffff; cursor: pointer;{% endif %}; transition: all 0.2s;" onclick="if(!this.disabled) return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');" {% if e.stato_pubblico == 'chiuso' %}disabled{% endif %} onmouseover="if(!this.disabled) {this.style.background='rgba(255,255,255,0.15)';}" onmouseout="if(!this.disabled) {this.style.background='transparent';}">
+                          🔒 Chiuso{% if e.stato_pubblico == 'chiuso' %} <span style="opacity: 0.7;">(attuale)</span>{% endif %}
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -226,4 +222,91 @@
   {% endif %}
   {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Gestione dropdown menu stato evento
+  const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+  
+  function positionDropdownMenu(toggle, menu) {
+    const toggleRect = toggle.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = (toggleRect.bottom + 4) + 'px';
+    menu.style.left = toggleRect.left + 'px';
+    menu.style.zIndex = '99999';
+  }
+  
+  function resetDropdownMenu(menu) {
+    menu.style.position = 'absolute';
+    menu.style.top = '';
+    menu.style.left = '';
+    menu.style.zIndex = '';
+  }
+  
+  dropdownToggles.forEach(function(toggle) {
+    toggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      
+      const eventoId = this.getAttribute('data-event-id');
+      const menu = document.getElementById('dropdown-' + eventoId);
+      
+      if (!menu) {
+        console.error('Menu non trovato per evento:', eventoId);
+        return;
+      }
+      
+      // Chiudi tutti gli altri menu
+      document.querySelectorAll('.dropdown-menu').forEach(function(m) {
+        if (m.id !== 'dropdown-' + eventoId) {
+          m.style.display = 'none';
+          resetDropdownMenu(m);
+        }
+      });
+      
+      // Toggle del menu corrente
+      if (menu.style.display === 'none' || menu.style.display === '') {
+        positionDropdownMenu(toggle, menu);
+        menu.style.display = 'block';
+      } else {
+        menu.style.display = 'none';
+        resetDropdownMenu(menu);
+      }
+    });
+  });
+  
+  // Chiudi i menu quando si clicca fuori
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown-container')) {
+      document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+        menu.style.display = 'none';
+        resetDropdownMenu(menu);
+      });
+    }
+  });
+  
+  // Chiudi i menu quando si scrolla o si ridimensiona la finestra
+  window.addEventListener('scroll', function() {
+    document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+      if (menu.style.display === 'block') {
+        const toggle = document.querySelector('[data-event-id="' + menu.id.replace('dropdown-', '') + '"]');
+        if (toggle) {
+          positionDropdownMenu(toggle, menu);
+        }
+      }
+    });
+  }, true);
+  
+  window.addEventListener('resize', function() {
+    document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
+      if (menu.style.display === 'block') {
+        const toggle = document.querySelector('[data-event-id="' + menu.id.replace('dropdown-', '') + '"]');
+        if (toggle) {
+          positionDropdownMenu(toggle, menu);
+        }
+      }
+    });
+  });
+});
+</script>
 {% endblock %}

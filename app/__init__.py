@@ -23,15 +23,19 @@ def create_app():
     app.limiter = limiter
 
     # Configurazione database
-    db_user = os.getenv("DB_USER")
-    db_password = os.getenv("DB_PASSWORD")
-    db_host = os.getenv("DB_HOST")
-    db_name = os.getenv("DB_NAME")
-    db_port = os.getenv("DB_PORT")
-
-    app.config['SQLALCHEMY_DATABASE_URI'] = (
-        f"mysql+mysqlconnector://{db_user}:{db_password or ''}@{db_host}:{db_port or '3306'}/{db_name}"
-    )
+    use_sqlite = os.getenv("USE_SQLITE", "false").lower() == "true"
+    if use_sqlite:
+        db_path = base_dir / "malibu.db"
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
+    else:
+        db_user = os.getenv("DB_USER")
+        db_password = os.getenv("DB_PASSWORD")
+        db_host = os.getenv("DB_HOST")
+        db_name = os.getenv("DB_NAME")
+        db_port = os.getenv("DB_PORT")
+        app.config['SQLALCHEMY_DATABASE_URI'] = (
+            f"mysql+mysqlconnector://{db_user}:{db_password or ''}@{db_host}:{db_port or '3306'}/{db_name}"
+        )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config.setdefault("EVENTO_ATTIVO_ID", None)
     
@@ -49,85 +53,175 @@ def create_app():
     Base.metadata.create_all(bind=engine)
 
     inspector = inspect(engine)
+    # Verifica se stiamo usando SQLite (non supporta ALTER TABLE MODIFY)
+    is_sqlite = engine.dialect.name == "sqlite"
+    
     try:
         feedback_columns = {col["name"] for col in inspector.get_columns("feedback")}
         if "voto_servizio" not in feedback_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE feedback "
-                    "ADD COLUMN voto_servizio SMALLINT NOT NULL DEFAULT 5"
-                ))
-                conn.execute(text(
-                    "ALTER TABLE feedback "
-                    "ADD CONSTRAINT chk_voto_servizio "
-                    "CHECK (voto_servizio BETWEEN 1 AND 10)"
-                ))
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE feedback "
+                        "ADD COLUMN voto_servizio SMALLINT DEFAULT 5"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE feedback "
+                        "ADD COLUMN voto_servizio SMALLINT NOT NULL DEFAULT 5"
+                    ))
+                    conn.execute(text(
+                        "ALTER TABLE feedback "
+                        "ADD CONSTRAINT chk_voto_servizio "
+                        "CHECK (voto_servizio BETWEEN 1 AND 10)"
+                    ))
 
+        # Migrazione: aggiungi colonne per apertura/chiusura automatica eventi
+        eventi_columns = {col["name"] for col in inspector.get_columns("eventi")}
+        if "data_ora_apertura_auto" not in eventi_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE eventi "
+                    "ADD COLUMN data_ora_apertura_auto DATETIME NULL"
+                ))
+        if "data_ora_chiusura_auto" not in eventi_columns:
+            with engine.begin() as conn:
+                conn.execute(text(
+                    "ALTER TABLE eventi "
+                    "ADD COLUMN data_ora_chiusura_auto DATETIME NULL"
+                ))
+        
         prenotazioni_columns = {col["name"] for col in inspector.get_columns("prenotazioni")}
         if "ruolo_tavolo" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN ruolo_tavolo ENUM('referente', 'aderente', 'none') "
-                    "NOT NULL DEFAULT 'none' "
-                    "AFTER stato"
-                ))
+                if is_sqlite:
+                    # SQLite: usa VARCHAR invece di ENUM, senza AFTER
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN ruolo_tavolo VARCHAR(20) NOT NULL DEFAULT 'none'"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN ruolo_tavolo ENUM('referente', 'aderente', 'none') "
+                        "NOT NULL DEFAULT 'none' "
+                        "AFTER stato"
+                    ))
         if "prenotazione_padre_id" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN prenotazione_padre_id INT NULL "
-                    "AFTER ruolo_tavolo"
-                ))
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD CONSTRAINT fk_prenotazioni_padre "
-                    "FOREIGN KEY (prenotazione_padre_id) "
-                    "REFERENCES prenotazioni(id_prenotazione) "
-                    "ON DELETE CASCADE ON UPDATE CASCADE"
-                ))
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN prenotazione_padre_id INTEGER NULL"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN prenotazione_padre_id INT NULL "
+                        "AFTER ruolo_tavolo"
+                    ))
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD CONSTRAINT fk_prenotazioni_padre "
+                        "FOREIGN KEY (prenotazione_padre_id) "
+                        "REFERENCES prenotazioni(id_prenotazione) "
+                        "ON DELETE CASCADE ON UPDATE CASCADE"
+                    ))
         if "codice_invito" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN codice_invito VARCHAR(10) UNIQUE "
-                    "AFTER prenotazione_padre_id"
-                ))
+                if is_sqlite:
+                    # SQLite non supporta UNIQUE in ALTER TABLE ADD COLUMN
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN codice_invito VARCHAR(10)"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN codice_invito VARCHAR(10) UNIQUE "
+                        "AFTER prenotazione_padre_id"
+                    ))
         if "numero_tavolo" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN numero_tavolo INT NULL "
-                    "AFTER codice_invito"
-                ))
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD CONSTRAINT fk_prenotazioni_tavolo "
-                    "FOREIGN KEY (numero_tavolo) "
-                    "REFERENCES tavoli_evento(id_tavolo) "
-                    "ON DELETE SET NULL ON UPDATE CASCADE"
-                ))
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN numero_tavolo INTEGER NULL"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN numero_tavolo INT NULL "
+                        "AFTER codice_invito"
+                    ))
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD CONSTRAINT fk_prenotazioni_tavolo "
+                        "FOREIGN KEY (numero_tavolo) "
+                        "REFERENCES tavoli_evento(id_tavolo) "
+                        "ON DELETE SET NULL ON UPDATE CASCADE"
+                    ))
         if "nome_tavolo_gruppo" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN nome_tavolo_gruppo VARCHAR(100) "
-                    "AFTER numero_tavolo"
-                ))
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN nome_tavolo_gruppo VARCHAR(100)"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN nome_tavolo_gruppo VARCHAR(100) "
+                        "AFTER numero_tavolo"
+                    ))
         if "stato_approvazione_tavolo" not in prenotazioni_columns:
             with engine.begin() as conn:
-                conn.execute(text(
-                    "ALTER TABLE prenotazioni "
-                    "ADD COLUMN stato_approvazione_tavolo "
-                    "ENUM('in_attesa','approvata','rifiutata') "
-                    "DEFAULT NULL "
-                    "AFTER nome_tavolo_gruppo"
-                ))
+                if is_sqlite:
+                    # SQLite: usa VARCHAR invece di ENUM
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN stato_approvazione_tavolo VARCHAR(20) DEFAULT NULL"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE prenotazioni "
+                        "ADD COLUMN stato_approvazione_tavolo "
+                        "ENUM('in_attesa','approvata','rifiutata') "
+                        "DEFAULT NULL "
+                        "AFTER nome_tavolo_gruppo"
+                    ))
+        # Migrazione: aggiungi colonne per apertura/chiusura automatica eventi
+        eventi_columns = {col["name"] for col in inspector.get_columns("eventi")}
+        if "data_ora_apertura_auto" not in eventi_columns:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE eventi "
+                        "ADD COLUMN data_ora_apertura_auto DATETIME NULL"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE eventi "
+                        "ADD COLUMN data_ora_apertura_auto DATETIME NULL"
+                    ))
+        if "data_ora_chiusura_auto" not in eventi_columns:
+            with engine.begin() as conn:
+                if is_sqlite:
+                    conn.execute(text(
+                        "ALTER TABLE eventi "
+                        "ADD COLUMN data_ora_chiusura_auto DATETIME NULL"
+                    ))
+                else:
+                    conn.execute(text(
+                        "ALTER TABLE eventi "
+                        "ADD COLUMN data_ora_chiusura_auto DATETIME NULL"
+                    ))
+        
         staff_columns = inspector.get_columns("staff")
         ruolo_column = next((col for col in staff_columns if col["name"] == "ruolo"), None)
         desired_roles = ("admin", "barista", "ingressista")
         legacy_roles = ("staff", "cassa")
-        if ruolo_column:
+        if ruolo_column and not is_sqlite:  # Salta le migrazioni ENUM per SQLite
             current_roles = tuple(getattr(ruolo_column["type"], "enums", ()))
             has_all_desired = all(role in current_roles for role in desired_roles)
             legacy_present = any(role in current_roles for role in legacy_roles)
@@ -209,6 +303,17 @@ def create_app():
     # Registra blueprint staff
     app.register_blueprint(staff_bp)
     app.register_blueprint(staff_admin_bp)
+    
+    # ⚡ Apertura/Chiusura automatica eventi
+    # Chiama la funzione prima di ogni richiesta per controllare gli eventi
+    @app.before_request
+    def check_auto_eventi():
+        from app.utils.auto_eventi import processa_apertura_chiusura_automatica
+        # Esegui il controllo (non blocca se c'è un errore)
+        try:
+            processa_apertura_chiusura_automatica()
+        except Exception:
+            pass  # Non bloccare le richieste se c'è un errore
 
     # Context processor per conteggio prenotazioni tavolo in attesa (admin)
     @app.context_processor

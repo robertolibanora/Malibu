@@ -9,7 +9,7 @@
       <h1 class="card__title" style="margin: 0;">Prenota un Tavolo</h1>
     </div>
     <div class="card__meta">{{ e.nome_evento }}</div>
-    <div class="card__meta">{{ e.data_evento }} • {{ e.tipo_musica or e.categoria }}</div>
+    <div class="card__meta">{{ e.data_evento }}{% if e.tipo_musica %} • {{ e.tipo_musica }}{% endif %}</div>
   </div>
 
   <div class="grid grid--2" style="gap: 1rem; margin-bottom: 1.5rem;">

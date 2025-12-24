@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -31,6 +31,9 @@ class Evento(Base):
     is_staff_operativo = Column(Boolean, default=False, nullable=False)
     cover_url = Column(String(255))  # opzionale: URL immagine di copertina
     template_id = Column(Integer, ForeignKey("template_eventi.id_template", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
+    # Apertura e chiusura automatica
+    data_ora_apertura_auto = Column(DateTime, nullable=True)  # Quando aprire automaticamente l'evento
+    data_ora_chiusura_auto = Column(DateTime, nullable=True)  # Quando chiudere automaticamente l'evento
 
     # 🔗 Relazioni ORM (verso le altre tabelle)
     prenotazioni = relationship("Prenotazione", back_populates="evento", cascade="all, delete-orphan")

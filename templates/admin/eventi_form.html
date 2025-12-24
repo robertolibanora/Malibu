@@ -66,14 +66,6 @@
       <input class="form__input" type="number" min="0" name="capienza_max" id="capienza_max" value="{{ e.capienza_max if e else 2000 }}" required>
     </div>
     <div class="form__group">
-      <label class="form__label">Categoria</label>
-      <select class="form__input" name="categoria" id="categoria" required>
-        {% for c in CATEGORIES_PUBLIC %}
-          <option value="{{ c }}" {% if e and e.categoria==c %}selected{% endif %}>{{ c|capitalize }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form__group">
       <label class="form__label">Stato pubblico</label>
       <select class="form__input" name="stato_pubblico" required>
         <option value="programmato" {% if e and e.stato_pubblico=='programmato' %}selected{% endif %}{% if not e %}selected{% endif %}>Programmato</option>
@@ -82,6 +74,29 @@
       </select>
       <small class="text--muted">Lo staff può operare solo sugli eventi con stato pubblico “attivo” e impostati come “operativi”.</small>
     </div>
+    
+    <div class="form__group" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 1rem;">
+      <h3 style="margin-bottom: 1rem; color: var(--admin-accent);">⏰ Apertura e Chiusura Automatica</h3>
+      <p class="text--muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+        Imposta gli orari per l'apertura e chiusura automatica dell'evento. L'evento passerà automaticamente a "attivo" all'orario di apertura e a "chiuso" all'orario di chiusura.
+      </p>
+    </div>
+    
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Data e Ora Apertura Automatica</label>
+        <input class="form__input" type="datetime-local" name="data_ora_apertura_auto" id="data_ora_apertura_auto" 
+               value="{% if e and e.data_ora_apertura_auto %}{{ e.data_ora_apertura_auto.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        <small class="text--muted">Quando l'evento deve passare automaticamente a "attivo"</small>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Data e Ora Chiusura Automatica</label>
+        <input class="form__input" type="datetime-local" name="data_ora_chiusura_auto" id="data_ora_chiusura_auto" 
+               value="{% if e and e.data_ora_chiusura_auto %}{{ e.data_ora_chiusura_auto.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        <small class="text--muted">Quando l'evento deve passare automaticamente a "chiuso"</small>
+      </div>
+    </div>
+    
     <div class="form__group">
       <label class="form__label">Immagine Copertina (JPG/PNG) {% if not e %}*{% endif %}</label>
       <input class="form__input" type="file" name="cover_image" id="cover_image" accept="image/jpeg,image/jpg,image/png" {% if not e %}required{% endif %}>
@@ -115,7 +130,6 @@
 document.addEventListener('DOMContentLoaded', function() {
   const templateSelect = document.getElementById('template_evento');
   const nomeInput = document.getElementById('nome_evento');
-  const categoriaSelect = document.getElementById('categoria');
   const tipoMusicaInput = document.getElementById('tipo_musica');
   const capienzaInput = document.getElementById('capienza_max');
   const statoSelect = document.querySelector('select[name="stato_pubblico"]');
@@ -126,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (selectedOption.value && selectedOption.value !== 'custom' && selectedOption.value !== '') {
       // Precompila i campi con i valori del format
       nomeInput.value = selectedOption.getAttribute('data-nome') || '';
-      categoriaSelect.value = selectedOption.getAttribute('data-categoria') || 'altro';
       tipoMusicaInput.value = selectedOption.getAttribute('data-tipo-musica') || '';
       capienzaInput.value = selectedOption.getAttribute('data-capienza') || '2500';
       if (statoSelect) {
@@ -137,7 +150,6 @@ document.addEventListener('DOMContentLoaded', function() {
       nomeInput.value = '';
       tipoMusicaInput.value = '';
       capienzaInput.value = '2500';
-      categoriaSelect.value = 'altro';
       if (statoSelect) {
         statoSelect.value = 'programmato';
       }
