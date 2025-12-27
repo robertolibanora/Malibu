@@ -82,3 +82,4 @@ def imposta_stato_evento(db, evento: Evento, nuovo_stato: str, staff_id=None, au
     
     return True
 
+

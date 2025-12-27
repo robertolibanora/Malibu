@@ -9,16 +9,13 @@
   {{ render_secondary_nav([
     {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
     {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
-    {'url': url_for('fedelta.admin_movimenti'), 'endpoint': 'fedelta.admin_movimenti', 'label': 'Movimenti', 'icon': '📊'},
-    {'url': url_for('fedelta.admin_analytics'), 'endpoint': 'fedelta.admin_analytics', 'label': 'Analytics', 'icon': '📈'},
   ], current_endpoint=request.endpoint) }}
 
   {{ render_page_header(
     title="Programma Fedeltà",
     subtitle="Monitora punti, soglie di livello e le attività più recenti dei clienti fidelizzati",
     actions=[
-      {'type': 'link', 'url': url_for('fedelta.admin_movimenti'), 'label': 'Gestisci movimenti', 'class': 'btn--primary'},
-      {'type': 'link', 'url': url_for('fedelta.admin_analytics'), 'label': 'Analytics fedeltà', 'class': 'btn--ghost'}
+      {'type': 'link', 'url': url_for('fedelta.admin_azzera_punti_form'), 'label': '⚠️ Azzera Punti', 'class': 'btn--danger'}
     ],
     breadcrumbs=[
       {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
@@ -195,7 +192,6 @@
         <h2 class="card__title">Ultimi movimenti registrati</h2>
         <p class="card__meta">Attività recenti del programma fedeltà</p>
       </div>
-      <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_movimenti') }}">Vai all'elenco →</a>
     </div>
     <div class="card__content">
       {% if recent_movimenti %}

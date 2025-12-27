@@ -68,11 +68,17 @@
     <div class="form__group">
       <label class="form__label">Stato pubblico</label>
       <select class="form__input" name="stato_pubblico" required>
-        <option value="programmato" {% if e and e.stato_pubblico=='programmato' %}selected{% endif %}{% if not e %}selected{% endif %}>Programmato</option>
-        <option value="attivo" {% if e and e.stato_pubblico=='attivo' %}selected{% endif %}>Attivo</option>
-        <option value="chiuso" {% if e and e.stato_pubblico=='chiuso' %}selected{% endif %}>Chiuso</option>
+        {% if e %}
+          <option value="programmato" {% if e.stato_pubblico == 'programmato' %}selected{% endif %}>Programmato</option>
+          <option value="attivo" {% if e.stato_pubblico == 'attivo' %}selected{% endif %}>Attivo</option>
+          <option value="chiuso" {% if e.stato_pubblico == 'chiuso' %}selected{% endif %}>Chiuso</option>
+        {% else %}
+          <option value="programmato" selected>Programmato</option>
+          <option value="attivo">Attivo</option>
+          <option value="chiuso">Chiuso</option>
+        {% endif %}
       </select>
-      <small class="text--muted">Lo staff può operare solo sugli eventi con stato pubblico “attivo” e impostati come “operativi”.</small>
+      <small class="text--muted">Lo staff può operare solo sugli eventi con stato pubblico "attivo" e impostati come "operativi".</small>
     </div>
     
     <div class="form__group" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 1rem;">

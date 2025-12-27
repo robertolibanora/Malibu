@@ -1,0 +1,77 @@
+{% extends "admin/base.html" %}
+{% block admin_title %}Azzera Punti Fedeltà{% endblock %}
+
+{% from "admin/_page_header.html" import render_page_header %}
+{% from "admin/_secondary_nav.html" import render_secondary_nav %}
+
+{% block admin_content %}
+<div class="admin-shell__content">
+  {{ render_secondary_nav([
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+  ], current_endpoint=request.endpoint) }}
+
+  {{ render_page_header(
+    title="Azzera Punti Fedeltà",
+    subtitle="⚠️ ATTENZIONE: Questa operazione azzererà TUTTI i punti di TUTTI i clienti",
+    actions=[
+      {'type': 'link', 'url': url_for('fedelta.admin_list'), 'label': '← Annulla', 'class': 'btn--ghost'}
+    ],
+    breadcrumbs=[
+      {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
+      {'label': 'Punti Fedeltà', 'url': url_for('fedelta.admin_list')},
+      {'label': 'Azzera Punti'}
+    ]
+  ) }}
+
+  <!-- Avviso -->
+  <section class="card" style="border-left: 4px solid var(--color-red-accent);">
+    <div class="card__content">
+      <div style="display: flex; align-items: start; gap: var(--spacing-3);">
+        <span style="font-size: 2rem;">⚠️</span>
+        <div>
+          <h3 style="margin: 0 0 var(--spacing-2); color: var(--color-red-accent);">Operazione Irreversibile</h3>
+          <p style="margin: 0; color: var(--admin-text);">
+            Questa operazione azzererà <strong>definitivamente</strong> tutti i punti fedeltà di tutti i clienti.
+            I livelli verranno resettati a "base" e questa azione non può essere annullata.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Form Conferma Password -->
+  <section class="card">
+    <div class="card__header">
+      <h2 class="card__title">Conferma con Password</h2>
+      <p class="card__subtitle">Inserisci la password del tuo account admin per confermare l'operazione</p>
+    </div>
+    <div class="card__content">
+      <form method="post" class="form">
+        <div class="form__group">
+          <label class="form__label" for="password">Password Admin</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            class="form__input" 
+            required 
+            autocomplete="current-password"
+            placeholder="Inserisci la password per confermare"
+            autofocus
+          >
+          <small class="text--muted">Devi inserire la password del tuo account amministratore per procedere.</small>
+        </div>
+        
+        <div class="form__actions">
+          <button type="submit" class="btn btn--danger" onclick="return confirm('⚠️ SEI SICURO? Questa operazione azzererà TUTTI i punti di TUTTI i clienti. Questa azione NON può essere annullata.');">
+            ⚠️ Conferma e Azzera Tutti i Punti
+          </button>
+          <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost">Annulla</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
+

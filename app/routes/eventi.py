@@ -1,6 +1,6 @@
 # app/routes/eventi.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, Integer
 from datetime import date, datetime, timedelta
 from werkzeug.utils import secure_filename
 from pathlib import Path
@@ -15,7 +15,7 @@ from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.utils.decorators import require_admin, require_staff
 from app.models.template_eventi import TEMPLATE_EVENTI, TemplateEvento
-from app.utils.events import get_evento_operativo, set_evento_operativo_id
+from app.utils.events import get_evento_operativo, set_evento_operativo_id, get_evento_operativo_id
 from app.routes.log_attivita import log_action
 from app.routes.fedelta import award_on_no_show
 
@@ -320,20 +320,31 @@ def admin_list():
                         .all())
             ingressi_map = {eid: count for eid, count in counts}
         
-        # Classifica automaticamente gli eventi in base alla data
-        # Eventi programmati: ordine crescente (prossimo in alto)
-        eventi_programmati = sorted([e for e in eventi if e.data_evento >= oggi], 
-                                   key=lambda e: e.data_evento)
-        # Eventi passati: ordine decrescente (più recente in alto)
-        eventi_passati = sorted([e for e in eventi if e.data_evento < oggi], 
-                               key=lambda e: e.data_evento, reverse=True)
+        # Classifica automaticamente gli eventi
+        # Eventi in Programma: data >= oggi E stato_pubblico == 'programmato'
+        eventi_in_programma = sorted(
+            [e for e in eventi if e.data_evento >= oggi and e.stato_pubblico == 'programmato'], 
+            key=lambda e: e.data_evento
+        )
+        # Eventi Attivi: stato_pubblico == 'attivo' (indipendentemente dalla data)
+        eventi_attivi = sorted(
+            [e for e in eventi if e.stato_pubblico == 'attivo'], 
+            key=lambda e: e.data_evento
+        )
+        # Eventi passati: data < oggi E stato_pubblico != 'attivo'
+        eventi_passati = sorted(
+            [e for e in eventi if e.data_evento < oggi and e.stato_pubblico != 'attivo'], 
+            key=lambda e: e.data_evento, 
+            reverse=True
+        )
         
         return render_template("admin/eventi_list.html", 
                              eventi=eventi, 
                              stato=stato, 
                              periodo=periodo,
                              oggi=oggi,
-                             eventi_programmati=eventi_programmati,
+                             eventi_in_programma=eventi_in_programma,
+                             eventi_attivi=eventi_attivi,
                              eventi_passati=eventi_passati,
                              ingressi_map=ingressi_map)
     finally:
@@ -528,11 +539,11 @@ def admin_evento_detail(evento_id):
         ).filter(Feedback.evento_id == evento_id).one()
         
         # Dati per grafici analytics
-        # Ingressi per ora
+        # Ingressi per ora (SQLite compatibile: usa strftime invece di hour)
         ingressi_ora = db.query(
-            func.hour(Ingresso.orario_ingresso).label('ora'),
+            func.cast(func.strftime('%H', Ingresso.orario_ingresso), Integer).label('ora'),
             func.count(Ingresso.id_ingresso).label('count')
-        ).filter(Ingresso.evento_id == evento_id).group_by(func.hour(Ingresso.orario_ingresso)).order_by(func.hour(Ingresso.orario_ingresso)).all()
+        ).filter(Ingresso.evento_id == evento_id).group_by(func.strftime('%H', Ingresso.orario_ingresso)).order_by(func.strftime('%H', Ingresso.orario_ingresso)).all()
         
         ingressi_temporali_data = []
         for ora, count in ingressi_ora:
@@ -585,6 +596,10 @@ def admin_edit(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
+        # Impedisci modifica se l'evento è chiuso
+        if e.stato_pubblico == 'chiuso':
+            flash("Non è possibile modificare un evento chiuso. Apri l'evento per modificarlo.", "warning")
+            return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
         if request.method == "POST":
             e.nome_evento = request.form.get("nome_evento")
             # Converti data_evento da stringa a date per SQLite
@@ -713,14 +728,37 @@ def admin_delete(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
         else:
+            evento_nome = e.nome_evento
+            evento_data = e.data_evento
+            
+            # Se è l'evento operativo, disattivalo prima di eliminare
+            evento_operativo_id = get_evento_operativo_id(db)
+            if evento_operativo_id == evento_id:
+                set_evento_operativo_id(db, None)
+            
             # Elimina immagine se esiste
             if e.cover_url:
                 img_path = Path(current_app.config['UPLOAD_FOLDER']) / e.cover_url
                 if img_path.exists():
                     img_path.unlink()
+            
+            # Elimina l'evento (le relazioni vengono eliminate in cascade grazie a cascade="all, delete-orphan")
             db.delete(e)
+            db.flush()
+            
+            # Registra l'azione nel log
+            staff_id = session.get("staff_id")
+            log_action(
+                db,
+                tabella="eventi",
+                record_id=evento_id,
+                staff_id=staff_id,
+                azione="delete",
+                note=f"Evento eliminato: {evento_nome} ({evento_data})"
+            )
+            
             db.commit()
-            flash("Evento eliminato.", "warning")
+            flash(f"Evento '{evento_nome}' eliminato definitivamente.", "warning")
         return redirect(url_for("eventi.admin_list"))
     finally:
         db.close()
@@ -734,6 +772,10 @@ def admin_duplicate(evento_id):
         if not e:
             flash("Evento non trovato.", "danger")
             return redirect(url_for("eventi.admin_list"))
+        # Impedisci duplicazione se l'evento è chiuso
+        if e.stato_pubblico == 'chiuso':
+            flash("Non è possibile duplicare un evento chiuso. Apri l'evento per duplicarlo.", "warning")
+            return redirect(url_for("eventi.admin_evento_detail", evento_id=evento_id))
         new_date_str = request.form.get("data_evento")
         if not new_date_str:
             # default a oggi + 7 giorni

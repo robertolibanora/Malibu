@@ -2198,7 +2198,49 @@ a.stat-card:active {
 }
 
 /* ============================================
-   31. PRINT STYLES
+   31. DROPDOWN MENU EVENTI - Menu Cambia Stato
+   ============================================ */
+
+.dropdown-container,
+.evento-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+/* Stili base per il menu dropdown */
+.dropdown-menu,
+.evento-dropdown-menu {
+  display: none;
+  position: fixed;
+  z-index: 99999;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  transform: none;
+  background: #1a1a1a;
+  border: 2px solid rgba(212, 175, 55, 0.6);
+  border-radius: 8px;
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,0.8),
+    0 0 0 1px rgba(255,255,255,0.1),
+    0 0 20px rgba(212, 175, 55, 0.3);
+  min-width: 240px;
+  padding: 12px;
+}
+
+/* Quando il menu è aperto */
+.dropdown-menu.show,
+.evento-dropdown-menu.show,
+.dropdown-menu[style*="display: block"],
+.evento-dropdown-menu[style*="display: block"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+/* ============================================
+   32. PRINT STYLES
    ============================================ */
 
 @media print {

@@ -16,8 +16,6 @@
   {{ render_secondary_nav([
     {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
     {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
-    {'url': url_for('fedelta.admin_movimenti'), 'endpoint': 'fedelta.admin_movimenti', 'label': 'Movimenti', 'icon': '📊'},
-    {'url': url_for('fedelta.admin_analytics'), 'endpoint': 'fedelta.admin_analytics', 'label': 'Analytics', 'icon': '📈'},
   ], current_endpoint=None) }}
 
   {{ render_page_header(
@@ -170,7 +168,6 @@
     <section class="card">
       <div class="card__header">
         <h2 class="card__title">Storico Punti Fedeltà</h2>
-        <a href="{{ url_for('fedelta.admin_movimenti', q=cliente.nome ~ ' ' ~ cliente.cognome) }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
       </div>
       <div class="card__content">
         {% if movimenti_fedelta %}
@@ -198,7 +195,7 @@
         </div>
         {% if movimenti_fedelta|length > 10 %}
         <div style="margin-top: var(--spacing-3); text-align: center;">
-          <a href="{{ url_for('fedelta.admin_movimenti', q=cliente.nome ~ ' ' ~ cliente.cognome) }}" class="btn btn--ghost btn--small">Vedi tutti i movimenti ({{ movimenti_fedelta|length }})</a>
+          <span class="text--muted">Mostrati i primi 10 di {{ movimenti_fedelta|length }} movimenti</span>
         </div>
         {% endif %}
         {% else %}

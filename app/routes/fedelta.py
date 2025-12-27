@@ -4,11 +4,15 @@ from sqlalchemy import func
 from datetime import datetime, timedelta
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin, require_staff
+from werkzeug.security import check_password_hash
+from app.routes.log_attivita import log_action
+import os
 
 # Modelli
 from app.models.clienti import Cliente
 from app.models.fedeltà import Fedelta
 from app.models.eventi import Evento
+from app.models.staff import Staff
 
 # (Opzionale) tabella soglie gestita da admin
 try:
@@ -412,5 +416,90 @@ def admin_soglie():
         for r in rows:
             soglie[r.livello] = int(r.punti_min)
         return render_template("admin/fedelta_soglie.html", soglie=soglie, editable=True)
+    finally:
+        db.close()
+
+# =========================================
+# 👑 Admin — azzera punti (con verifica password)
+# =========================================
+def _verify_admin_password(db, password: str) -> bool:
+    """Verifica la password dell'admin corrente"""
+    staff_id = session.get("staff_id")
+    admin_user = session.get("admin_user")
+    
+    # Se è uno Staff admin
+    if staff_id:
+        staff = db.query(Staff).filter(Staff.id_staff == staff_id).first()
+        if staff and staff.ruolo == "admin":
+            stored_hash = staff.password_hash or ""
+            if stored_hash.startswith(("scrypt:", "pbkdf2:", "bcrypt:", "$2b$", "$2a$")):
+                return check_password_hash(stored_hash, password)
+            return stored_hash == password
+    
+    # Se è admin da .env
+    if admin_user:
+        env_user = os.getenv("ADMIN_USER")
+        if env_user and admin_user == env_user:
+            env_pw_hash = os.getenv("ADMIN_PASSWORD_HASH", "").strip()
+            env_pw_plain = os.getenv("ADMIN_PASSWORD", "").strip()
+            
+            if env_pw_hash:
+                if env_pw_hash.startswith(("scrypt:", "pbkdf2:", "bcrypt:", "$2b$", "$2a$")):
+                    return check_password_hash(env_pw_hash, password)
+                return password == env_pw_hash
+            
+            if env_pw_plain:
+                return password == env_pw_plain
+    
+    return False
+
+@fedelta_bp.route("/admin/azzera-punti", methods=["GET"])
+@require_admin
+def admin_azzera_punti_form():
+    """Mostra il form per confermare l'azzeramento con password"""
+    return render_template("admin/fedelta_azzera.html")
+
+@fedelta_bp.route("/admin/azzera-punti", methods=["POST"])
+@require_admin
+def admin_azzera_punti_submit():
+    """Processa l'azzeramento dei punti dopo verifica password"""
+    db = SessionLocal()
+    try:
+        password = request.form.get("password", "").strip()
+        
+        if not password:
+            flash("Inserisci la password per confermare l'operazione.", "danger")
+            return redirect(url_for("fedelta.admin_azzera_punti_form"))
+        
+        # Verifica password
+        if not _verify_admin_password(db, password):
+            flash("Password non corretta. Operazione annullata.", "danger")
+            return redirect(url_for("fedelta.admin_azzera_punti_form"))
+        
+        # Conta quanti clienti hanno punti > 0
+        clienti_con_punti = db.query(func.count(Cliente.id_cliente)).filter(
+            Cliente.punti_fedelta > 0
+        ).scalar() or 0
+        
+        # Azzera tutti i punti
+        db.query(Cliente).update({Cliente.punti_fedelta: 0})
+        
+        # Aggiorna anche i livelli a "base" per tutti i clienti
+        db.query(Cliente).update({Cliente.livello: "base"})
+        
+        # Log dell'azione
+        staff_id = session.get("staff_id")
+        log_action(
+            db,
+            tabella="clienti",
+            record_id=0,
+            staff_id=staff_id,
+            azione="update",
+            note=f"Azzera punti: {clienti_con_punti} clienti azzerati. Tutti i punti fedeltà sono stati resettati a 0."
+        )
+        
+        db.commit()
+        flash(f"Tutti i punti fedeltà sono stati azzerati. {clienti_con_punti} clienti interessati.", "warning")
+        return redirect(url_for("fedelta.admin_list"))
     finally:
         db.close()

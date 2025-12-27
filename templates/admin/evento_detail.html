@@ -159,6 +159,7 @@
         </div>
         <div class="card__content">
           <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+            {% if evento.stato_pubblico == 'attivo' %}
             <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: center;">✏️ Modifica Evento</a>
             <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
               <div class="form__group">
@@ -170,6 +171,12 @@
                 <small class="form__hint">La copia avrà stato <strong>programmato</strong></small>
               </div>
             </form>
+            {% else %}
+            <div class="admin-empty-state" style="padding: var(--spacing-4); text-align: center;">
+              <span class="admin-empty-state__icon">🔒</span>
+              <p class="admin-empty-state__message">Le azioni di modifica e duplicazione sono disponibili solo per eventi attivi.</p>
+            </div>
+            {% endif %}
             <div style="padding-top: var(--spacing-3); border-top: 1px solid var(--admin-border);">
               {% if evento.stato_pubblico != 'chiuso' %}
               <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
@@ -604,90 +611,6 @@
     }
   });
   
-  // Menu Stato Evento - Script unificato
-  document.addEventListener('DOMContentLoaded', function() {
-    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
-    
-    function positionDropdownMenu(toggle, menu) {
-      const toggleRect = toggle.getBoundingClientRect();
-      menu.style.position = 'fixed';
-      menu.style.top = (toggleRect.bottom + 4) + 'px';
-      menu.style.left = toggleRect.left + 'px';
-      menu.style.zIndex = '99999';
-    }
-    
-    function resetDropdownMenu(menu) {
-      menu.style.position = 'absolute';
-      menu.style.top = '';
-      menu.style.left = '';
-      menu.style.zIndex = '';
-    }
-    
-    dropdownToggles.forEach(function(toggle) {
-      toggle.addEventListener('click', function(e) {
-        e.stopPropagation();
-        e.preventDefault();
-        
-        const eventoId = this.getAttribute('data-event-id');
-        const menu = document.getElementById('dropdown-' + eventoId);
-        
-        if (!menu) {
-          console.error('Menu non trovato per evento:', eventoId);
-          return;
-        }
-        
-        // Chiudi tutti gli altri menu
-        document.querySelectorAll('.dropdown-menu').forEach(function(m) {
-          if (m.id !== 'dropdown-' + eventoId) {
-            m.style.display = 'none';
-            resetDropdownMenu(m);
-          }
-        });
-        
-        // Toggle del menu corrente
-        if (menu.style.display === 'none' || menu.style.display === '') {
-          positionDropdownMenu(toggle, menu);
-          menu.style.display = 'block';
-        } else {
-          menu.style.display = 'none';
-          resetDropdownMenu(menu);
-        }
-      });
-    });
-    
-    // Chiudi i menu quando si clicca fuori
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('.dropdown-container')) {
-        document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
-          menu.style.display = 'none';
-          resetDropdownMenu(menu);
-        });
-      }
-    });
-    
-    // Aggiorna posizione quando si scrolla o si ridimensiona la finestra
-    window.addEventListener('scroll', function() {
-      document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
-        if (menu.style.display === 'block') {
-          const toggle = document.querySelector('[data-event-id="' + menu.id.replace('dropdown-', '') + '"]');
-          if (toggle) {
-            positionDropdownMenu(toggle, menu);
-          }
-        }
-      });
-    }, true);
-    
-    window.addEventListener('resize', function() {
-      document.querySelectorAll('.dropdown-menu').forEach(function(menu) {
-        if (menu.style.display === 'block') {
-          const toggle = document.querySelector('[data-event-id="' + menu.id.replace('dropdown-', '') + '"]');
-          if (toggle) {
-            positionDropdownMenu(toggle, menu);
-          }
-        }
-      });
-    });
-  });
 </script>
 {% endblock %}
 
