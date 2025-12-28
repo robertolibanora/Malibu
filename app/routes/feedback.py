@@ -114,6 +114,7 @@ def admin_list():
         cliente_id = request.args.get("cliente_id", type=int)
         dal = request.args.get("dal")
         al = request.args.get("al")
+        cerca_nome = request.args.get("cerca_nome", "").strip()
 
         q = (
             db.query(Feedback, Cliente, Evento)
@@ -124,6 +125,16 @@ def admin_list():
             q = q.filter(Feedback.evento_id == evento_id)
         if cliente_id:
             q = q.filter(Feedback.cliente_id == cliente_id)
+        if cerca_nome:
+            from sqlalchemy import or_, func
+            cerca_pattern = f"%{cerca_nome}%"
+            q = q.filter(
+                or_(
+                    func.lower(Cliente.nome).like(func.lower(cerca_pattern)),
+                    func.lower(Cliente.cognome).like(func.lower(cerca_pattern)),
+                    func.lower(func.concat(Cliente.nome, ' ', Cliente.cognome)).like(func.lower(cerca_pattern))
+                )
+            )
         if dal:
             q = q.filter(Feedback.data_feedback >= dal)
         if al:
@@ -178,6 +189,7 @@ def admin_list():
             rows=rows,
             eventi=eventi,
             filtro_evento_id=evento_id,
+            filtro={"evento_id": evento_id, "dal": dal, "al": al, "cerca_nome": cerca_nome},
             count=count or 0,
             avg_musica=round(avg_musica or 0, 2),
             avg_ingresso=round(avg_ingresso or 0, 2),

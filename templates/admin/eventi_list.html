@@ -40,16 +40,26 @@
   <section class="card">
     <form method="get" class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
       <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-        <label class="form__label">Filtra per stato</label>
+        <label class="form__label">
+          Filtra per stato
+          {% if stato %}
+          <span class="badge badge--secondary" style="margin-left: var(--spacing-2); font-size: var(--font-size-xs);">{{ stato|upper }}</span>
+          {% endif %}
+        </label>
         <select class="form__select" name="stato" onchange="this.form.submit()">
           <option value="">Tutti gli stati</option>
           <option value="programmato" {% if stato=='programmato' %}selected{% endif %}>Programmato</option>
-          <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivo (pubblico)</option>
+          <option value="attivo" {% if stato=='attivo' %}selected{% endif %}>Attivo</option>
           <option value="chiuso" {% if stato=='chiuso' %}selected{% endif %}>Chiuso</option>
         </select>
       </div>
       <div class="form__group" style="margin-bottom: 0; flex: 1; min-width: 200px;">
-        <label class="form__label">Filtra per periodo</label>
+        <label class="form__label">
+          Filtra per periodo
+          {% if periodo %}
+          <span class="badge badge--secondary" style="margin-left: var(--spacing-2); font-size: var(--font-size-xs);">{{ periodo|upper }}</span>
+          {% endif %}
+        </label>
         <select class="form__select" name="periodo" onchange="this.form.submit()">
           <option value="">Tutti</option>
           <option value="programmati" {% if periodo=='programmati' %}selected{% endif %}>Solo futuri</option>
@@ -58,7 +68,7 @@
       </div>
       {% if stato or periodo %}
       <div class="form__group" style="margin-bottom: 0;">
-        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost">Reset</a>
+        <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost">Reset Filtri</a>
       </div>
       {% endif %}
     </form>
@@ -112,17 +122,11 @@
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
                 <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
-                  📊 Dashboard
+                  📊 Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica
+                  ✏️ Modifica Evento
                 </a>
-                <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='attivo') }}" style="display: inline;" onsubmit="return confirm('Aprire l\'evento? Staff e pubblico saranno attivati automaticamente.');">
-                  <button type="submit" class="btn btn--primary btn--small" title="Apri evento">✅ Apri Evento</button>
-                </form>
-                <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=e.id_evento) }}" style="display: inline;" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata e eliminerà tutte le prenotazioni, ingressi, consumi e feedback associati.');">
-                  <button type="submit" class="btn btn--danger btn--small" title="Elimina evento definitivamente">🗑️ Elimina</button>
-                </form>
               </div>
             </div>
           </div>
@@ -180,17 +184,11 @@
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
                 <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
-                  📊 Dashboard
+                  📊 Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica
+                  ✏️ Modifica Evento
                 </a>
-                <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='chiuso') }}" style="display: inline;" onsubmit="return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');">
-                  <button type="submit" class="btn btn--secondary btn--small" title="Chiudi evento">🔒 Chiudi Evento</button>
-                </form>
-                <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=e.id_evento) }}" style="display: inline;" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata e eliminerà tutte le prenotazioni, ingressi, consumi e feedback associati.');">
-                  <button type="submit" class="btn btn--danger btn--small" title="Elimina evento definitivamente">🗑️ Elimina</button>
-                </form>
               </div>
             </div>
           </div>
@@ -241,25 +239,12 @@
                 </div>
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
-                <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  📊 Dettagli
+                <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
+                  📊 Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica
+                  ✏️ Modifica Evento
                 </a>
-                <!-- Pulsanti Apri/Chiudi Evento -->
-                {% if e.stato_pubblico == 'attivo' %}
-                <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='chiuso') }}" style="display: inline;" onsubmit="return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');">
-                  <button type="submit" class="btn btn--secondary btn--small" title="Chiudi evento">🔒 Chiudi Evento</button>
-                </form>
-                {% else %}
-                <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=e.id_evento, stato='attivo') }}" style="display: inline;" onsubmit="return confirm('Aprire l\'evento? Staff e pubblico saranno attivati automaticamente.');">
-                  <button type="submit" class="btn btn--primary btn--small" title="Apri evento">✅ Apri Evento</button>
-                </form>
-                {% endif %}
-                <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=e.id_evento) }}" style="display: inline;" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata e eliminerà tutte le prenotazioni, ingressi, consumi e feedback associati.');">
-                  <button type="submit" class="btn btn--danger btn--small" title="Elimina evento definitivamente">🗑️ Elimina</button>
-                </form>
               </div>
             </div>
           </div>

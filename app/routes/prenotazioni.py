@@ -1,7 +1,7 @@
 # app/routes/prenotazioni.py
 import secrets
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, abort
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload
 from datetime import datetime, date, time
 from collections import defaultdict
@@ -698,6 +698,7 @@ def admin_list():
         evento_id = request.args.get("evento_id", type=int)
         tipo = request.args.get("tipo")
         stato = request.args.get("stato")
+        cerca_nome = request.args.get("cerca_nome", "").strip()
 
         q = db.query(Prenotazione, Cliente, Evento) \
               .join(Cliente, Cliente.id_cliente == Prenotazione.cliente_id) \
@@ -709,6 +710,17 @@ def admin_list():
             q = q.filter(Prenotazione.tipo == tipo)
         if stato in STATI:
             q = q.filter(Prenotazione.stato == stato)
+        if cerca_nome:
+            # Cerca nel nome e cognome del cliente (case-insensitive)
+            cerca_pattern = f"%{cerca_nome}%"
+            # Usa LIKE con LOWER per compatibilità MySQL
+            q = q.filter(
+                or_(
+                    func.lower(Cliente.nome).like(func.lower(cerca_pattern)),
+                    func.lower(Cliente.cognome).like(func.lower(cerca_pattern)),
+                    func.lower(func.concat(Cliente.nome, ' ', Cliente.cognome)).like(func.lower(cerca_pattern))
+                )
+            )
 
         # Conta totale
         total = q.count()
@@ -737,7 +749,7 @@ def admin_list():
         return render_template("admin/prenotazioni_list.html", 
                              rows=rows, 
                              eventi=eventi,
-                             filtro={"evento_id": evento_id, "tipo": tipo, "stato": stato},
+                             filtro={"evento_id": evento_id, "tipo": tipo, "stato": stato, "cerca_nome": cerca_nome},
                              page=page,
                              per_page=per_page,
                              total=total,

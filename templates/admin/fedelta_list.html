@@ -13,7 +13,7 @@
 
   {{ render_page_header(
     title="Programma Fedeltà",
-    subtitle="Monitora punti, soglie di livello e le attività più recenti dei clienti fidelizzati",
+    subtitle="Monitora punti e le attività più recenti dei clienti fidelizzati",
     actions=[
       {'type': 'link', 'url': url_for('fedelta.admin_azzera_punti_form'), 'label': '⚠️ Azzera Punti', 'class': 'btn--danger'}
     ],
@@ -42,7 +42,7 @@
     </div>
   </div>
 
-  <!-- Top Clienti e Soglie -->
+  <!-- Top Clienti -->
   <div class="grid grid--auto">
     <!-- Top Clienti -->
     <section class="card" style="grid-column: span 2;">
@@ -101,58 +101,6 @@
           <span class="admin-empty-state__icon">⭐</span>
           <p class="admin-empty-state__message">Non ci sono ancora clienti con punti da mostrare.</p>
         </div>
-        {% endif %}
-      </div>
-    </section>
-
-    <!-- Soglie di livello -->
-    <section class="card">
-      <div class="card__header">
-        <div>
-          <h2 class="card__title">Soglie di livello</h2>
-          {% if not can_edit_thresholds %}
-          <span class="badge badge--warning">Sola lettura</span>
-          {% endif %}
-        </div>
-      </div>
-      <div class="card__content">
-        {% if can_edit_thresholds %}
-        <form method="post" class="form">
-          <div class="grid grid--auto">
-            <div class="form__group">
-              <label class="form__label">Base</label>
-              <input class="form__input" type="number" min="0" value="{{ thresholds.base }}" readonly>
-            </div>
-            <div class="form__group">
-              <label class="form__label">Loyal</label>
-              <input class="form__input" type="number" name="loyal" min="0" value="{{ thresholds.loyal }}" required>
-            </div>
-            <div class="form__group">
-              <label class="form__label">Premium</label>
-              <input class="form__input" type="number" name="premium" min="0" value="{{ thresholds.premium }}" required>
-            </div>
-            <div class="form__group">
-              <label class="form__label">VIP</label>
-              <input class="form__input" type="number" name="vip" min="0" value="{{ thresholds.vip }}" required>
-            </div>
-          </div>
-          <div class="form__actions">
-            <button class="btn btn--primary btn--small" type="submit">Aggiorna soglie</button>
-            <a class="btn btn--ghost btn--small" href="{{ url_for('fedelta.admin_list') }}">Annulla</a>
-          </div>
-        </form>
-        {% else %}
-        <ul class="info-list">
-          {% for lvl, pts in thresholds_sorted %}
-          <li class="info-item">
-            <span class="info-label">{{ lvl|capitalize }}</span>
-            <span class="info-value">{{ pts }} pt</span>
-          </li>
-          {% endfor %}
-        </ul>
-        <p class="text--muted" style="font-size: var(--font-size-xs); margin-top: var(--spacing-3);">
-          Attiva la tabella <code>soglie_fedelta</code> per rendere le soglie modificabili.
-        </p>
         {% endif %}
       </div>
     </section>

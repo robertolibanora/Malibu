@@ -395,6 +395,22 @@ def admin_new():
                 except ValueError:
                     pass
             
+            # Gestione staff_open_at e staff_close_at
+            staff_open_at = None
+            staff_close_at = None
+            staff_open_str = request.form.get("staff_open_at")
+            staff_close_str = request.form.get("staff_close_at")
+            if staff_open_str:
+                try:
+                    staff_open_at = datetime.strptime(staff_open_str, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            if staff_close_str:
+                try:
+                    staff_close_at = datetime.strptime(staff_close_str, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            
             e = Evento(
                 nome_evento=request.form.get("nome_evento"),
                 data_evento=data_evento_obj,
@@ -402,12 +418,14 @@ def admin_new():
                 dj_artista=request.form.get("dj_artista"),
                 capienza_max=request.form.get("capienza_max", type=int),
                 categoria="altro",  # Default fisso
-                stato_pubblico=(request.form.get("stato_pubblico") or "programmato"),
+                stato_pubblico="programmato",  # Eventi sempre visibili quando creati
                 is_staff_operativo=False,
                 cover_url=cover_filename,
                 template_id=None,
                 data_ora_apertura_auto=data_ora_apertura_auto,
                 data_ora_chiusura_auto=data_ora_chiusura_auto,
+                staff_open_at=staff_open_at,
+                staff_close_at=staff_close_at,
             )
             db.add(e)
             db.flush()
@@ -610,11 +628,23 @@ def admin_edit(evento_id):
             e.capienza_max = request.form.get("capienza_max", type=int)
             # Categoria non più modificabile - mantiene valore esistente
             
-            # Gestione cambio stato usando la funzione centralizzata
-            nuovo_stato = request.form.get("stato_pubblico")
-            if nuovo_stato and nuovo_stato != e.stato_pubblico:
-                from app.utils.eventi_stato import imposta_stato_evento
-                imposta_stato_evento(db, e, nuovo_stato, staff_id=session.get("staff_id"), automatico=False)
+            # Gestione staff_open_at e staff_close_at
+            staff_open_str = request.form.get("staff_open_at")
+            staff_close_str = request.form.get("staff_close_at")
+            if staff_open_str:
+                try:
+                    e.staff_open_at = datetime.strptime(staff_open_str, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            else:
+                e.staff_open_at = None
+            if staff_close_str:
+                try:
+                    e.staff_close_at = datetime.strptime(staff_close_str, "%Y-%m-%dT%H:%M")
+                except ValueError:
+                    pass
+            else:
+                e.staff_close_at = None
             
             # Gestione data/ora apertura e chiusura automatica
             data_ora_apertura = request.form.get("data_ora_apertura_auto")

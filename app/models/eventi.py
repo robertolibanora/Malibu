@@ -33,6 +33,9 @@ class Evento(Base):
     # Apertura e chiusura automatica
     data_ora_apertura_auto = Column(DateTime, nullable=True)  # Quando aprire automaticamente l'evento
     data_ora_chiusura_auto = Column(DateTime, nullable=True)  # Quando chiudere automaticamente l'evento
+    # Orari operatività staff (determinano quando lo staff può operare)
+    staff_open_at = Column(DateTime, nullable=True)  # Quando lo staff può iniziare a operare
+    staff_close_at = Column(DateTime, nullable=True)  # Quando lo staff deve smettere di operare
 
     # 🔗 Relazioni ORM (verso le altre tabelle)
     prenotazioni = relationship("Prenotazione", back_populates="evento", cascade="all, delete-orphan")

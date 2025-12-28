@@ -1,6 +1,6 @@
 # app/routes/ingressi.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 from sqlalchemy.exc import IntegrityError
 from datetime import datetime, timedelta
 from app.database import SessionLocal
@@ -324,6 +324,7 @@ def admin_list():
         staff_id = request.args.get("staff_id", type=int)
         dal = request.args.get("dal")  # YYYY-MM-DD
         al = request.args.get("al")    # YYYY-MM-DD
+        cerca_nome = request.args.get("cerca_nome", "").strip()
 
         q = db.query(Ingresso, Cliente, Evento).join(Cliente, Cliente.id_cliente == Ingresso.cliente_id) \
                                                .join(Evento, Evento.id_evento == Ingresso.evento_id)
@@ -334,6 +335,16 @@ def admin_list():
             q = q.filter(Ingresso.tipo_ingresso == tipo)
         if staff_id:
             q = q.filter(Ingresso.staff_id == staff_id)
+        if cerca_nome:
+            from sqlalchemy import or_, func
+            cerca_pattern = f"%{cerca_nome}%"
+            q = q.filter(
+                or_(
+                    func.lower(Cliente.nome).like(func.lower(cerca_pattern)),
+                    func.lower(Cliente.cognome).like(func.lower(cerca_pattern)),
+                    func.lower(func.concat(Cliente.nome, ' ', Cliente.cognome)).like(func.lower(cerca_pattern))
+                )
+            )
         if dal:
             try:
                 d = datetime.strptime(dal, "%Y-%m-%d")
@@ -377,7 +388,7 @@ def admin_list():
                              rows=rows, 
                              eventi=eventi, 
                              staff_list=staff_list,
-                             filtro={"evento_id": evento_id, "tipo": tipo, "staff_id": staff_id, "dal": dal, "al": al},
+                             filtro={"evento_id": evento_id, "tipo": tipo, "staff_id": staff_id, "dal": dal, "al": al, "cerca_nome": cerca_nome},
                              page=page,
                              per_page=per_page,
                              total=total,

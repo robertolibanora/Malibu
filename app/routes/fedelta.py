@@ -158,53 +158,11 @@ def staff_quick():
 # =========================================
 # 👑 Admin — lista & filtri
 # =========================================
-@fedelta_bp.route("/admin", methods=["GET", "POST"])
+@fedelta_bp.route("/admin", methods=["GET"])
 @require_admin
 def admin_list():
     db = SessionLocal()
     try:
-        if request.method == "POST":
-            if SogliaFedelta is None:
-                flash("Per modificare le soglie è necessaria la tabella 'soglie_fedelta'.", "warning")
-                return redirect(url_for("fedelta.admin_list"))
-
-            try:
-                loyal = request.form.get("loyal", type=int)
-                premium = request.form.get("premium", type=int)
-                vip = request.form.get("vip", type=int)
-            except ValueError:
-                loyal = premium = vip = None
-
-            if None in (loyal, premium, vip):
-                flash("Inserisci valori numerici validi per le soglie.", "danger")
-                return redirect(url_for("fedelta.admin_list"))
-
-            if min(loyal, premium, vip) < 0:
-                flash("Le soglie non possono essere negative.", "danger")
-                return redirect(url_for("fedelta.admin_list"))
-
-            if not (0 <= loyal <= premium <= vip):
-                flash("Le soglie devono essere crescenti (Base 0 ≤ Loyal ≤ Premium ≤ VIP).", "warning")
-                return redirect(url_for("fedelta.admin_list"))
-
-            data = {
-                "base": 0,
-                "loyal": loyal,
-                "premium": premium,
-                "vip": vip,
-            }
-
-            for lvl, pts in data.items():
-                row = db.query(SogliaFedelta).filter(SogliaFedelta.livello == lvl).first()
-                if not row:
-                    row = SogliaFedelta(livello=lvl, punti_min=pts)
-                    db.add(row)
-                else:
-                    row.punti_min = pts
-            db.commit()
-            flash("Soglie aggiornate correttamente.", "success")
-            return redirect(url_for("fedelta.admin_list"))
-
         thresholds = get_thresholds(db)
         thresholds_sorted = sorted(thresholds.items(), key=lambda x: x[1])
 

@@ -29,11 +29,24 @@
 
   <!-- Filtri -->
   <section class="card">
-    <form class="form" method="get">
+    <form class="form" method="get" id="filtriForm">
       <div class="grid grid--2">
         <div class="form__group">
+          <label class="form__label">
+            🔍 Cerca per nome
+            {% if filtro.cerca_nome %}
+            <span class="badge badge--secondary" style="margin-left: var(--spacing-2); font-size: var(--font-size-xs);">{{ filtro.cerca_nome }}</span>
+            {% endif %}
+          </label>
+          <input class="form__input" type="text" name="cerca_nome" 
+                 value="{{ filtro.cerca_nome or '' }}" 
+                 placeholder="Nome o cognome cliente..."
+                 onkeyup="if(event.key === 'Enter') this.form.submit();"
+                 onblur="if(this.value !== '{{ filtro.cerca_nome or '' }}') this.form.submit();">
+        </div>
+        <div class="form__group">
           <label class="form__label">Evento</label>
-          <select class="form__select" name="evento_id">
+          <select class="form__select" name="evento_id" onchange="this.form.submit()">
             <option value="">Tutti</option>
             {% for ev in eventi %}
             <option value="{{ ev.id_evento }}" {% if filtro.evento_id==ev.id_evento %}selected{% endif %}>
@@ -44,7 +57,7 @@
         </div>
         <div class="form__group">
           <label class="form__label">Staff</label>
-          <select class="form__select" name="staff_id">
+          <select class="form__select" name="staff_id" onchange="this.form.submit()">
             <option value="">Tutti</option>
             {% for s in staff_list %}
             <option value="{{ s.id_staff }}" {% if filtro.staff_id==s.id_staff %}selected{% endif %}>{{ s.nome }}</option>
@@ -53,7 +66,7 @@
         </div>
         <div class="form__group">
           <label class="form__label">Punto vendita</label>
-          <select class="form__select" name="punto_vendita">
+          <select class="form__select" name="punto_vendita" onchange="this.form.submit()">
             <option value="">Tutti</option>
             <option value="bar" {% if filtro.punto_vendita=='bar' %}selected{% endif %}>Bar</option>
             <option value="tavolo" {% if filtro.punto_vendita=='tavolo' %}selected{% endif %}>Tavolo</option>
@@ -62,21 +75,23 @@
         </div>
         <div class="form__group">
           <label class="form__label">Prodotto contiene</label>
-          <input class="form__input" type="text" name="prodotto" value="{{ filtro.prodotto or '' }}" placeholder="Es. Vodka">
+          <input class="form__input" type="text" name="prodotto" value="{{ filtro.prodotto or '' }}" 
+                 placeholder="Es. Vodka"
+                 onkeyup="if(event.key === 'Enter') this.form.submit();"
+                 onblur="if(this.value !== '{{ filtro.prodotto or '' }}') this.form.submit();">
         </div>
         <div class="form__group">
           <label class="form__label">Dal</label>
-          <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}">
+          <input class="form__input" type="date" name="dal" value="{{ filtro.dal or '' }}" onchange="this.form.submit()">
         </div>
         <div class="form__group">
           <label class="form__label">Al</label>
-          <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}">
+          <input class="form__input" type="date" name="al" value="{{ filtro.al or '' }}" onchange="this.form.submit()">
         </div>
       </div>
       <div class="form__actions">
-        <button class="btn btn--primary" type="submit">Filtra</button>
-        {% if filtro.evento_id or filtro.staff_id or filtro.punto_vendita or filtro.prodotto or filtro.dal or filtro.al %}
-        <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost">Reset</a>
+        {% if filtro.evento_id or filtro.staff_id or filtro.punto_vendita or filtro.prodotto or filtro.dal or filtro.al or filtro.cerca_nome %}
+        <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--ghost">Reset Filtri</a>
         {% endif %}
       </div>
     </form>

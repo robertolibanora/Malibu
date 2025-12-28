@@ -177,30 +177,11 @@
         </div>
       </div>
       <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
-        {% if prossimo_evento.stato_pubblico == 'programmato' %}
-        <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=prossimo_evento.id_evento, stato='attivo') }}" style="display: inline;">
-          <button type="submit" class="btn btn--success btn--small" onclick="return confirm('Attivare l\'evento? Staff e pubblico saranno attivati automaticamente.');">
-            ✅ Attiva Evento
-          </button>
-        </form>
-        {% elif prossimo_evento.stato_pubblico == 'attivo' %}
-        <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=prossimo_evento.id_evento, stato='chiuso') }}" style="display: inline;">
-          <button type="submit" class="btn btn--danger btn--small" onclick="return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');">
-            🔒 Chiudi Evento
-          </button>
-        </form>
-        {% elif prossimo_evento.stato_pubblico == 'chiuso' %}
-        <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=prossimo_evento.id_evento, stato='programmato') }}" style="display: inline;">
-          <button type="submit" class="btn btn--secondary btn--small">
-            📋 Riapri Evento
-          </button>
-        </form>
-        {% endif %}
-        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--secondary btn--small">
-          📊 Dashboard
+        <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--primary btn--small">
+          📊 Dashboard Evento
         </a>
         <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">
-          ✏️ Modifica
+          ✏️ Modifica Evento
         </a>
       </div>
     </div>

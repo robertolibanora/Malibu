@@ -61,9 +61,17 @@ CREATE TABLE eventi (
   is_staff_operativo BOOLEAN NOT NULL DEFAULT FALSE,
   cover_url VARCHAR(255),
   template_id INT NULL,
+  data_ora_apertura_auto DATETIME NULL COMMENT 'Quando aprire automaticamente l\'evento',
+  data_ora_chiusura_auto DATETIME NULL COMMENT 'Quando chiudere automaticamente l\'evento',
+  staff_open_at DATETIME NULL COMMENT 'Quando lo staff può iniziare a operare',
+  staff_close_at DATETIME NULL COMMENT 'Quando lo staff deve smettere di operare',
   INDEX idx_eventi_data (data_evento),
   INDEX idx_eventi_stato_pubblico (stato_pubblico),
-  INDEX idx_eventi_is_staff_operativo (is_staff_operativo)
+  INDEX idx_eventi_is_staff_operativo (is_staff_operativo),
+  INDEX idx_eventi_staff_open_at (staff_open_at),
+  INDEX idx_eventi_staff_close_at (staff_close_at),
+  INDEX idx_eventi_data_ora_apertura_auto (data_ora_apertura_auto),
+  INDEX idx_eventi_data_ora_chiusura_auto (data_ora_chiusura_auto)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- template_eventi referenced by app; can be created separately if needed.

@@ -29,11 +29,24 @@
 
   <!-- Filtri -->
   <section class="card">
-    <form method="get" class="form">
+    <form method="get" class="form" id="filtriForm">
       <div class="grid grid--auto">
         <div class="form__group">
+          <label class="form__label">
+            🔍 Cerca per nome
+            {% if filtro.cerca_nome %}
+            <span class="badge badge--secondary" style="margin-left: var(--spacing-2); font-size: var(--font-size-xs);">{{ filtro.cerca_nome }}</span>
+            {% endif %}
+          </label>
+          <input class="form__input" type="text" name="cerca_nome" 
+                 value="{{ filtro.cerca_nome or '' }}" 
+                 placeholder="Nome o cognome cliente..."
+                 onkeyup="if(event.key === 'Enter') this.form.submit();"
+                 onblur="if(this.value !== '{{ filtro.cerca_nome or '' }}') this.form.submit();">
+        </div>
+        <div class="form__group">
           <label class="form__label">Evento</label>
-          <select class="form__select" name="evento_id">
+          <select class="form__select" name="evento_id" onchange="this.form.submit()">
             <option value="">Tutti</option>
             {% for ev in eventi %}
             <option value="{{ ev.id_evento }}" {% if filtro.evento_id and filtro.evento_id == ev.id_evento %}selected{% endif %}>
@@ -44,7 +57,7 @@
         </div>
         <div class="form__group">
           <label class="form__label">Tipo</label>
-          <select class="form__select" name="tipo">
+          <select class="form__select" name="tipo" onchange="this.form.submit()">
             <option value="">Tutti</option>
             <option value="lista" {% if filtro.tipo=='lista' %}selected{% endif %}>Lista</option>
             <option value="tavolo" {% if filtro.tipo=='tavolo' %}selected{% endif %}>Tavolo</option>
@@ -53,7 +66,7 @@
         </div>
         <div class="form__group">
           <label class="form__label">Stato</label>
-          <select class="form__select" name="stato">
+          <select class="form__select" name="stato" onchange="this.form.submit()">
             <option value="">Tutti</option>
             <option value="attiva" {% if filtro.stato=='attiva' %}selected{% endif %}>Attiva</option>
             <option value="usata" {% if filtro.stato=='usata' %}selected{% endif %}>Usata</option>
@@ -63,9 +76,8 @@
         </div>
       </div>
       <div class="form__actions">
-        <button class="btn btn--primary" type="submit">Filtra</button>
-        {% if filtro.evento_id or filtro.tipo or filtro.stato %}
-        <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--ghost">Reset</a>
+        {% if filtro.evento_id or filtro.tipo or filtro.stato or filtro.cerca_nome %}
+        <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--ghost">Reset Filtri</a>
         {% endif %}
       </div>
     </form>
@@ -96,6 +108,7 @@
       const url = new URL(window.location.href);
       url.searchParams.set('per_page', value);
       url.searchParams.set('page', '1');
+      // Mantieni tutti i filtri esistenti
       window.location.href = url.toString();
     }
   </script>
@@ -171,8 +184,8 @@
     </div>
     <div class="pagination__controls">
       {% if page > 1 %}
-      <a href="{{ url_for('prenotazioni.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="btn btn--ghost btn--small">« Prima</a>
-      <a href="{{ url_for('prenotazioni.admin_list', page=page-1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
+      <a href="{{ url_for('prenotazioni.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="btn btn--ghost btn--small">« Prima</a>
+      <a href="{{ url_for('prenotazioni.admin_list', page=page-1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="btn btn--ghost btn--small">‹ Precedente</a>
       {% endif %}
       
       <span class="pagination__pages">
@@ -180,7 +193,7 @@
         {% set end_page = pages_list[-1] if pages_list else total_pages %}
         
         {% if start_page > 1 %}
-        <a href="{{ url_for('prenotazioni.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="pagination__page">1</a>
+        <a href="{{ url_for('prenotazioni.admin_list', page=1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="pagination__page">1</a>
         {% if start_page > 2 %}
         <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
         {% endif %}
@@ -190,7 +203,7 @@
         {% if p == page %}
         <span class="pagination__page pagination__page--active">{{ p }}</span>
         {% else %}
-        <a href="{{ url_for('prenotazioni.admin_list', page=p, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="pagination__page">{{ p }}</a>
+        <a href="{{ url_for('prenotazioni.admin_list', page=p, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="pagination__page">{{ p }}</a>
         {% endif %}
         {% endfor %}
         
@@ -198,13 +211,13 @@
         {% if end_page < total_pages - 1 %}
         <span class="text--muted" style="padding: 0 var(--spacing-2);">...</span>
         {% endif %}
-        <a href="{{ url_for('prenotazioni.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="pagination__page">{{ total_pages }}</a>
+        <a href="{{ url_for('prenotazioni.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="pagination__page">{{ total_pages }}</a>
         {% endif %}
       </span>
       
       {% if page < total_pages %}
-      <a href="{{ url_for('prenotazioni.admin_list', page=page+1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="btn btn--ghost btn--small">Successiva ›</a>
-      <a href="{{ url_for('prenotazioni.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato) }}" class="btn btn--ghost btn--small">Ultima »</a>
+      <a href="{{ url_for('prenotazioni.admin_list', page=page+1, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="btn btn--ghost btn--small">Successiva ›</a>
+      <a href="{{ url_for('prenotazioni.admin_list', page=total_pages, per_page=per_page, evento_id=filtro.evento_id, tipo=filtro.tipo, stato=filtro.stato, cerca_nome=filtro.cerca_nome) }}" class="btn btn--ghost btn--small">Ultima »</a>
       {% endif %}
     </div>
     <small class="pagination__meta">Pagina {{ page }} di {{ total_pages }}</small>

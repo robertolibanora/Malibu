@@ -153,8 +153,8 @@
         </div>
         <div class="card__content">
           <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
-            {% if evento.stato_pubblico == 'attivo' %}
             <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: center;">✏️ Modifica Evento</a>
+            
             <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
               <div class="form__group">
                 <label class="form__label">Duplica Evento</label>
@@ -165,19 +165,25 @@
                 <small class="form__hint">La copia avrà stato <strong>programmato</strong></small>
               </div>
             </form>
-            {% else %}
-            <div class="admin-empty-state" style="padding: var(--spacing-4); text-align: center;">
-              <span class="admin-empty-state__icon">🔒</span>
-              <p class="admin-empty-state__message">Le azioni di modifica e duplicazione sono disponibili solo per eventi attivi.</p>
-            </div>
-            {% endif %}
+            
             <div style="padding-top: var(--spacing-3); border-top: 1px solid var(--admin-border);">
-              {% if evento.stato_pubblico != 'chiuso' %}
+              {% if evento.stato_pubblico == 'programmato' %}
+              <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='attivo') }}" 
+                    onsubmit="return confirm('Aprire l\\'evento? Staff e pubblico saranno attivati automaticamente.');">
+                <button class="btn btn--success" style="width: 100%;" type="submit">✅ Apri Evento</button>
+              </form>
+              {% elif evento.stato_pubblico == 'attivo' %}
               <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
                     onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
                 <button class="btn btn--danger" style="width: 100%;" type="submit">🔒 Chiudi Evento</button>
               </form>
+              {% elif evento.stato_pubblico == 'chiuso' %}
+              <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='programmato') }}" 
+                    onsubmit="return confirm('Riaprire l\\'evento?');">
+                <button class="btn btn--secondary" style="width: 100%;" type="submit">📋 Riapri Evento</button>
+              </form>
               {% endif %}
+              
               <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" 
                     style="margin-top: var(--spacing-2);"
                     onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">

@@ -27,29 +27,9 @@
         </span>
       </div>
 
-      <!-- Azioni Principali -->
+      <!-- Link rapido alla modifica -->
       <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
-        {% if evento.stato_pubblico == 'attivo' %}
-        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small">✏️ Modifica</a>
-        <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}" style="display: inline;">
-          <button type="submit" class="btn btn--secondary btn--small" title="Duplica evento">📋 Duplica</button>
-        </form>
-        {% endif %}
-        
-        <!-- Pulsanti Apri/Chiudi Evento -->
-        {% if evento.stato_pubblico == 'attivo' %}
-        <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='chiuso') }}" style="display: inline;" onsubmit="return confirm('Chiudere l\'evento? Staff e pubblico saranno disattivati automaticamente.');">
-          <button type="submit" class="btn btn--secondary btn--small" title="Chiudi evento">🔒 Chiudi Evento</button>
-        </form>
-        {% else %}
-        <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='attivo') }}" style="display: inline;" onsubmit="return confirm('Aprire l\'evento? Staff e pubblico saranno attivati automaticamente.');">
-          <button type="submit" class="btn btn--primary btn--small" title="Apri evento">✅ Apri Evento</button>
-        </form>
-        {% endif %}
-        
-        <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" style="display: inline;" onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata e eliminerà tutte le prenotazioni, ingressi, consumi e feedback associati.');">
-          <button type="submit" class="btn btn--danger btn--small" title="Elimina evento definitivamente">🗑️ Elimina</button>
-        </form>
+        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">✏️ Modifica</a>
       </div>
     </div>
   </div>

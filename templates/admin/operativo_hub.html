@@ -103,12 +103,13 @@
       </div>
       <div class="card__content">
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
+          {% if evento_operativo %}
+          <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            📋 Prenotazioni Evento Operativo
+          </a>
+          {% else %}
           <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
             📋 Tutte le Prenotazioni
-          </a>
-          {% if evento_operativo %}
-          <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            🎯 Prenotazioni Evento Attivo
           </a>
           {% endif %}
           <a href="{{ url_for('prenotazioni.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
@@ -136,12 +137,13 @@
       </div>
       <div class="card__content">
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-          <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            📋 Tutti gli Ingressi
-          </a>
           {% if evento_operativo %}
-          <a href="{{ url_for('ingressi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            🎯 Ingressi Evento Attivo
+          <a href="{{ url_for('ingressi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            🚪 Ingressi Evento Operativo
+          </a>
+          {% else %}
+          <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            🚪 Tutti gli Ingressi
           </a>
           {% endif %}
           <a href="{{ url_for('ingressi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
@@ -169,12 +171,13 @@
       </div>
       <div class="card__content">
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-          <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            📋 Tutti i Consumi
-          </a>
           {% if evento_operativo %}
-          <a href="{{ url_for('consumi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            🎯 Consumi Evento Attivo
+          <a href="{{ url_for('consumi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            💰 Consumi Evento Operativo
+          </a>
+          {% else %}
+          <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            💰 Tutti i Consumi
           </a>
           {% endif %}
           <a href="{{ url_for('consumi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
@@ -202,12 +205,13 @@
       </div>
       <div class="card__content">
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-          <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            📋 Tutti i Feedback
-          </a>
           {% if evento_operativo %}
-          <a href="{{ url_for('feedback.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            🎯 Feedback Evento Attivo
+          <a href="{{ url_for('feedback.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            💬 Feedback Evento Operativo
+          </a>
+          {% else %}
+          <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
+            💬 Tutti i Feedback
           </a>
           {% endif %}
         </div>

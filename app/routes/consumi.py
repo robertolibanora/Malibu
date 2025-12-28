@@ -1,6 +1,6 @@
 # app/routes/consumi.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 import re
@@ -534,6 +534,7 @@ def admin_list():
         qprod = (request.args.get("prodotto") or "").strip()
         dal = request.args.get("dal")
         al  = request.args.get("al")
+        cerca_nome = request.args.get("cerca_nome", "").strip()
 
         q = db.query(Consumo, Cliente, Evento).join(Cliente, Cliente.id_cliente == Consumo.cliente_id) \
                                               .join(Evento, Evento.id_evento == Consumo.evento_id)
@@ -542,6 +543,15 @@ def admin_list():
         if staff_id:  q = q.filter(Consumo.staff_id == staff_id)
         if punto in PUNTI_CONSENTITI: q = q.filter(Consumo.punto_vendita == punto)
         if qprod: q = q.filter(Consumo.prodotto.ilike(f"%{qprod}%"))
+        if cerca_nome:
+            cerca_pattern = f"%{cerca_nome}%"
+            q = q.filter(
+                or_(
+                    func.lower(Cliente.nome).like(func.lower(cerca_pattern)),
+                    func.lower(Cliente.cognome).like(func.lower(cerca_pattern)),
+                    func.lower(func.concat(Cliente.nome, ' ', Cliente.cognome)).like(func.lower(cerca_pattern))
+                )
+            )
         if dal:
             try:
                 d = datetime.strptime(dal, "%Y-%m-%d")
@@ -569,7 +579,7 @@ def admin_list():
         
         return render_template("admin/consumi_list.html", rows=rows, eventi=eventi, staff_list=staff_list,
                                filtro={"evento_id": evento_id, "staff_id": staff_id, "punto_vendita": punto,
-                                       "prodotto": qprod, "dal": dal, "al": al},
+                                       "prodotto": qprod, "dal": dal, "al": al, "cerca_nome": cerca_nome},
                                prenotazioni_tavolo_attesa_count=prenotazioni_tavolo_attesa_count)
     finally:
         db.close()

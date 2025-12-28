@@ -5,7 +5,7 @@
 <section class="card">
   <h1 class="card__title">{{ 'Modifica' if e else 'Nuovo' }} evento</h1>
   <p class="text--muted" style="margin-bottom:1.5rem;">
-    <strong>Nota:</strong> un evento appena creato parte in stato <em>programmato</em> e non è operativo per lo staff finché non lo imposti dal pannello “Evento operativo”.
+    <strong>Nota:</strong> un evento appena creato è sempre visibile pubblicamente. L'operatività dello staff dipende dagli orari impostati (Apertura/Chiusura Staff).
   </p>
   <form class="form" method="post" enctype="multipart/form-data" id="eventoForm">
     <div class="form__group">
@@ -28,24 +28,30 @@
       <label class="form__label">Capienza max</label>
       <input class="form__input" type="number" min="0" name="capienza_max" id="capienza_max" value="{{ e.capienza_max if e else 2000 }}" required>
     </div>
-    <div class="form__group">
-      <label class="form__label">Stato pubblico</label>
-      <select class="form__input" name="stato_pubblico" required>
-        {% if e %}
-          <option value="programmato" {% if e.stato_pubblico == 'programmato' %}selected{% endif %}>Programmato</option>
-          <option value="attivo" {% if e.stato_pubblico == 'attivo' %}selected{% endif %}>Attivo</option>
-          <option value="chiuso" {% if e.stato_pubblico == 'chiuso' %}selected{% endif %}>Chiuso</option>
-        {% else %}
-          <option value="programmato" selected>Programmato</option>
-          <option value="attivo">Attivo</option>
-          <option value="chiuso">Chiuso</option>
-        {% endif %}
-      </select>
-      <small class="text--muted">Lo staff può operare solo sugli eventi con stato pubblico "attivo" e impostati come "operativi".</small>
+    <div class="form__group" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 1rem;">
+      <h3 style="margin-bottom: 1rem; color: var(--admin-accent);">⏰ Orari Operatività Staff</h3>
+      <p class="text--muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+        Imposta quando lo staff può operare su questo evento. L'evento sarà operativo per lo staff solo durante l'intervallo specificato.
+      </p>
+    </div>
+    
+    <div class="grid grid--2">
+      <div class="form__group">
+        <label class="form__label">Apertura Staff</label>
+        <input class="form__input" type="datetime-local" name="staff_open_at" id="staff_open_at" 
+               value="{% if e and e.staff_open_at %}{{ e.staff_open_at.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        <small class="text--muted">Quando lo staff può iniziare a operare</small>
+      </div>
+      <div class="form__group">
+        <label class="form__label">Chiusura Staff</label>
+        <input class="form__input" type="datetime-local" name="staff_close_at" id="staff_close_at" 
+               value="{% if e and e.staff_close_at %}{{ e.staff_close_at.strftime('%Y-%m-%dT%H:%M') }}{% endif %}">
+        <small class="text--muted">Quando lo staff deve smettere di operare</small>
+      </div>
     </div>
     
     <div class="form__group" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1.5rem; margin-top: 1rem;">
-      <h3 style="margin-bottom: 1rem; color: var(--admin-accent);">⏰ Apertura e Chiusura Automatica</h3>
+      <h3 style="margin-bottom: 1rem; color: var(--admin-accent);">⏰ Apertura e Chiusura Automatica Evento</h3>
       <p class="text--muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
         Imposta gli orari per l'apertura e chiusura automatica dell'evento. L'evento passerà automaticamente a "attivo" all'orario di apertura e a "chiuso" all'orario di chiusura.
       </p>
