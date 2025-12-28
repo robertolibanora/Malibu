@@ -109,33 +109,6 @@ def auth_register_submit():
             stato_account="attivo"
         )
         db.add(nuovo)
-        db.flush()  # Per ottenere l'ID del cliente
-        
-        # Assegna automaticamente le promozioni con auto_assegnazione=True
-        from app.models.promozioni import Promozione, ClientePromozione
-        from datetime import date
-        promozioni_auto = db.query(Promozione).filter(
-            Promozione.auto_assegnazione == True,
-            Promozione.attiva == True
-        ).filter(
-            (Promozione.data_inizio.is_(None)) | (Promozione.data_inizio <= date.today()),
-            (Promozione.data_fine.is_(None)) | (Promozione.data_fine >= date.today())
-        ).all()
-        
-        for prom in promozioni_auto:
-            # Verifica condizioni (livello e punti)
-            if prom.livello_richiesto and nuovo.livello != prom.livello_richiesto:
-                continue
-            if prom.punti_richiesti and (nuovo.punti_fedelta or 0) < prom.punti_richiesti:
-                continue
-            
-            cp = ClientePromozione(
-                cliente_id=nuovo.id_cliente,
-                promozione_id=prom.id_promozione,
-                data_scadenza=prom.data_fine
-            )
-            db.add(cp)
-        
         db.commit()
         _clear_identities()
         session["cliente_id"] = nuovo.id_cliente

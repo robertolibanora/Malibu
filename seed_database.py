@@ -86,19 +86,6 @@ DJ_TECHNO = [
     "DJ Subzero", "DJ Nexus", "DJ Vortex", "DJ Matrix", "DJ Digital"
 ]
 
-PROMOZIONI = [
-    "Ingresso ridotto prima delle 24:00",
-    "Aperitivo incluso",
-    "2x1 cocktail fino alle 23:00",
-    "Omaggio per compleanni",
-    "Happy hour esteso",
-    "Bottiglia omaggio per tavoli da 8+",
-    "Playlist speciale richiesta",
-    "VIP area access",
-    "Drink speciale del giorno",
-    None
-]
-
 # Prodotti tipici di un locale
 PRODOTTI_DATA = [
     {"nome": "Birra", "prezzo": 5.00, "categoria": "Drink"},
@@ -295,7 +282,6 @@ def seed_eventi(db):
                 "tipo_musica": "Commerciale",
                 "dj_artista": choice(DJ_COMMERCIALE),
                 "categoria": "altro",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": "chiuso",
                 "is_staff_operativo": False
             })
@@ -307,7 +293,6 @@ def seed_eventi(db):
                 "tipo_musica": "Reggaeton",
                 "dj_artista": choice(DJ_REGGETON),
                 "categoria": "reggaeton",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": "chiuso",
                 "is_staff_operativo": False
             })
@@ -319,7 +304,6 @@ def seed_eventi(db):
                 "tipo_musica": "Techno",
                 "dj_artista": choice(DJ_TECHNO),
                 "categoria": "techno",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": "chiuso",
                 "is_staff_operativo": False
             })
@@ -336,7 +320,6 @@ def seed_eventi(db):
                 "tipo_musica": "Commerciale",
                 "dj_artista": choice(DJ_COMMERCIALE),
                 "categoria": "altro",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": stato,
                 "is_staff_operativo": stato == "attivo"
             })
@@ -348,7 +331,6 @@ def seed_eventi(db):
                 "tipo_musica": "Reggaeton",
                 "dj_artista": choice(DJ_REGGETON),
                 "categoria": "reggaeton",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": stato,
                 "is_staff_operativo": stato == "attivo"
             })
@@ -360,7 +342,6 @@ def seed_eventi(db):
                 "tipo_musica": "Techno",
                 "dj_artista": choice(DJ_TECHNO),
                 "categoria": "techno",
-                "promozione": choice(PROMOZIONI),
                 "stato_pubblico": stato,
                 "is_staff_operativo": stato == "attivo"
             })

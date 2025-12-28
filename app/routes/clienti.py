@@ -862,8 +862,6 @@ def admin_cliente_detail(cliente_id):
         from app.models.fedeltà import Fedelta
         from app.models.feedback import Feedback
         from app.models.eventi import Evento
-        from app.models.promozioni import Promozione, ClientePromozione
-        
         cli = db.query(Cliente).get(cliente_id)
         if not cli:
             flash("Cliente non trovato. Potrebbe essere stato rimosso o l'ID non è valido.", "warning")
@@ -916,25 +914,6 @@ def admin_cliente_detail(cliente_id):
                          .order_by(Feedback.data_feedback.desc())\
                          .limit(5).all()
         
-        # Promozioni del cliente
-        promozioni_cliente = db.query(ClientePromozione, Promozione)\
-                              .join(Promozione, Promozione.id_promozione == ClientePromozione.promozione_id)\
-                              .filter(ClientePromozione.cliente_id == cliente_id)\
-                              .order_by(ClientePromozione.data_assegnazione.desc())\
-                              .all()
-        
-        # Promozioni disponibili per assegnare
-        promozioni_disponibili = db.query(Promozione)\
-                                   .filter(Promozione.attiva == True)\
-                                   .filter(
-                                       (Promozione.data_inizio.is_(None)) | (Promozione.data_inizio <= date.today()),
-                                       (Promozione.data_fine.is_(None)) | (Promozione.data_fine >= date.today())
-                                   ).all()
-        
-        # Filtra quelle già assegnate
-        promozioni_assegnate_ids = [cp.promozione_id for cp, _ in promozioni_cliente]
-        promozioni_disponibili = [p for p in promozioni_disponibili if p.id_promozione not in promozioni_assegnate_ids]
-        
         ultimo_ingresso = None
         if ultimi_ingressi:
             ingresso, evento = ultimi_ingressi[0]
@@ -962,8 +941,6 @@ def admin_cliente_detail(cliente_id):
                              ultimi_consumi=ultimi_consumi,
                              movimenti_fedelta=movimenti_fedelta,
                              feedback_list=feedback_list,
-                             promozioni_cliente=promozioni_cliente,
-                             promozioni_disponibili=promozioni_disponibili,
             oggi=date.today(),
             ultimo_ingresso=ultimo_ingresso,
             ultima_prenotazione=ultima_prenotazione,

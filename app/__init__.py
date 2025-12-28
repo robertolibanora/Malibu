@@ -324,7 +324,7 @@ def create_app():
         from app.models.prenotazioni import Prenotazione
         
         # Solo per pagine admin e se l'utente è admin
-        if request.endpoint and request.endpoint.startswith(('prenotazioni.admin_', 'dashboard.admin_', 'eventi.admin_', 'clienti.admin_', 'ingressi.admin_', 'consumi.admin_', 'feedback.admin_', 'staff_admin.', 'prodotti.admin_', 'log.', 'format.admin_', 'promozioni.admin_', 'stats.admin_')):
+        if request.endpoint and request.endpoint.startswith(('prenotazioni.admin_', 'dashboard.admin_', 'eventi.admin_', 'clienti.admin_', 'ingressi.admin_', 'consumi.admin_', 'feedback.admin_', 'staff_admin.', 'prodotti.admin_', 'log.', 'stats.admin_')):
             # Verifica se l'utente è admin
             if session.get('staff_role') == 'admin':
                 db = SessionLocal()

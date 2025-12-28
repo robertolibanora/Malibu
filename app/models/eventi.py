@@ -11,7 +11,6 @@ class Evento(Base):
     data_evento = Column(Date, nullable=False)
     tipo_musica = Column(String(50))
     dj_artista = Column(String(100))
-    promozione = Column(String(200))
     capienza_max = Column(Integer, default=2500)
     categoria = Column(
         Enum("reggaeton", "techno", "privato", "altro", name="categoria_enum"),
@@ -30,7 +29,7 @@ class Evento(Base):
     )
     is_staff_operativo = Column(Boolean, default=False, nullable=False)
     cover_url = Column(String(255))  # opzionale: URL immagine di copertina
-    template_id = Column(Integer, ForeignKey("template_eventi.id_template", ondelete="SET NULL", onupdate="CASCADE"), nullable=True)
+    template_id = Column(Integer, nullable=True)  # Campo legacy, non più utilizzato
     # Apertura e chiusura automatica
     data_ora_apertura_auto = Column(DateTime, nullable=True)  # Quando aprire automaticamente l'evento
     data_ora_chiusura_auto = Column(DateTime, nullable=True)  # Quando chiudere automaticamente l'evento
@@ -41,7 +40,6 @@ class Evento(Base):
     consumi = relationship("Consumo", back_populates="evento", cascade="all, delete-orphan")
     fedelta = relationship("Fedelta", back_populates="evento", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="evento", cascade="all, delete-orphan")
-    template = relationship("TemplateEvento", lazy="joined")
     tavoli_evento = relationship("TavoloEvento", back_populates="evento", cascade="all, delete-orphan")
 
     def __repr__(self):

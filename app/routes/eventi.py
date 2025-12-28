@@ -14,7 +14,6 @@ from app.models.prenotazioni import Prenotazione
 from app.models.consumi import Consumo
 from app.models.feedback import Feedback
 from app.utils.decorators import require_admin, require_staff
-from app.models.template_eventi import TEMPLATE_EVENTI, TemplateEvento
 from app.utils.events import get_evento_operativo, set_evento_operativo_id, get_evento_operativo_id
 from app.routes.log_attivita import log_action
 from app.routes.fedelta import award_on_no_show
@@ -401,16 +400,12 @@ def admin_new():
                 data_evento=data_evento_obj,
                 tipo_musica=request.form.get("tipo_musica"),
                 dj_artista=request.form.get("dj_artista"),
-                promozione=request.form.get("promozione"),
                 capienza_max=request.form.get("capienza_max", type=int),
                 categoria="altro",  # Default fisso
                 stato_pubblico=(request.form.get("stato_pubblico") or "programmato"),
                 is_staff_operativo=False,
                 cover_url=cover_filename,
-                template_id=(
-                    int(request.form.get("template_evento").split("-",1)[1])
-                    if (request.form.get("template_evento") or '').startswith("db-") else None
-                ),
+                template_id=None,
                 data_ora_apertura_auto=data_ora_apertura_auto,
                 data_ora_chiusura_auto=data_ora_chiusura_auto,
             )
@@ -427,7 +422,7 @@ def admin_new():
             db.commit()
             flash("Evento creato.", "success")
             return redirect(url_for("eventi.admin_evento_detail", evento_id=e.id_evento))
-        return render_template("admin/eventi_form.html", e=None, CATEGORIES_PUBLIC=CATEGORIES_PUBLIC, TEMPLATE_EVENTI=TEMPLATE_EVENTI, FORMATS=db.query(TemplateEvento).order_by(TemplateEvento.nome.asc()).all(), template_selezionato=request.args.get("t"))
+        return render_template("admin/eventi_form.html", e=None, CATEGORIES_PUBLIC=CATEGORIES_PUBLIC)
     finally:
         db.close()
 
@@ -539,11 +534,11 @@ def admin_evento_detail(evento_id):
         ).filter(Feedback.evento_id == evento_id).one()
         
         # Dati per grafici analytics
-        # Ingressi per ora (SQLite compatibile: usa strftime invece di hour)
+        # Ingressi per ora (MySQL: usa HOUR invece di strftime)
         ingressi_ora = db.query(
-            func.cast(func.strftime('%H', Ingresso.orario_ingresso), Integer).label('ora'),
+            func.hour(Ingresso.orario_ingresso).label('ora'),
             func.count(Ingresso.id_ingresso).label('count')
-        ).filter(Ingresso.evento_id == evento_id).group_by(func.strftime('%H', Ingresso.orario_ingresso)).order_by(func.strftime('%H', Ingresso.orario_ingresso)).all()
+        ).filter(Ingresso.evento_id == evento_id).group_by(func.hour(Ingresso.orario_ingresso)).order_by(func.hour(Ingresso.orario_ingresso)).all()
         
         ingressi_temporali_data = []
         for ora, count in ingressi_ora:
@@ -612,7 +607,6 @@ def admin_edit(evento_id):
                     return redirect(url_for("eventi.admin_edit", evento_id=evento_id))
             e.tipo_musica = request.form.get("tipo_musica")
             e.dj_artista = request.form.get("dj_artista")
-            e.promozione = request.form.get("promozione")
             e.capienza_max = request.form.get("capienza_max", type=int)
             # Categoria non più modificabile - mantiene valore esistente
             
@@ -796,7 +790,6 @@ def admin_duplicate(evento_id):
             data_evento=new_date_obj,
             tipo_musica=e.tipo_musica,
             dj_artista=e.dj_artista,
-            promozione=e.promozione,
             capienza_max=e.capienza_max,
             categoria="altro",  # Default fisso
             stato_pubblico="programmato",

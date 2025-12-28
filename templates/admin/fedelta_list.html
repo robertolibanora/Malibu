@@ -184,44 +184,5 @@
       </div>
     </section>
   </div>
-
-  <!-- Ultimi movimenti -->
-  <section class="card">
-    <div class="card__header">
-      <div>
-        <h2 class="card__title">Ultimi movimenti registrati</h2>
-        <p class="card__meta">Attività recenti del programma fedeltà</p>
-      </div>
-    </div>
-    <div class="card__content">
-      {% if recent_movimenti %}
-      <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
-        {% for mov in recent_movimenti %}
-        {% set movimento = mov.movimento %}
-        {% set cliente = mov.cliente %}
-        {% set evento = mov.evento %}
-        <div style="padding: var(--spacing-3); background: rgba(255,255,255,0.05); border-radius: var(--radius-md); border-left: 3px solid var(--admin-accent);">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-1);">
-            <strong style="font-size: var(--font-size-sm);">{{ cliente.cognome }} {{ cliente.nome }}</strong>
-            <span class="badge badge--primary">{{ movimento.punti }} pt</span>
-          </div>
-          <div class="text--muted" style="font-size: var(--font-size-xs);">
-            {{ movimento.data_assegnazione.strftime('%d/%m/%Y %H:%M') if movimento.data_assegnazione else 'Data n/d' }}
-            {% if evento %} • {{ evento.nome_evento }}{% endif %}
-          </div>
-          {% if movimento.motivo %}
-          <p style="margin: var(--spacing-2) 0 0; font-size: var(--font-size-sm); color: var(--admin-text);">{{ movimento.motivo }}</p>
-          {% endif %}
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="admin-empty-state">
-        <span class="admin-empty-state__icon">📊</span>
-        <p class="admin-empty-state__message">Ancora nessun movimento registrato di recente.</p>
-      </div>
-      {% endif %}
-    </div>
-  </section>
 </div>
 {% endblock %}

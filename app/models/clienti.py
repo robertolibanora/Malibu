@@ -35,7 +35,6 @@ class Cliente(Base):
     consumi = relationship("Consumo", back_populates="cliente", cascade="all, delete-orphan")
     fedelta = relationship("Fedelta", back_populates="cliente", cascade="all, delete-orphan")
     feedback = relationship("Feedback", back_populates="cliente", cascade="all, delete-orphan")
-    promozioni = relationship("ClientePromozione", back_populates="cliente", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Cliente(id={self.id_cliente}, nome='{self.nome}', cognome='{self.cognome}')>"

@@ -44,10 +44,6 @@
         {% if e.dj_artista %}
           <p class="event-card__dj">DJ set: <strong>{{ e.dj_artista }}</strong></p>
         {% endif %}
-        
-        {% if e.promozione %}
-          <p class="event-card__promo">🎊 Promo: {{ e.promozione }}</p>
-        {% endif %}
 
         <!-- Workflow status (se cliente loggato) -->
         {% if workflow_map and e.id_evento in workflow_map %}
@@ -129,9 +125,6 @@
         </p>
         {% if e.dj_artista %}
           <p class="event-card__dj">DJ set: <strong>{{ e.dj_artista }}</strong></p>
-        {% endif %}
-        {% if e.promozione %}
-          <p class="event-card__promo">Promo: {{ e.promozione }}</p>
         {% endif %}
       </div>
       <div class="event-card__actions event-card__actions--past">

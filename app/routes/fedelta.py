@@ -235,17 +235,6 @@ def admin_list():
         distribuzione_map = {lvl or "base": count for lvl, count in distribuzione_raw}
         distribuzione = [(lvl, distribuzione_map.get(lvl, 0)) for lvl, _ in thresholds_sorted]
 
-        recent = (db.query(Fedelta, Cliente, Evento)
-                    .join(Cliente, Cliente.id_cliente == Fedelta.cliente_id)
-                    .join(Evento, Evento.id_evento == Fedelta.evento_id)
-                    .order_by(Fedelta.data_assegnazione.desc())
-                    .limit(6)
-                    .all())
-        recent_movimenti = [
-            {"movimento": mov, "cliente": cli, "evento": ev}
-            for mov, cli, ev in recent
-        ]
-
         stats = {
             "totale_clienti": totale_clienti,
             "punti_totali": int(punti_totali),
@@ -259,8 +248,7 @@ def admin_list():
             thresholds=thresholds,
             thresholds_sorted=thresholds_sorted,
             can_edit_thresholds=SogliaFedelta is not None,
-            distribuzione=distribuzione,
-            recent_movimenti=recent_movimenti
+            distribuzione=distribuzione
         )
     finally:
         db.close()
