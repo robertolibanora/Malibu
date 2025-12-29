@@ -64,7 +64,7 @@
     subtitle="Informazioni complete, dati operativi e analytics",
     actions=[
       {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
-      {'type': 'link', 'url': url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento), 'label': '🪑 Gestione Tavoli', 'class': 'btn--secondary'}
+      {'type': 'link', 'url': url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento), 'label': 'Gestione Tavoli', 'class': 'btn--secondary'}
     ],
     breadcrumbs=[
       {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
@@ -88,12 +88,12 @@
 
   <!-- Navigazione Tab -->
   <div class="tabs" id="eventoTabs">
-    <button class="tabs__item active" onclick="showTab('informazioni', event)">📋 Informazioni</button>
-    <button class="tabs__item" onclick="showTab('prenotazioni', event)">📋 Prenotazioni</button>
-    <button class="tabs__item" onclick="showTab('ingressi', event)">🚪 Ingressi</button>
-    <button class="tabs__item" onclick="showTab('consumi', event)">💰 Consumi</button>
-    <button class="tabs__item" onclick="showTab('feedback', event)">💬 Feedback</button>
-    <button class="tabs__item" onclick="showTab('analytics', event)">📈 Analytics</button>
+    <button class="tabs__item active" onclick="showTab('informazioni', event)">Informazioni</button>
+    <button class="tabs__item" onclick="showTab('prenotazioni', event)">Prenotazioni</button>
+    <button class="tabs__item" onclick="showTab('ingressi', event)">Ingressi</button>
+    <button class="tabs__item" onclick="showTab('consumi', event)">Consumi</button>
+    <button class="tabs__item" onclick="showTab('feedback', event)">Feedback</button>
+    <button class="tabs__item" onclick="showTab('analytics', event)">Analytics</button>
   </div>
 
   <!-- Tab: Informazioni -->
@@ -153,7 +153,7 @@
         </div>
         <div class="card__content">
           <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
-            <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: center;">✏️ Modifica Evento</a>
+            <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: center;">Modifica Evento</a>
             
             <form method="post" action="{{ url_for('eventi.admin_duplicate', evento_id=evento.id_evento) }}">
               <div class="form__group">
@@ -170,24 +170,24 @@
               {% if evento.stato_pubblico == 'programmato' %}
               <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='attivo') }}" 
                     onsubmit="return confirm('Aprire l\\'evento? Staff e pubblico saranno attivati automaticamente.');">
-                <button class="btn btn--success" style="width: 100%;" type="submit">✅ Apri Evento</button>
+                <button class="btn btn--success" style="width: 100%;" type="submit">Apri Evento</button>
               </form>
               {% elif evento.stato_pubblico == 'attivo' %}
               <form method="post" action="{{ url_for('eventi.admin_close', evento_id=evento.id_evento) }}" 
                     onsubmit="return confirm('Confermi la chiusura dell\\'evento? Le prenotazioni attive saranno marcate come no-show.');">
-                <button class="btn btn--danger" style="width: 100%;" type="submit">🔒 Chiudi Evento</button>
+                <button class="btn btn--danger" style="width: 100%;" type="submit">Chiudi Evento</button>
               </form>
               {% elif evento.stato_pubblico == 'chiuso' %}
               <form method="post" action="{{ url_for('eventi.admin_set_stato', evento_id=evento.id_evento, stato='programmato') }}" 
                     onsubmit="return confirm('Riaprire l\\'evento?');">
-                <button class="btn btn--secondary" style="width: 100%;" type="submit">📋 Riapri Evento</button>
+                <button class="btn btn--secondary" style="width: 100%;" type="submit">Riapri Evento</button>
               </form>
               {% endif %}
               
               <form method="post" action="{{ url_for('eventi.admin_delete', evento_id=evento.id_evento) }}" 
                     style="margin-top: var(--spacing-2);"
                     onsubmit="return confirm('Eliminare definitivamente questo evento? Questa azione non può essere annullata.');">
-                <button class="btn btn--danger" style="width: 100%;" type="submit">🗑️ Elimina Evento</button>
+                <button class="btn btn--danger" style="width: 100%;" type="submit">Elimina Evento</button>
               </form>
             </div>
           </div>
@@ -230,7 +230,7 @@
                 {% endfor %}
               </dl>
               {% if tavolo_persone > 0 %}
-              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid #d4af37;">
+              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--admin-accent);">
                 <strong>Totale persone tavoli:</strong> <span class="text--gold">{{ tavolo_persone }}</span>
               </div>
               {% endif %}
@@ -262,9 +262,9 @@
                 </td>
                 <td>
                   {% if pren.tipo == 'tavolo' %}
-                    <span class="badge badge--primary">🪑 Tavolo</span>
+                    <span class="badge badge--primary">Tavolo</span>
                   {% elif pren.tipo == 'lista' %}
-                    <span class="badge badge--secondary">📋 Lista</span>
+                    <span class="badge badge--secondary">Lista</span>
                   {% else %}
                     <span class="badge badge--secondary">{{ pren.tipo|capitalize }}</span>
                   {% endif %}
@@ -303,7 +303,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">📋</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessuna prenotazione per questo evento.</p>
         </div>
         {% endif %}
@@ -385,7 +385,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">🚪</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun ingresso registrato per questo evento.</p>
         </div>
         {% endif %}
@@ -413,7 +413,7 @@
                 </div>
                 {% endfor %}
               </dl>
-              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid #d4af37;">
+              <div style="margin-top: var(--spacing-3); padding: var(--spacing-3); background: rgba(212, 175, 55, 0.08); border-radius: var(--radius-md); border-left: 3px solid var(--admin-accent);">
                 <div style="margin-bottom: var(--spacing-1);"><strong>Clienti unici:</strong> <span class="text--gold">{{ clienti_consumi }}</span></div>
                 <div><strong>Scontrino medio:</strong> <span class="text--gold">€{{ "%.2f"|format(scontrino_medio) }}</span></div>
               </div>
@@ -473,7 +473,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">💰</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun consumo registrato per questo evento.</p>
         </div>
         {% endif %}
@@ -491,7 +491,7 @@
         {% if feedback_evento %}
         <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
           {% for fb, cliente in feedback_evento %}
-          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.03); border-left: 3px solid #d4af37;">
+          <div class="card" style="margin-bottom: 0; background: rgba(255,255,255,0.03); border-left: 3px solid var(--admin-accent);">
             <div class="card__header">
               <div>
                 <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cliente.id_cliente) }}" style="text-decoration: none; color: inherit;">
@@ -501,9 +501,9 @@
               </div>
               <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2);">
                 <span class="badge badge--primary">🎵 {{ fb.voto_musica }}/10</span>
-                <span class="badge badge--primary">🚪 {{ fb.voto_ingresso }}/10</span>
+                <span class="badge badge--primary">{{ fb.voto_ingresso }}/10 Ingresso</span>
                 <span class="badge badge--primary">🌟 {{ fb.voto_ambiente }}/10</span>
-                <span class="badge badge--primary">🍽️ {{ fb.voto_servizio }}/10</span>
+                <span class="badge badge--primary">{{ fb.voto_servizio }}/10 Servizio</span>
               </div>
             </div>
             {% if fb.note %}
@@ -522,7 +522,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">💬</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun feedback registrato per questo evento.</p>
         </div>
         {% endif %}

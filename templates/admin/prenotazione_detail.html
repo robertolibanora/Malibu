@@ -13,9 +13,9 @@
             {{ prenotazione.stato|replace('_',' ')|capitalize }}
           </span>
           {% if prenotazione.tipo == 'tavolo' %}
-            <span class="badge" style="background: rgba(212, 175, 55, 0.2); color: var(--gold-primary); border: 1px solid rgba(212, 175, 55, 0.4);">🪑 Tavolo</span>
+            <span class="badge" style="background: rgba(212, 175, 55, 0.2); color: var(--gold-primary); border: 1px solid rgba(212, 175, 55, 0.4);">Tavolo</span>
           {% elif prenotazione.tipo == 'lista' %}
-            <span class="badge badge--warning">📋 Lista</span>
+            <span class="badge badge--warning">Lista</span>
           {% else %}
             <span class="badge badge--warning">{{ prenotazione.tipo|capitalize }}</span>
           {% endif %}
@@ -63,15 +63,9 @@
           <span class="info-label">Tipo:</span>
           <span class="info-value">
             {% if prenotazione.tipo == 'tavolo' %}
-              <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                <span>🪑</span>
-                <strong style="color: var(--gold-primary);">Tavolo</strong>
-              </span>
+              <strong style="color: var(--gold-primary);">Tavolo</strong>
             {% elif prenotazione.tipo == 'lista' %}
-              <span style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                <span>📋</span>
-                <span>Lista</span>
-              </span>
+              <span>Lista</span>
             {% else %}
               {{ prenotazione.tipo|capitalize }}
             {% endif %}
@@ -88,12 +82,12 @@
         {% if prenotazione.tipo == 'tavolo' %}
           {% if prenotazione.num_persone %}
           <div class="info-item">
-            <span class="info-label">👥 Numero Persone:</span>
+            <span class="info-label">Numero Persone:</span>
             <span class="info-value"><strong>{{ prenotazione.num_persone }}</strong></span>
           </div>
           {% else %}
           <div class="info-item">
-            <span class="info-label">👥 Numero Persone:</span>
+            <span class="info-label">Numero Persone:</span>
             <span class="info-value text--muted">Da confermare</span>
           </div>
           {% endif %}
@@ -107,7 +101,7 @@
         {% if prenotazione.note %}
         <div class="info-item" style="flex-direction: column; align-items: flex-start;">
           <span class="info-label" style="margin-bottom: 0.5rem;">
-            {% if prenotazione.tipo == 'tavolo' %}🪑 Nome Tavolo:{% else %}Note:{% endif %}
+            {% if prenotazione.tipo == 'tavolo' %}Nome Tavolo:{% else %}Note:{% endif %}
           </span>
           <span class="info-value">
             {% if prenotazione.tipo == 'tavolo' %}

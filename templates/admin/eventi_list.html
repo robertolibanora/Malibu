@@ -9,7 +9,7 @@
     title="Gestione Eventi",
     subtitle="Oggi: " ~ (oggi.strftime('%d/%m/%Y') if oggi else 'N/A'),
     actions=[
-      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': '+ Nuovo Evento', 'class': 'btn--primary'}
+      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': 'Nuovo Evento', 'class': 'btn--primary'}
     ],
     breadcrumbs=[
       {'label': 'Eventi', 'url': url_for('eventi.admin_list')}
@@ -22,16 +22,16 @@
       <div class="stat-card__value" style="font-size: var(--font-size-2xl);">{{ eventi|length }}</div>
       <div class="stat-card__label">Totale Eventi</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #d4af37; text-align: center;">
-      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: #d4af37;">{{ eventi_in_programma|length }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: var(--admin-accent);">{{ eventi_in_programma|length }}</div>
       <div class="stat-card__label">In Programma</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center;">
-      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: var(--color-green-accent);">{{ eventi_attivi|length }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: var(--admin-accent);">{{ eventi_attivi|length }}</div>
       <div class="stat-card__label">Attivi</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #6b7280; text-align: center;">
-      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: #6b7280;">{{ eventi_passati|length }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="font-size: var(--font-size-2xl); color: var(--admin-accent);">{{ eventi_passati|length }}</div>
       <div class="stat-card__label">Passati</div>
     </div>
   </div>
@@ -79,12 +79,12 @@
   {% if eventi_in_programma %}
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">📅 Eventi in Programma ({{ eventi_in_programma|length }})</h2>
+      <h2 class="card__title">Eventi in Programma ({{ eventi_in_programma|length }})</h2>
     </div>
     <div class="card__content">
       <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
         {% for e in eventi_in_programma %}
-        <article class="card" style="border-left: 4px solid #d4af37; margin-bottom: 0;">
+        <article class="card" style="border-left: 4px solid var(--admin-accent); margin-bottom: 0;">
           <div style="display: flex; gap: var(--spacing-4); flex-wrap: wrap;">
             {% if e.cover_url %}
             <div style="flex-shrink: 0;">
@@ -100,21 +100,21 @@
                     {{ e.nome_evento }}
                   </h3>
                   <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
-                    <span class="badge badge--secondary">📋 PROGRAMMATO</span>
+                    <span class="badge badge--secondary">PROGRAMMATO</span>
                     <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
                   </div>
                 </div>
               </div>
               <div class="text--muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-3);">
                 <div style="margin-bottom: var(--spacing-1);">
-                  <strong>📅 Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+                  <strong>Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
                   {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
                 </div>
                 {% if e.capienza_max %}
                 <div>
-                  <strong>👥 Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}
+                  <strong>Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}
                   {% set saturazione = ((ingressi_map.get(e.id_evento, 0) / e.capienza_max * 100) if e.capienza_max > 0 else 0)|round(0) %}
-                  <span style="color: {% if saturazione >= 80 %}var(--color-red-accent){% elif saturazione >= 50 %}var(--color-gold-dark){% else %}var(--color-green-accent){% endif %};">
+                  <span style="color: {% if saturazione >= 80 %}var(--admin-accent){% elif saturazione >= 50 %}var(--color-gold-dark){% else %}var(--admin-accent){% endif %};">
                     ({{ saturazione }}%)
                   </span>
                 </div>
@@ -122,10 +122,10 @@
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
                 <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
-                  📊 Dashboard Evento
+                  Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica Evento
+                  Modifica Evento
                 </a>
               </div>
             </div>
@@ -141,12 +141,12 @@
   {% if eventi_attivi %}
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">✅ Eventi Attivi ({{ eventi_attivi|length }})</h2>
+      <h2 class="card__title">Eventi Attivi ({{ eventi_attivi|length }})</h2>
     </div>
     <div class="card__content">
       <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
         {% for e in eventi_attivi %}
-        <article class="card" style="border-left: 4px solid {% if e.is_staff_operativo %}var(--color-green-accent){% else %}#3b82f6{% endif %}; margin-bottom: 0;">
+        <article class="card" style="border-left: 4px solid {% if e.is_staff_operativo %}var(--admin-accent){% else %}var(--admin-accent){% endif %}; margin-bottom: 0;">
           <div style="display: flex; gap: var(--spacing-4); flex-wrap: wrap;">
             {% if e.cover_url %}
             <div style="flex-shrink: 0;">
@@ -162,21 +162,21 @@
                     {{ e.nome_evento }}
                   </h3>
                   <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
-                    <span class="badge badge--success">✅ ATTIVO</span>
+                    <span class="badge badge--success">ATTIVO</span>
                     <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
                   </div>
                 </div>
               </div>
               <div class="text--muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-3);">
                 <div style="margin-bottom: var(--spacing-1);">
-                  <strong>📅 Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
+                  <strong>Data:</strong> {{ e.data_evento.strftime('%d/%m/%Y') if e.data_evento else 'N/A' }}
                   {% if e.dj_artista %} • <strong>DJ:</strong> {{ e.dj_artista }}{% endif %}
                 </div>
                 {% if e.capienza_max %}
                 <div>
-                  <strong>👥 Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}
+                  <strong>Ingressi:</strong> {{ ingressi_map.get(e.id_evento, 0) }} / {{ e.capienza_max }}
                   {% set saturazione = ((ingressi_map.get(e.id_evento, 0) / e.capienza_max * 100) if e.capienza_max > 0 else 0)|round(0) %}
-                  <span style="color: {% if saturazione >= 80 %}var(--color-red-accent){% elif saturazione >= 50 %}var(--color-gold-dark){% else %}var(--color-green-accent){% endif %};">
+                  <span style="color: {% if saturazione >= 80 %}var(--admin-accent){% elif saturazione >= 50 %}var(--color-gold-dark){% else %}var(--admin-accent){% endif %};">
                     ({{ saturazione }}%)
                   </span>
                 </div>
@@ -184,10 +184,10 @@
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
                 <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
-                  📊 Dashboard Evento
+                  Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica Evento
+                  Modifica Evento
                 </a>
               </div>
             </div>
@@ -205,12 +205,12 @@
   {% if eventi_passati %}
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">📚 Eventi Passati ({{ eventi_passati|length }})</h2>
+      <h2 class="card__title">Eventi Passati ({{ eventi_passati|length }})</h2>
     </div>
     <div class="card__content">
       <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
         {% for e in eventi_passati %}
-        <article class="card" style="border-left: 4px solid #6b7280; opacity: 0.85; margin-bottom: 0;">
+        <article class="card" style="border-left: 4px solid var(--admin-accent); opacity: 0.85; margin-bottom: 0;">
           <div style="display: flex; gap: var(--spacing-4); flex-wrap: wrap;">
             {% if e.cover_url %}
             <div style="flex-shrink: 0;">
@@ -226,7 +226,7 @@
                     {{ e.nome_evento }}
                   </h3>
                   <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
-                    <span class="badge badge--secondary">🔒 CHIUSO</span>
+                    <span class="badge badge--secondary">CHIUSO</span>
                     <span class="badge badge--secondary">{{ e.categoria|capitalize }}</span>
                   </div>
                 </div>
@@ -240,10 +240,10 @@
               </div>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
                 <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--primary btn--small">
-                  📊 Dashboard Evento
+                  Dashboard Evento
                 </a>
                 <a href="{{ url_for('eventi.admin_edit', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small">
-                  ✏️ Modifica Evento
+                  Modifica Evento
                 </a>
               </div>
             </div>
@@ -256,7 +256,7 @@
   {% else %}
   <section class="card">
     <div class="admin-empty-state">
-      <span class="admin-empty-state__icon">📚</span>
+      <span class="admin-empty-state__icon"></span>
       <p class="admin-empty-state__message">Nessun evento passato.</p>
     </div>
   </section>

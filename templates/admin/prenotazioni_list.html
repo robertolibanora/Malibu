@@ -7,19 +7,19 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
-    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
-    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
-    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
-    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': None},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': None},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': None},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': None},
   ], current_endpoint=request.endpoint, prenotazioni_attesa_count=prenotazioni_tavolo_attesa_count) }}
   
   {{ render_page_header(
     title="Prenotazioni",
     subtitle="Gestione completa delle prenotazioni · Filtra per evento, tipo e stato",
     actions=[
-      {'type': 'link', 'url': url_for('prenotazioni.admin_new'), 'label': '+ Nuova Prenotazione', 'class': 'btn--primary'}
+      {'type': 'link', 'url': url_for('prenotazioni.admin_new'), 'label': 'Nuova Prenotazione', 'class': 'btn--primary'}
     ],
     breadcrumbs=[
       {'label': 'Operativo', 'url': url_for('prenotazioni.admin_hub')},
@@ -33,7 +33,7 @@
       <div class="grid grid--auto">
         <div class="form__group">
           <label class="form__label">
-            🔍 Cerca per nome
+            Cerca per nome
             {% if filtro.cerca_nome %}
             <span class="badge badge--secondary" style="margin-left: var(--spacing-2); font-size: var(--font-size-xs);">{{ filtro.cerca_nome }}</span>
             {% endif %}
@@ -133,19 +133,19 @@
                 {{ p.stato|replace('_',' ')|capitalize }}
               </span>
               {% if p.tipo == 'tavolo' %}
-                <span class="badge badge--secondary">🪑 Tavolo</span>
+                <span class="badge badge--secondary">Tavolo</span>
               {% elif p.tipo == 'lista' %}
-                <span class="badge badge--secondary">📋 Lista</span>
+                <span class="badge badge--secondary">Lista</span>
               {% else %}
                 <span class="badge badge--secondary">{{ p.tipo|capitalize }}</span>
               {% endif %}
               {% if p.tipo == 'tavolo' and p.num_persone %}
-                <span class="badge badge--secondary">👥 {{ p.num_persone }} persone</span>
+                <span class="badge badge--secondary">{{ p.num_persone }} persone</span>
               {% elif p.num_persone %}
                 <span class="badge badge--secondary">Persone {{ p.num_persone }}</span>
               {% endif %}
               {% if p.tipo == 'tavolo' and p.note %}
-                <span class="badge badge--secondary" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ p.note }}">🪑 {{ p.note }}</span>
+                <span class="badge badge--secondary" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ p.note }}">{{ p.note }}</span>
               {% endif %}
               {% if p.stato == 'usata' %}
                 <span class="badge badge--success">Via staff</span>
@@ -170,7 +170,7 @@
     </div>
     {% else %}
     <div class="admin-empty-state">
-      <span class="admin-empty-state__icon">📋</span>
+      <span class="admin-empty-state__icon"></span>
       <p class="admin-empty-state__message">Nessuna prenotazione trovata con i filtri selezionati.</p>
     </div>
     {% endif %}

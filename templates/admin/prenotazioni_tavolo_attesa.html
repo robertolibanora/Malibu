@@ -7,12 +7,12 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
-    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
-    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
-    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
-    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': None},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': None},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': None},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': None},
   ], current_endpoint=request.endpoint, prenotazioni_attesa_count=prenotazioni_tavolo_attesa_count) }}
 
   {{ render_page_header(
@@ -67,15 +67,15 @@
             <td class="table__cell--actions">
               <div class="table__actions">
                 <form method="post" action="{{ url_for('prenotazioni.admin_approva_prenotazione_tavolo', pren_id=pren.id_prenotazione) }}" style="display: inline;">
-                  <button type="submit" class="btn btn--primary btn--small" title="Approva">✅ Approva</button>
+                  <button type="submit" class="btn btn--primary btn--small" title="Approva">Approva</button>
                 </form>
                 <form method="post" action="{{ url_for('prenotazioni.admin_rifiuta_prenotazione_tavolo', pren_id=pren.id_prenotazione) }}" 
                       style="display: inline;"
                       onsubmit="return confirm('Sei sicuro di voler rifiutare questa prenotazione? Il tavolo verrà liberato.');">
-                  <button type="submit" class="btn btn--danger btn--small" title="Rifiuta">❌ Rifiuta</button>
+                  <button type="submit" class="btn btn--danger btn--small" title="Rifiuta">Rifiuta</button>
                 </form>
                 <a href="{{ url_for('prenotazioni.admin_prenotazione_detail', pren_id=pren.id_prenotazione) }}" 
-                   class="btn btn--ghost btn--small" title="Dettaglio">👁️</a>
+                   class="btn btn--ghost btn--small" title="Dettaglio">Dettaglio</a>
               </div>
             </td>
           </tr>
@@ -87,7 +87,7 @@
   {% else %}
   <section class="card">
     <div class="admin-empty-state">
-      <span class="admin-empty-state__icon">✅</span>
+      <span class="admin-empty-state__icon"></span>
       <p class="admin-empty-state__message">Nessuna prenotazione tavolo in attesa di approvazione.</p>
     </div>
   </section>

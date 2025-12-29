@@ -11,7 +11,7 @@
     title="Dashboard Admin",
     subtitle="Panoramica ultimi " ~ range_days ~ " giorni · Aggiornato: " ~ ultimo_aggiornamento.strftime("%d/%m/%Y %H:%M"),
     actions=[
-      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': '+ Nuovo Evento', 'class': 'btn--primary'}
+      {'type': 'link', 'url': url_for('eventi.admin_new'), 'label': 'Nuovo Evento', 'class': 'btn--primary'}
     ],
     breadcrumbs=None
   ) }}
@@ -34,7 +34,7 @@
   <section class="card" style="border-left: 4px solid var(--admin-accent); background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%);">
     <div class="card__header">
       <div>
-        <h2 class="card__title">⚡ Accesso Rapido</h2>
+        <h2 class="card__title">Accesso Rapido</h2>
         <p class="card__subtitle">Navigazione veloce alle sezioni principali</p>
       </div>
     </div>
@@ -42,7 +42,6 @@
       <div class="grid grid--auto">
         <a href="{{ url_for('eventi.admin_list') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
           <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-            <span style="font-size: 2rem;">📅</span>
             <div>
               <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Eventi</strong>
               <small class="text--muted">Gestione eventi</small>
@@ -51,7 +50,6 @@
         </a>
         <a href="{{ url_for('prenotazioni.admin_hub') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
           <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-            <span style="font-size: 2rem;">📋</span>
             <div>
               <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Operativo</strong>
               <small class="text--muted">Prenotazioni e ingressi</small>
@@ -60,7 +58,6 @@
         </a>
         <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
           <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-            <span style="font-size: 2rem;">👥</span>
             <div>
               <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Clienti</strong>
               <small class="text--muted">Anagrafica e fedeltà</small>
@@ -69,7 +66,6 @@
         </a>
         <a href="{{ url_for('staff_admin.admin_hub') }}" class="card" style="text-decoration: none; padding: var(--spacing-4); transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);">
           <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-            <span style="font-size: 2rem;">⚙️</span>
             <div>
               <strong style="display: block; font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">Configurazione</strong>
               <small class="text--muted">Impostazioni sistema</small>
@@ -84,7 +80,7 @@
   <div class="grid grid--auto">
     <!-- Clienti -->
     <a href="{{ url_for('clienti.admin_lista_clienti') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">👥 Clienti Totali</div>
+      <div class="stat-card__label">Clienti Totali</div>
       <div class="stat-card__value">{{ tot_clienti }}</div>
       <div class="stat-card__meta">{{ clienti_attivi }} attivi</div>
       {% if nuovi_clienti_delta_abs != 0 %}
@@ -101,9 +97,9 @@
     </a>
 
     <!-- Ingressi -->
-    <a href="{{ url_for('ingressi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #3b82f6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">🚪 Ingressi ({{ range_days }} gg)</div>
-      <div class="stat-card__value" style="color: #3b82f6;">{{ ingressi_recenti }}</div>
+    <a href="{{ url_for('ingressi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Ingressi ({{ range_days }} gg)</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ ingressi_recenti }}</div>
       {% if ingressi_delta_abs != 0 %}
       <div class="stat-card__trend {% if ingressi_delta_abs > 0 %}stat-card__trend--up{% else %}stat-card__trend--down{% endif %}">
         <span class="stat-card__trend-value">
@@ -115,13 +111,13 @@
         <span class="stat-card__trend-label">vs periodo precedente</span>
       </div>
       {% endif %}
-      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #3b82f6; opacity: 0.7;">Clicca per vedere →</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--admin-accent); opacity: 0.7;">Clicca per vedere →</div>
     </a>
 
     <!-- Consumi -->
-    <a href="{{ url_for('consumi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--color-green-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">💰 Consumi ({{ range_days }} gg)</div>
-      <div class="stat-card__value" style="color: var(--color-green-accent);">€{{ "%.0f"|format(consumi_recenti) }}</div>
+    <a href="{{ url_for('consumi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Consumi ({{ range_days }} gg)</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">€{{ "%.0f"|format(consumi_recenti) }}</div>
       {% if consumi_delta_abs != 0 %}
       <div class="stat-card__trend {% if consumi_delta_abs > 0 %}stat-card__trend--up{% else %}stat-card__trend--down{% endif %}">
         <span class="stat-card__trend-value">
@@ -133,34 +129,34 @@
         <span class="stat-card__trend-label">vs periodo precedente</span>
       </div>
       {% endif %}
-      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--color-green-accent); opacity: 0.7;">Clicca per vedere →</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--admin-accent); opacity: 0.7;">Clicca per vedere →</div>
     </a>
 
     <!-- Eventi -->
-    <a href="{{ url_for('eventi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #8b5cf6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">📅 Eventi</div>
-      <div class="stat-card__value" style="color: #8b5cf6;">{{ eventi_attivi }}</div>
+    <a href="{{ url_for('eventi.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Eventi</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ eventi_attivi }}</div>
       <div class="stat-card__meta">{{ tot_eventi }} totali</div>
-      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #8b5cf6; opacity: 0.7;">Clicca per vedere →</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--admin-accent); opacity: 0.7;">Clicca per vedere →</div>
     </a>
 
     <!-- Prenotazioni -->
-    <a href="{{ url_for('prenotazioni.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #f59e0b;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">📋 Prenotazioni Attive</div>
-      <div class="stat-card__value" style="color: #f59e0b;">{{ prenotazioni_attive }}</div>
+    <a href="{{ url_for('prenotazioni.admin_list') }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Prenotazioni Attive</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ prenotazioni_attive }}</div>
       <div class="stat-card__meta">Stato "attiva"</div>
-      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: #f59e0b; opacity: 0.7;">Clicca per vedere →</div>
+      <div style="margin-top: var(--spacing-2); font-size: var(--font-size-xs); color: var(--admin-accent); opacity: 0.7;">Clicca per vedere →</div>
     </a>
   </div>
 
   <!-- Prossimo Evento -->
   {% if prossimo_evento %}
   {% set is_staff_operativo = evento_operativo and evento_operativo.id_evento == prossimo_evento.id_evento %}
-  <section class="card" style="border-left: 4px solid {% if is_staff_operativo %}var(--color-green-accent){% else %}#3b82f6{% endif %}; background: {% if is_staff_operativo %}linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%){% else %}rgba(59, 130, 246, 0.05){% endif %};">
+  <section class="card" style="border-left: 4px solid var(--admin-accent); background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);">
     <div class="card__header">
       <div style="flex: 1;">
         <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2); flex-wrap: wrap;">
-          <h2 class="card__title" style="margin: 0;">📅 Prossimo Evento</h2>
+          <h2 class="card__title" style="margin: 0;">Prossimo Evento</h2>
           {% if giorni_al_prossimo_evento is not none %}
           <span class="badge {% if giorni_al_prossimo_evento <= 0 %}badge--success{% elif giorni_al_prossimo_evento == 1 %}badge--warning{% else %}badge--secondary{% endif %}">
             {% if giorni_al_prossimo_evento <= 0 %}IN CORSO{% elif giorni_al_prossimo_evento == 1 %}DOMANI{% else %}TRA {{ giorni_al_prossimo_evento }} GIORNI{% endif %}
@@ -170,18 +166,18 @@
         </div>
         <h3 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-2);">{{ prossimo_evento.nome_evento }}</h3>
         <div class="text--muted" style="font-size: var(--font-size-sm);">
-          📅 {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
-          {% if prossimo_evento.dj_artista %} · 🎧 {{ prossimo_evento.dj_artista }}{% endif %}
+          {{ prossimo_evento.data_evento.strftime("%d/%m/%Y") if prossimo_evento.data_evento else "Data da definire" }}
+          {% if prossimo_evento.dj_artista %} · {{ prossimo_evento.dj_artista }}{% endif %}
           {% if prossimo_evento.categoria %} · {{ prossimo_evento.categoria|capitalize }}{% endif %}
-          {% if prossimo_evento.capienza_max %} · 👥 Capienza: {{ prossimo_evento.capienza_max }}{% endif %}
+          {% if prossimo_evento.capienza_max %} · Capienza: {{ prossimo_evento.capienza_max }}{% endif %}
         </div>
       </div>
       <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=prossimo_evento.id_evento) }}" class="btn btn--primary btn--small">
-          📊 Dashboard Evento
+          Dashboard Evento
         </a>
         <a href="{{ url_for('eventi.admin_edit', evento_id=prossimo_evento.id_evento) }}" class="btn btn--ghost btn--small">
-          ✏️ Modifica Evento
+          Modifica Evento
         </a>
       </div>
     </div>
@@ -224,7 +220,7 @@
     <section class="card">
       <div class="card__header">
         <div>
-          <h2 class="card__title">📈 Trend Attività</h2>
+          <h2 class="card__title">Trend Attività</h2>
           <p class="card__meta">Ingressi e consumi giornalieri ({{ range_days }} gg)</p>
         </div>
       </div>
@@ -235,7 +231,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">📊</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun dato disponibile nel periodo selezionato.</p>
         </div>
         {% endif %}
@@ -246,7 +242,7 @@
     <section class="card">
       <div class="card__header">
         <div>
-          <h2 class="card__title">⭐ Distribuzione Livelli Fedeltà</h2>
+          <h2 class="card__title">Distribuzione Livelli Fedeltà</h2>
           <p class="card__meta">Ripartizione clienti per tier</p>
         </div>
         <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">Vedi dettagli →</a>
@@ -256,9 +252,9 @@
         {% if totale_livelli %}
         <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
           {% set level_colors = {
-            'base': '#6b7280',
-            'loyal': '#3b82f6',
-            'premium': '#8b5cf6',
+            'base': 'var(--admin-accent)',
+            'loyal': 'var(--admin-accent)',
+            'premium': 'var(--admin-accent)',
             'vip': 'var(--admin-accent)'
           } %}
           {% for livello, count in livelli_dist.items() %}
@@ -280,7 +276,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">⭐</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun cliente con livelli assegnati.</p>
         </div>
         {% endif %}
@@ -294,7 +290,7 @@
     <section class="card">
       <div class="card__header">
         <div>
-          <h2 class="card__title">💬 Media Feedback</h2>
+          <h2 class="card__title">Media Feedback</h2>
           <p class="card__meta">Valutazione media su scala 1-10</p>
         </div>
         <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
@@ -302,10 +298,10 @@
       <div class="card__content">
         <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
           {% set feedback_items = [
-            ('🎵 Musica', avg_musica, '#3b82f6'),
-            ('🚪 Ingresso', avg_ingresso, '#8b5cf6'),
-            ('🌟 Ambiente', avg_ambiente, '#f59e0b'),
-            ('🍽️ Servizio', avg_servizio, 'var(--color-green-accent)')
+            ('Musica', avg_musica, 'var(--admin-accent)'),
+            ('Ingresso', avg_ingresso, 'var(--admin-accent)'),
+            ('Ambiente', avg_ambiente, 'var(--admin-accent)'),
+            ('Servizio', avg_servizio, 'var(--admin-accent)')
           ] %}
           {% for icon_label, value, color in feedback_items %}
           <div>
@@ -326,7 +322,7 @@
     <section class="card">
       <div class="card__header">
         <div>
-          <h2 class="card__title">📅 Eventi Recenti</h2>
+          <h2 class="card__title">Eventi Recenti</h2>
           <p class="card__meta">Ultimi 5 eventi</p>
         </div>
         <a href="{{ url_for('eventi.admin_list') }}" class="btn btn--ghost btn--small">Vedi tutti →</a>
@@ -335,7 +331,7 @@
         {% if eventi_recenti %}
         <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
           {% for evento in eventi_recenti %}
-          <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none; display: block; padding: var(--spacing-4); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-left: 3px solid {% if evento.stato_pubblico == 'attivo' %}var(--color-green-accent){% elif evento.stato_pubblico == 'programmato' %}var(--admin-accent){% else %}var(--color-gray-soft){% endif %}; border-radius: var(--radius-md); transition: all var(--transition-base);" onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(212,175,55,0.3)'; this.style.transform='translateX(4px)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.transform=''">
+          <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" style="text-decoration: none; display: block; padding: var(--spacing-4); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-left: 3px solid {% if evento.stato_pubblico == 'attivo' %}var(--admin-accent){% elif evento.stato_pubblico == 'programmato' %}var(--admin-accent){% else %}var(--color-gray-soft){% endif %}; border-radius: var(--radius-md); transition: all var(--transition-base);" onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(212,175,55,0.3)'; this.style.transform='translateX(4px)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.transform=''">
             <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-2); flex-wrap: wrap; gap: var(--spacing-2);">
               <strong style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">{{ evento.nome_evento }}</strong>
               <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
@@ -346,27 +342,27 @@
             </div>
             <div class="text--muted" style="font-size: var(--font-size-sm); margin-bottom: var(--spacing-3);">
               <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-2); align-items: center;">
-                <span>📅 {{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}</span>
+                <span>{{ evento.data_evento.strftime("%d/%m/%Y") if evento.data_evento else "Data da definire" }}</span>
                 {% if evento.categoria %}
                 <span>·</span>
                 <span>{{ evento.categoria|capitalize }}</span>
                 {% endif %}
                 {% if evento.dj_artista %}
                 <span>·</span>
-                <span>🎧 {{ evento.dj_artista }}</span>
+                <span>{{ evento.dj_artista }}</span>
                 {% endif %}
               </div>
             </div>
             <div style="display: flex; gap: var(--spacing-2); flex-wrap: wrap;">
-              <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small" onclick="event.stopPropagation();">📊 Dashboard</a>
-              <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" onclick="event.stopPropagation();">✏️ Modifica</a>
+              <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}" class="btn btn--primary btn--small" onclick="event.stopPropagation();">Dashboard</a>
+              <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small" onclick="event.stopPropagation();">Modifica</a>
             </div>
           </a>
           {% endfor %}
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">📅</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun evento recente.</p>
         </div>
         {% endif %}
@@ -378,7 +374,7 @@
   <section class="card">
     <div class="card__header">
       <div>
-        <h2 class="card__title">🏆 Top 5 Clienti per Punti</h2>
+        <h2 class="card__title">Top 5 Clienti per Punti</h2>
         <p class="card__meta">Clienti più fidelizzati</p>
       </div>
       <a href="{{ url_for('fedelta.admin_list') }}" class="btn btn--ghost btn--small">Vedi classifica completa →</a>
@@ -388,16 +384,12 @@
       <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
         {% for cliente, punti in top_clienti %}
         {% set rank = loop.index %}
-        {% set medal_colors = {1: 'var(--admin-accent)', 2: '#c0c0c0', 3: '#cd7f32'} %}
+        {% set medal_colors = {1: 'var(--admin-accent)', 2: 'var(--admin-accent)', 3: 'var(--admin-accent)'} %}
         {% set medal_color = medal_colors.get(rank, 'transparent') %}
         <a href="{{ url_for('clienti.admin_cliente_detail', cliente_id=cliente.id_cliente) }}" style="text-decoration: none; display: block; padding: var(--spacing-4); background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius-md); transition: all var(--transition-base);" onmouseover="this.style.background='rgba(255,255,255,0.06)'; this.style.borderColor='rgba(212,175,55,0.3)'; this.style.transform='translateX(4px)'" onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.borderColor='rgba(255,255,255,0.08)'; this.style.transform=''">
           <div style="display: flex; align-items: center; gap: var(--spacing-4);">
             <div style="width: 40px; height: 40px; border-radius: 50%; background: {% if rank <= 3 %}linear-gradient(135deg, {{ medal_color }}, {{ medal_color }}dd){% else %}rgba(255,255,255,0.1){% endif %}; display: flex; align-items: center; justify-content: center; font-weight: var(--font-weight-bold); font-size: var(--font-size-lg); flex-shrink: 0;">
-              {% if rank <= 3 %}
-                {% if rank == 1 %}🥇{% elif rank == 2 %}🥈{% else %}🥉{% endif %}
-              {% else %}
-                {{ rank }}
-              {% endif %}
+              {{ rank }}
             </div>
             <div style="flex: 1;">
               <div style="font-weight: var(--font-weight-semibold); font-size: var(--font-size-lg); margin-bottom: var(--spacing-1);">{{ cliente.nome }} {{ cliente.cognome }}</div>
@@ -418,7 +410,7 @@
       </div>
       {% else %}
       <div class="admin-empty-state">
-        <span class="admin-empty-state__icon">🏆</span>
+        <span class="admin-empty-state__icon"></span>
         <p class="admin-empty-state__message">Nessun cliente con punti registrati.</p>
       </div>
       {% endif %}
@@ -449,8 +441,8 @@
             {
               label: 'Ingressi',
               data: ingressiData,
-              borderColor: 'rgba(59, 130, 246, 0.95)',
-              backgroundColor: 'rgba(59, 130, 246, 0.12)',
+              borderColor: 'rgba(212, 175, 55, 0.95)',
+              backgroundColor: 'rgba(212, 175, 55, 0.12)',
               tension: 0.35,
               borderWidth: 2,
               pointRadius: 0,

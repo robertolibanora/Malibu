@@ -7,11 +7,11 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
-    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
-    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
-    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': None},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': None},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': None},
   ], current_endpoint=request.endpoint) }}
   
   {{ render_page_header(
@@ -48,16 +48,16 @@
 
   <!-- KPI -->
   <div class="grid grid--auto" style="margin-bottom: var(--spacing-6);">
-    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center; background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(12, 12, 12, 0.9) 100%);">
-      <div class="stat-card__value" style="color: var(--color-green-accent); font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold);">€{{ "%.0f"|format(stats.revenue_totale) }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center; background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(12, 12, 12, 0.9) 100%);">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold);">€{{ "%.0f"|format(stats.revenue_totale) }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Revenue Totale</div>
     </div>
     <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
       <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">€{{ "%.2f"|format(stats.scontrino_medio) }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Scontrino Medio</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
-      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.num_ordini }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.num_ordini }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Numero Ordini</div>
     </div>
   </div>
@@ -66,7 +66,7 @@
   <div class="grid grid--2" style="margin-bottom: var(--spacing-6);">
     <section class="card chart-card">
       <div class="card__header">
-        <h2 class="card__title">💰 Trend Revenue</h2>
+        <h2 class="card__title">Trend Revenue</h2>
         <p class="card__meta" style="margin: 0;">Andamento vendite giornaliero</p>
       </div>
       <div class="card__content">
@@ -76,7 +76,7 @@
 
     <section class="card chart-card">
       <div class="card__header">
-        <h2 class="card__title">📊 Revenue per Categoria</h2>
+        <h2 class="card__title">Revenue per Categoria</h2>
         <p class="card__meta" style="margin: 0;">Distribuzione per categoria prodotto</p>
       </div>
       <div class="card__content">
@@ -89,7 +89,7 @@
   {% if stats.top_prodotti %}
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">🏆 Top Prodotti per Revenue</h2>
+      <h2 class="card__title">Top Prodotti per Revenue</h2>
       <p class="card__meta" style="margin: 0;">I prodotti più venduti</p>
     </div>
     <div class="card__content">
@@ -111,7 +111,7 @@
               <td class="admin-table__cell" style="font-weight: var(--font-weight-medium);">{{ prodotto.nome }}</td>
               <td class="admin-table__cell">{{ prodotto.categoria }}</td>
               <td class="admin-table__cell">{{ prodotto.quantita }}</td>
-              <td class="admin-table__cell admin-table__cell--actions" style="color: var(--color-green-accent); font-weight: var(--font-weight-semibold);">€{{ "%.2f"|format(prodotto.revenue) }}</td>
+              <td class="admin-table__cell admin-table__cell--actions" style="color: var(--admin-accent); font-weight: var(--font-weight-semibold);">€{{ "%.2f"|format(prodotto.revenue) }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -133,8 +133,8 @@ if (ctxTrend) {
       datasets: [{
         label: 'Revenue (€)',
         data: {{ stats.trend_revenue | map(attribute='revenue') | list | tojson }},
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.15)',
+        borderColor: 'var(--admin-accent)',
+        backgroundColor: 'rgba(212, 175, 55, 0.15)',
         tension: 0.4,
         fill: true,
         borderWidth: 2
@@ -176,8 +176,8 @@ if (ctxCategorie) {
       datasets: [{
         label: 'Revenue (€)',
         data: {{ stats.revenue_per_categoria | map(attribute='revenue') | list | tojson }},
-        backgroundColor: 'rgba(16, 185, 129, 0.7)',
-        borderColor: '#10b981',
+        backgroundColor: 'rgba(212, 175, 55, 0.7)',
+        borderColor: 'var(--admin-accent)',
         borderWidth: 2
       }]
     },

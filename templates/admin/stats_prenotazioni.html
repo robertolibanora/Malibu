@@ -7,11 +7,11 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
-    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
-    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
-    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': None},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': None},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': None},
   ], current_endpoint=request.endpoint) }}
   
   {{ render_page_header(
@@ -52,17 +52,17 @@
       <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-4xl); font-weight: var(--font-weight-bold);">{{ stats.totale }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Totale Prenotazioni</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
-      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.lista }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.lista }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Lista</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #f59e0b; text-align: center;">
-      <div class="stat-card__value" style="color: #f59e0b; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.tavolo }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.tavolo }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">Tavolo</div>
     </div>
     {% if stats.tavoli_in_attesa > 0 %}
-    <div class="stat-card" style="border-left: 4px solid #ef4444; text-align: center;">
-      <div class="stat-card__value" style="color: #ef4444; font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.tavoli_in_attesa }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-3xl); font-weight: var(--font-weight-bold);">{{ stats.tavoli_in_attesa }}</div>
       <div class="stat-card__label" style="font-size: var(--font-size-base); font-weight: var(--font-weight-semibold);">In Attesa</div>
     </div>
     {% endif %}
@@ -72,7 +72,7 @@
   <div class="grid grid--2" style="margin-bottom: var(--spacing-6);">
     <section class="card chart-card">
       <div class="card__header">
-        <h2 class="card__title">📊 Distribuzione per Tipo</h2>
+        <h2 class="card__title">Distribuzione per Tipo</h2>
         <p class="card__meta" style="margin: 0;">Lista vs Tavolo</p>
       </div>
       <div class="card__content">
@@ -82,7 +82,7 @@
 
     <section class="card chart-card">
       <div class="card__header">
-        <h2 class="card__title">✅ Stati Approvazione Tavoli</h2>
+        <h2 class="card__title">Stati Approvazione Tavoli</h2>
         <p class="card__meta" style="margin: 0;">Stato delle richieste tavolo</p>
       </div>
       <div class="card__content">
@@ -102,7 +102,7 @@ if (ctxTipo) {
       labels: ['Lista', 'Tavolo'],
       datasets: [{
         data: [{{ stats.lista }}, {{ stats.tavolo }}],
-        backgroundColor: ['#3b82f6', '#f59e0b'],
+        backgroundColor: ['var(--admin-accent)', 'var(--admin-accent)'],
         borderWidth: 2,
         borderColor: 'rgba(0, 0, 0, 0.1)'
       }]
@@ -135,7 +135,7 @@ if (ctxStati) {
           {{ stats.tavoli_approvati }},
           {{ stats.tavoli_rifiutati }}
         ],
-        backgroundColor: ['#f59e0b', '#10b981', '#ef4444'],
+        backgroundColor: ['var(--admin-accent)', 'var(--admin-accent)', 'var(--admin-accent)'],
         borderWidth: 2,
         borderColor: 'rgba(0, 0, 0, 0.1)'
       }]

@@ -7,15 +7,15 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
-    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': None},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': None},
   ], current_endpoint=request.endpoint) }}
 
   {{ render_page_header(
     title="Programma Fedeltà",
     subtitle="Monitora punti e le attività più recenti dei clienti fidelizzati",
     actions=[
-      {'type': 'link', 'url': url_for('fedelta.admin_azzera_punti_form'), 'label': '⚠️ Azzera Punti', 'class': 'btn--danger'}
+      {'type': 'link', 'url': url_for('fedelta.admin_azzera_punti_form'), 'label': 'Azzera Punti', 'class': 'btn--danger'}
     ],
     breadcrumbs=[
       {'label': 'Clienti', 'url': url_for('clienti.admin_lista_clienti')},
@@ -98,7 +98,7 @@
         </div>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">⭐</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Non ci sono ancora clienti con punti da mostrare.</p>
         </div>
         {% endif %}
@@ -125,7 +125,7 @@
         </ul>
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">📊</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun dato disponibile per i livelli.</p>
         </div>
         {% endif %}

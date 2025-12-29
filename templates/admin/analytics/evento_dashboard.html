@@ -133,7 +133,7 @@
     }
 
     .chart-checkbox input {
-      accent-color: #d4af37;
+      accent-color: var(--admin-accent);
     }
 
     .chart-range-output {
@@ -325,10 +325,10 @@
 {% block scripts %}
   {{ super() }}
   <script>
-    const GOLD = '#d4af37';
+    const GOLD = 'var(--admin-accent)';
     const GOLD_LIGHT = 'rgba(212, 175, 55, 0.25)';
     const GOLD_DARK = '#a37c00';
-    const GOLD_PALETTE = ['#d4af37', '#f7d774', '#b8922b', '#ffe8a6', '#a37c00', '#c9aa43'];
+    const GOLD_PALETTE = ['var(--admin-accent)', '#f7d774', '#b8922b', '#ffe8a6', '#a37c00', '#c9aa43'];
 
     const charts = {};
 

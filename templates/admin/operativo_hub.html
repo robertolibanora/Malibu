@@ -7,12 +7,12 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': '📋'},
-    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': '📝'},
-    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': '🪑'},
-    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': '💰'},
-    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': '💬'},
+    {'url': url_for('prenotazioni.admin_hub'), 'endpoint': 'prenotazioni.admin_hub', 'label': 'Hub Operativo', 'icon': None},
+    {'url': url_for('prenotazioni.admin_list'), 'endpoint': 'prenotazioni.admin_list', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('prenotazioni.admin_prenotazioni_tavolo_attesa'), 'endpoint': 'prenotazioni.admin_prenotazioni_tavolo_attesa', 'label': 'Tavoli in Attesa', 'icon': None},
+    {'url': url_for('ingressi.admin_list'), 'endpoint': 'ingressi.admin_list', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('consumi.admin_list'), 'endpoint': 'consumi.admin_list', 'label': 'Consumi', 'icon': None},
+    {'url': url_for('feedback.admin_list'), 'endpoint': 'feedback.admin_list', 'label': 'Feedback', 'icon': None},
   ], current_endpoint=request.endpoint, prenotazioni_attesa_count=prenotazioni_tavolo_attesa_count) }}
   
   {{ render_page_header(
@@ -26,21 +26,21 @@
 
   <!-- Banner Evento Operativo -->
   {% if evento_operativo %}
-  <section class="card" style="border-left: 4px solid var(--color-green-accent); background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%);">
+  <section class="card" style="border-left: 4px solid var(--admin-accent); background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);">
     <div class="card__header">
       <div style="flex: 1;">
         <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2);">
-          <span style="font-size: 1.5rem;">🟢</span>
-          <span style="font-weight: var(--font-weight-semibold); color: var(--color-green-accent);">EVENTO OPERATIVO IN CORSO</span>
+          <span style="font-size: 1.5rem; color: var(--admin-accent);">●</span>
+          <span style="font-weight: var(--font-weight-semibold); color: var(--admin-accent);">EVENTO OPERATIVO IN CORSO</span>
         </div>
         <h2 style="font-size: var(--font-size-xl); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-2);">{{ evento_operativo.nome_evento }}</h2>
         <p class="text--muted" style="margin: 0;">
-          📅 {{ evento_operativo.data_evento.strftime('%d/%m/%Y') if evento_operativo.data_evento else 'Data da definire' }}
+          {{ evento_operativo.data_evento.strftime('%d/%m/%Y') if evento_operativo.data_evento else 'Data da definire' }}
           {% if evento_operativo.categoria %} • {{ evento_operativo.categoria|capitalize }}{% endif %}
         </p>
       </div>
       <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary">
-        📊 Dashboard Evento
+        Dashboard Evento
       </a>
     </div>
     
@@ -49,31 +49,31 @@
       <div class="grid grid--auto">
         <div class="stat-card" style="text-align: center; border-left: none;">
           <div class="stat-card__label">Prenotazioni</div>
-          <div class="stat-card__value" style="color: #f59e0b;">{{ tot_prenotazioni_oggi }}</div>
+          <div class="stat-card__value" style="color: var(--admin-accent);">{{ tot_prenotazioni_oggi }}</div>
         </div>
         <div class="stat-card" style="text-align: center; border-left: none;">
           <div class="stat-card__label">Ingressi</div>
-          <div class="stat-card__value" style="color: #3b82f6;">{{ tot_ingressi_oggi }}</div>
+          <div class="stat-card__value" style="color: var(--admin-accent);">{{ tot_ingressi_oggi }}</div>
         </div>
         <div class="stat-card" style="text-align: center; border-left: none;">
           <div class="stat-card__label">Consumi</div>
-          <div class="stat-card__value" style="color: var(--color-green-accent);">€{{ "%.0f"|format(tot_consumi_oggi) }}</div>
+          <div class="stat-card__value" style="color: var(--admin-accent);">€{{ "%.0f"|format(tot_consumi_oggi) }}</div>
         </div>
       </div>
     </div>
   </section>
   {% else %}
-  <section class="card" style="border-left: 4px solid #6b7280; background: rgba(107, 114, 128, 0.1);">
+  <section class="card" style="border-left: 4px solid var(--admin-accent); background: rgba(212, 175, 55, 0.1);">
     <div class="card__header">
       <div style="flex: 1;">
         <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2);">
-          <span style="font-size: 1.5rem;">⚪</span>
-          <span style="font-weight: var(--font-weight-semibold); color: #6b7280;">NESSUN EVENTO OPERATIVO</span>
+          <span style="font-size: 1.5rem; color: var(--admin-accent);">○</span>
+          <span style="font-weight: var(--font-weight-semibold); color: var(--admin-accent);">NESSUN EVENTO OPERATIVO</span>
         </div>
         <p class="text--muted" style="margin: 0;">Imposta un evento operativo per visualizzare le statistiche in tempo reale.</p>
       </div>
       <a href="{{ url_for('eventi.admin_evento_attivo') }}" class="btn btn--secondary">
-        🎯 Imposta Evento
+        Imposta Evento
       </a>
     </div>
   </section>
@@ -81,8 +81,8 @@
 
   <!-- Statistiche Globali -->
   <div class="grid grid--auto">
-    <div class="stat-card" style="border-left: 4px solid #f59e0b; text-align: center;">
-      <div class="stat-card__value" style="color: #f59e0b;">{{ tot_prenotazioni_attive }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ tot_prenotazioni_attive }}</div>
       <div class="stat-card__label">Prenotazioni Attive</div>
       <div class="stat-card__meta">(tutti gli eventi)</div>
     </div>
@@ -94,7 +94,6 @@
     <section class="card">
       <div class="card__header">
         <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">📋</span>
           <div>
             <h2 class="card__title" style="margin: 0;">Prenotazioni</h2>
             <p class="card__meta" style="margin: 0;">Gestione liste e tavoli</p>
@@ -105,21 +104,21 @@
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
           {% if evento_operativo %}
           <a href="{{ url_for('prenotazioni.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            📋 Prenotazioni Evento Operativo
+            Prenotazioni Evento Operativo
           </a>
           {% else %}
           <a href="{{ url_for('prenotazioni.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            📋 Tutte le Prenotazioni
+            Tutte le Prenotazioni
           </a>
           {% endif %}
           <a href="{{ url_for('prenotazioni.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            ➕ Nuova Prenotazione
+            Nuova Prenotazione
           </a>
         </div>
       </div>
       <div class="card__footer">
         <p class="text--muted" style="margin: 0; font-size: var(--font-size-xs);">
-          Gestisci prenotazioni in lista (📋) e tavoli (🪑)
+          Gestisci prenotazioni in lista e tavoli
         </p>
       </div>
     </section>
@@ -128,7 +127,6 @@
     <section class="card">
       <div class="card__header">
         <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">🚪</span>
           <div>
             <h2 class="card__title" style="margin: 0;">Ingressi</h2>
             <p class="card__meta" style="margin: 0;">Check-in e registro accessi</p>
@@ -139,15 +137,15 @@
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
           {% if evento_operativo %}
           <a href="{{ url_for('ingressi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            🚪 Ingressi Evento Operativo
+            Ingressi Evento Operativo
           </a>
           {% else %}
           <a href="{{ url_for('ingressi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            🚪 Tutti gli Ingressi
+            Tutti gli Ingressi
           </a>
           {% endif %}
           <a href="{{ url_for('ingressi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            ➕ Nuovo Ingresso
+            Nuovo Ingresso
           </a>
         </div>
       </div>
@@ -162,7 +160,6 @@
     <section class="card">
       <div class="card__header">
         <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">💰</span>
           <div>
             <h2 class="card__title" style="margin: 0;">Consumi</h2>
             <p class="card__meta" style="margin: 0;">Ordini e vendite</p>
@@ -173,15 +170,15 @@
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
           {% if evento_operativo %}
           <a href="{{ url_for('consumi.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            💰 Consumi Evento Operativo
+            Consumi Evento Operativo
           </a>
           {% else %}
           <a href="{{ url_for('consumi.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            💰 Tutti i Consumi
+            Tutti i Consumi
           </a>
           {% endif %}
           <a href="{{ url_for('consumi.admin_new') }}" class="btn btn--ghost" style="width: 100%; justify-content: flex-start;">
-            ➕ Nuovo Consumo
+            Nuovo Consumo
           </a>
         </div>
       </div>
@@ -196,7 +193,6 @@
     <section class="card">
       <div class="card__header">
         <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-          <span style="font-size: 1.75rem;">💬</span>
           <div>
             <h2 class="card__title" style="margin: 0;">Feedback</h2>
             <p class="card__meta" style="margin: 0;">Valutazioni clienti</p>
@@ -207,11 +203,11 @@
         <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
           {% if evento_operativo %}
           <a href="{{ url_for('feedback.admin_list', evento_id=evento_operativo.id_evento) }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            💬 Feedback Evento Operativo
+            Feedback Evento Operativo
           </a>
           {% else %}
           <a href="{{ url_for('feedback.admin_list') }}" class="btn btn--primary" style="width: 100%; justify-content: flex-start;">
-            💬 Tutti i Feedback
+            Tutti i Feedback
           </a>
           {% endif %}
         </div>
@@ -228,7 +224,7 @@
   {% if eventi_recenti %}
   <section class="card">
     <div class="card__header">
-      <h2 class="card__title">🔍 Accesso Rapido per Evento</h2>
+      <h2 class="card__title">Accesso Rapido per Evento</h2>
       <p class="card__meta">Seleziona un evento per visualizzare i dati filtrati</p>
     </div>
     <div class="card__content">
@@ -236,7 +232,7 @@
         {% for e in eventi_recenti[:6] %}
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=e.id_evento) }}" class="btn btn--ghost btn--small" style="flex: 1 1 180px; justify-content: flex-start; text-align: left;">
           <span style="margin-right: var(--spacing-2);">
-            {% if e.stato_pubblico == 'attivo' %}🟢{% elif e.stato_pubblico == 'programmato' %}📅{% else %}⚪{% endif %}
+            {% if e.stato_pubblico == 'attivo' %}<span style="color: var(--admin-accent);">●</span>{% elif e.stato_pubblico == 'programmato' %}<span style="color: var(--admin-accent);">○</span>{% else %}<span style="color: var(--admin-accent);">○</span>{% endif %}
           </span>
           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
             {{ e.nome_evento[:20] }}{% if e.nome_evento|length > 20 %}...{% endif %}

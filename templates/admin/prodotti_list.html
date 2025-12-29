@@ -7,11 +7,11 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': '⚙️'},
-    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': '👤'},
-    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': '🍹'},
-    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': '⭐'},
-    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': '📊'},
+    {'url': url_for('staff_admin.admin_hub'), 'endpoint': 'staff_admin.admin_hub', 'label': 'Hub Impostazioni', 'icon': None},
+    {'url': url_for('staff_admin.admin_list'), 'endpoint': 'staff_admin.admin_list', 'label': 'Staff', 'icon': None},
+    {'url': url_for('prodotti.admin_list'), 'endpoint': 'prodotti.admin_list', 'label': 'Prodotti', 'icon': None},
+    {'url': url_for('fedelta.admin_soglie'), 'endpoint': 'fedelta.admin_soglie', 'label': 'Soglie', 'icon': None},
+    {'url': url_for('log.list'), 'endpoint': 'log.list', 'label': 'Log', 'icon': None},
   ], current_endpoint=request.endpoint) }}
 
   {{ render_page_header(

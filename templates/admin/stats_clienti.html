@@ -7,12 +7,12 @@
 {% block admin_content %}
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': '📈'},
-    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': '📊'},
-    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': '🚪'},
-    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': '📋'},
-    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': '💰'},
-    {'url': url_for('stats.admin_clienti'), 'endpoint': 'stats.admin_clienti', 'label': 'Clienti', 'icon': '👥'},
+    {'url': url_for('stats.admin_hub'), 'endpoint': 'stats.admin_hub', 'label': 'Hub Statistiche', 'icon': None},
+    {'url': url_for('stats.admin_overview'), 'endpoint': 'stats.admin_overview', 'label': 'Overview', 'icon': None},
+    {'url': url_for('stats.admin_ingressi'), 'endpoint': 'stats.admin_ingressi', 'label': 'Ingressi', 'icon': None},
+    {'url': url_for('stats.admin_prenotazioni'), 'endpoint': 'stats.admin_prenotazioni', 'label': 'Prenotazioni', 'icon': None},
+    {'url': url_for('stats.admin_consumi'), 'endpoint': 'stats.admin_consumi', 'label': 'Consumi', 'icon': None},
+    {'url': url_for('stats.admin_clienti'), 'endpoint': 'stats.admin_clienti', 'label': 'Clienti', 'icon': None},
   ], current_endpoint=request.endpoint) }}
   
   {{ render_page_header(
@@ -31,12 +31,12 @@
       <div class="stat-card__value" style="color: #a855f7; font-size: var(--font-size-3xl);">{{ stats.totale }}</div>
       <div class="stat-card__label">Totale Clienti</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid #3b82f6; text-align: center;">
-      <div class="stat-card__value" style="color: #3b82f6; font-size: var(--font-size-2xl);">{{ stats.nuovi_ultimi_30_giorni }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-2xl);">{{ stats.nuovi_ultimi_30_giorni }}</div>
       <div class="stat-card__label">Nuovi (30gg)</div>
     </div>
-    <div class="stat-card" style="border-left: 4px solid var(--color-green-accent); text-align: center;">
-      <div class="stat-card__value" style="color: var(--color-green-accent); font-size: var(--font-size-2xl);">{{ stats.attivi_ultimi_90_giorni }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent); text-align: center;">
+      <div class="stat-card__value" style="color: var(--admin-accent); font-size: var(--font-size-2xl);">{{ stats.attivi_ultimi_90_giorni }}</div>
       <div class="stat-card__label">Attivi (90gg)</div>
     </div>
   </div>
@@ -94,7 +94,7 @@ if (ctxLivelli) {
   
   const colorMap = {
     'base': 'rgba(148, 163, 184, 0.9)',
-    'loyal': 'rgba(59, 130, 246, 0.9)',
+    'loyal': 'rgba(212, 175, 55, 0.9)',
     'premium': 'rgba(168, 85, 247, 0.92)',
     'vip': 'rgba(212, 175, 55, 0.95)'
   };

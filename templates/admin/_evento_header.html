@@ -1,6 +1,6 @@
 {# Header Evento Unificato - Usato in Gestione e Dettaglio #}
 {% macro render_evento_header(evento) %}
-<section class="card" style="border-left: 4px solid {% if evento.stato_pubblico == 'attivo' %}#3fc380{% elif evento.stato_pubblico == 'programmato' %}#d4af37{% else %}#6b7280{% endif %};">
+<section class="card" style="border-left: 4px solid var(--admin-accent);">
   <div class="card__header" style="padding: var(--spacing-4);">
     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--spacing-3);">
       <!-- Nome e Info -->
@@ -10,11 +10,11 @@
         </h1>
         <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
           <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
-            📅 {{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}
+            {{ evento.data_evento.strftime('%d/%m/%Y') if evento.data_evento else 'Data da definire' }}
           </span>
           {% if evento.dj_artista %}
           <span style="font-size: var(--font-size-sm); color: var(--color-text-muted);">
-            🎧 {{ evento.dj_artista }}
+            {{ evento.dj_artista }}
           </span>
           {% endif %}
         </div>
@@ -23,13 +23,13 @@
       <!-- Stato e Badge -->
       <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
         <span class="badge badge--{{ 'success' if evento.stato_pubblico == 'attivo' else 'primary' if evento.stato_pubblico == 'programmato' else 'secondary' }}" style="font-size: var(--font-size-sm); padding: var(--spacing-2) var(--spacing-3);">
-          {% if evento.stato_pubblico == 'attivo' %}✅ ATTIVO{% elif evento.stato_pubblico == 'programmato' %}📋 PROGRAMMATO{% else %}🔒 CHIUSO{% endif %}
+          {% if evento.stato_pubblico == 'attivo' %}ATTIVO{% elif evento.stato_pubblico == 'programmato' %}PROGRAMMATO{% else %}CHIUSO{% endif %}
         </span>
       </div>
 
       <!-- Link rapido alla modifica -->
       <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
-        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">✏️ Modifica</a>
+        <a href="{{ url_for('eventi.admin_edit', evento_id=evento.id_evento) }}" class="btn btn--ghost btn--small">Modifica</a>
       </div>
     </div>
   </div>

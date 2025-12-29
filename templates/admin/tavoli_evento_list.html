@@ -22,7 +22,7 @@
   <!-- Creazione Bulk Tavoli -->
   <section class="card" style="margin-bottom: var(--spacing-4); background: linear-gradient(135deg, rgba(212, 175, 55, 0.08) 0%, rgba(212, 175, 55, 0.03) 100%); border: 1px solid rgba(212, 175, 55, 0.2);">
     <div class="card__header">
-      <h2 class="card__title" style="margin: 0;">⚡ Creazione Rapida Tavoli</h2>
+      <h2 class="card__title" style="margin: 0;">Creazione Rapida Tavoli</h2>
     </div>
     <div class="card__content">
       <p class="text--muted" style="margin-bottom: var(--spacing-3);">
@@ -45,7 +45,7 @@
         </div>
         <div class="form__actions" style="border-top: none; padding-top: 0; margin-top: 0;">
           <button class="btn btn--primary" type="submit">
-            ⚡ Crea Tavoli da 1 a <span id="num-tavoli-display">20</span>
+            Crea Tavoli da 1 a <span id="num-tavoli-display">20</span>
           </button>
         </div>
       </form>
@@ -69,7 +69,7 @@
   <!-- Piantine discoteca -->
   <section class="card" style="margin-bottom: var(--spacing-4); background: rgba(8, 8, 8, 0.6); border: 1px solid rgba(212, 175, 55, 0.2);">
     <div class="card__header">
-      <h2 class="card__title" style="margin: 0; color: var(--gold-primary);">📍 Piantine discoteca</h2>
+      <h2 class="card__title" style="margin: 0; color: var(--gold-primary);">Piantine discoteca</h2>
     </div>
     <div class="card__content">
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-4);">
@@ -132,11 +132,11 @@
           </td>
           <td class="admin-table__cell admin-table__cell--actions">
             <a href="{{ url_for('prenotazioni.admin_tavolo_edit', tavolo_id=tavolo.id_tavolo) }}" 
-               class="admin-table__action admin-table__action--edit" title="Modifica">✏️</a>
+               class="admin-table__action admin-table__action--edit" title="Modifica">Modifica</a>
             <form method="post" action="{{ url_for('prenotazioni.admin_tavolo_delete', tavolo_id=tavolo.id_tavolo) }}" 
                   style="display: inline;" 
                   onsubmit="return confirm('Sei sicuro di voler eliminare questo tavolo?');">
-              <button type="submit" class="admin-table__action admin-table__action--delete" title="Elimina">🗑️</button>
+              <button type="submit" class="admin-table__action admin-table__action--delete" title="Elimina">Elimina</button>
             </form>
           </td>
         </tr>
@@ -147,10 +147,10 @@
   {% else %}
   <div class="card">
     <div class="admin-empty-state">
-      <span class="admin-empty-state__icon">🪑</span>
+      <span class="admin-empty-state__icon"></span>
       <p class="admin-empty-state__message">Nessun tavolo configurato per questo evento.</p>
       <a href="{{ url_for('prenotazioni.admin_tavolo_new', evento_id=evento.id_evento) }}" class="btn btn--primary">
-        + Crea Primo Tavolo
+        Crea Primo Tavolo
       </a>
     </div>
   </div>

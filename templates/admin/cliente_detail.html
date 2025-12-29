@@ -14,8 +14,8 @@
 
 <div class="admin-shell__content">
   {{ render_secondary_nav([
-    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': '👥'},
-    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': '⭐'},
+    {'url': url_for('clienti.admin_lista_clienti'), 'endpoint': 'clienti.admin_lista_clienti', 'label': 'Anagrafica', 'icon': None},
+    {'url': url_for('fedelta.admin_list'), 'endpoint': 'fedelta.admin_list', 'label': 'Punti Fedeltà', 'icon': None},
   ], current_endpoint=None) }}
 
   {{ render_page_header(
@@ -86,33 +86,33 @@
 
   <!-- Statistiche Principali -->
   <div class="grid grid--auto">
-    <a href="{{ url_for('prenotazioni.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #3b82f6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">📋 Prenotazioni</div>
-      <div class="stat-card__value" style="color: #3b82f6;">{{ tot_prenotazioni }}</div>
+    <a href="{{ url_for('prenotazioni.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Prenotazioni</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ tot_prenotazioni }}</div>
       {% if last_prenotazione %}
       <div class="stat-card__meta">Ultima: {{ last_prenotazione_event.data_evento.strftime('%d/%m/%Y') if last_prenotazione_event and last_prenotazione_event.data_evento else '—' }}</div>
       {% endif %}
     </a>
 
-    <a href="{{ url_for('ingressi.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #8b5cf6;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">🚪 Ingressi</div>
-      <div class="stat-card__value" style="color: #8b5cf6;">{{ tot_ingressi }}</div>
+    <a href="{{ url_for('ingressi.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Ingressi</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ tot_ingressi }}</div>
       {% if last_ingresso %}
       <div class="stat-card__meta">Ultimo: {{ last_ingresso.orario_ingresso.strftime('%d/%m/%Y') if last_ingresso.orario_ingresso else '—' }}</div>
       {% endif %}
     </a>
 
-    <a href="{{ url_for('consumi.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid #3fc380;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
-      <div class="stat-card__label">💰 Consumi</div>
-      <div class="stat-card__value" style="color: #3fc380;">€{{ "%.2f"|format(tot_consumi) }}</div>
+    <a href="{{ url_for('consumi.admin_list', cliente_id=cliente.id_cliente) }}" class="stat-card" style="text-decoration: none; cursor: pointer; transition: all var(--transition-base); border-left: 4px solid var(--admin-accent);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform=''; this.style.boxShadow='var(--shadow-card)'">
+      <div class="stat-card__label">Consumi</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">€{{ "%.2f"|format(tot_consumi) }}</div>
       {% if last_consumo %}
       <div class="stat-card__meta">Ultimo: {{ last_consumo_event.nome_evento if last_consumo_event else '—' }}</div>
       {% endif %}
     </a>
 
-    <div class="stat-card" style="border-left: 4px solid #d4af37;">
-      <div class="stat-card__label">⭐ Punti Fedeltà</div>
-      <div class="stat-card__value" style="color: #d4af37;">{{ cliente.punti_fedelta or 0 }}</div>
+    <div class="stat-card" style="border-left: 4px solid var(--admin-accent);">
+      <div class="stat-card__label">Punti Fedeltà</div>
+      <div class="stat-card__value" style="color: var(--admin-accent);">{{ cliente.punti_fedelta or 0 }}</div>
       <div class="stat-card__meta">{{ tot_punti }} assegnati complessivi</div>
     </div>
   </div>
@@ -200,7 +200,7 @@
         {% endif %}
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">⭐</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun movimento fedeltà registrato.</p>
         </div>
         {% endif %}
@@ -241,7 +241,7 @@
         {% endif %}
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">📋</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessuna prenotazione recente.</p>
         </div>
         {% endif %}
@@ -278,7 +278,7 @@
         {% endif %}
         {% else %}
         <div class="admin-empty-state">
-          <span class="admin-empty-state__icon">🚪</span>
+          <span class="admin-empty-state__icon"></span>
           <p class="admin-empty-state__message">Nessun ingresso registrato.</p>
         </div>
         {% endif %}
@@ -325,7 +325,7 @@
       {% endif %}
       {% else %}
       <div class="admin-empty-state">
-        <span class="admin-empty-state__icon">💰</span>
+        <span class="admin-empty-state__icon"></span>
         <p class="admin-empty-state__message">Nessun consumo registrato.</p>
       </div>
       {% endif %}

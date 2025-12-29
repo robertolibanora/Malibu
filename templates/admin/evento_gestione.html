@@ -12,7 +12,7 @@
     subtitle="Navigazione rapida alle sezioni operative",
     actions=[
       {'type': 'link', 'url': url_for('eventi.admin_list'), 'label': '← Lista Eventi', 'class': 'btn--ghost'},
-      {'type': 'link', 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento), 'label': '📊 Dettaglio Completo', 'class': 'btn--secondary'}
+      {'type': 'link', 'url': url_for('eventi.admin_evento_detail', evento_id=evento.id_evento), 'label': 'Dettaglio Completo', 'class': 'btn--secondary'}
     ],
     breadcrumbs=[
       {'label': 'Eventi', 'url': url_for('eventi.admin_list')},
@@ -44,37 +44,31 @@
     <div class="card__content">
       <div class="grid grid--auto">
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-prenotazioni" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">📋</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Prenotazioni</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Gestione liste e tavoli</span>
         </a>
 
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-ingressi" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">🚪</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Ingressi</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Check-in e registro accessi</span>
         </a>
 
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-consumi" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">💰</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Consumi</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Ordini e vendite</span>
         </a>
 
         <a href="{{ url_for('prenotazioni.admin_tavoli_evento', evento_id=evento.id_evento) }}" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">🪑</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Tavoli</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Configurazione tavoli evento</span>
         </a>
 
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-feedback" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">💬</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Feedback</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Valutazioni clienti</span>
         </a>
 
         <a href="{{ url_for('eventi.admin_evento_detail', evento_id=evento.id_evento) }}#tab-analytics" class="card" style="text-decoration: none; padding: var(--spacing-5); text-align: center; transition: all var(--transition-base); border: 1px solid rgba(212, 175, 55, 0.2);" onmouseover="this.style.borderColor='rgba(212,175,55,0.4)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='rgba(212,175,55,0.2)'; this.style.transform=''">
-          <div style="font-size: 2.5rem; margin-bottom: var(--spacing-2);">📈</div>
           <strong style="display: block; font-size: var(--font-size-base); margin-bottom: var(--spacing-1);">Analytics</strong>
           <span class="text--muted" style="font-size: var(--font-size-xs);">Statistiche e grafici</span>
         </a>
@@ -128,7 +122,7 @@
     </div>
     <div class="card__content">
       <div class="admin-empty-state">
-        <span class="admin-empty-state__icon">🪑</span>
+        <span class="admin-empty-state__icon"></span>
         <p class="admin-empty-state__message">Nessun tavolo configurato per questo evento.</p>
       </div>
     </div>

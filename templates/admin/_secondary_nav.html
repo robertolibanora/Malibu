@@ -11,9 +11,9 @@
   {% endif %}
   {% if count and count > 0 %}
   <div class="admin-alert-banner" style="margin-bottom: var(--spacing-3); background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.08) 100%); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); padding: var(--spacing-3); display: flex; align-items: center; gap: var(--spacing-3); animation: pulse-alert 2s ease-in-out infinite;">
-    <span style="font-size: 1.5rem;">⚠️</span>
+    <span style="font-size: 1.5rem; color: var(--admin-accent);">!</span>
     <div style="flex: 1;">
-      <strong style="color: #ef4444; display: block; margin-bottom: 0.25rem;">
+      <strong style="color: var(--admin-accent); display: block; margin-bottom: 0.25rem;">
         {{ count }} prenotazione{{ 'i' if count > 1 else '' }} tavolo in attesa di approvazione
       </strong>
       <small style="color: rgba(255, 255, 255, 0.7); font-size: 0.85rem;">
@@ -38,7 +38,7 @@
         {% endif %}
         <span class="admin-secondary-nav__label">{{ item.label }}</span>
         {% if item.endpoint == 'prenotazioni.admin_prenotazioni_tavolo_attesa' and count and count > 0 %}
-        <span class="admin-badge" style="position: absolute; top: 4px; right: 4px; background: #ef4444; color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600; min-width: 18px; text-align: center; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ count }}</span>
+        <span class="admin-badge" style="position: absolute; top: 4px; right: 4px; background: var(--admin-accent); color: white; border-radius: 10px; padding: 2px 6px; font-size: 10px; font-weight: 600; min-width: 18px; text-align: center; line-height: 1.4; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">{{ count }}</span>
         {% endif %}
       </a>
     </li>
