@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  # Servizio Flask Application
+  web:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: malibu-web
+    ports:
+      - "8123:8123"
+    volumes:
+      # Hot-reload: monta il codice sorgente per sviluppo
+      - ../app:/app/app
+      - ../templates:/app/templates
+      - ../static:/app/static
+      - ../run.py:/app/run.py
+      # Database SQLite (se usato)
+      - ../malibu.db:/app/malibu.db
+      # File di configurazione (opzionale, può essere sovrascritto da environment)
+      - ../.env:/app/.env:ro
+    environment:
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - PYTHONUNBUFFERED=1
+      # Database connection (sovrascrive .env se presente)
+      - DB_HOST=${DB_HOST:-db}
+      - DB_USER=${DB_USER:-malibu_user}
+      - DB_PASSWORD=${DB_PASSWORD:-malibu_password}
+      - DB_NAME=${DB_NAME:-malibu}
+      - DB_PORT=${DB_PORT:-3306}
+      - USE_SQLITE=${USE_SQLITE:-false}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD:-rootpassword}
+    command: >
+      sh -c "/usr/local/bin/wait-for-db.sh db 3306 && python run.py"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - malibu-network
+    restart: unless-stopped
+
+  # Servizio MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: malibu-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${DB_NAME:-malibu}
+      MYSQL_USER: ${DB_USER:-malibu_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-malibu_password}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    networks:
+      - malibu-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  mysql-data:
+    driver: local
+
+networks:
+  malibu-network:
+    driver: bridge
+

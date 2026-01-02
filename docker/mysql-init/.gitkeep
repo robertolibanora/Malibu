@@ -1,0 +1,4 @@
+# Questa cartella può contenere script SQL di inizializzazione
+# I file .sql in questa cartella verranno eseguiti automaticamente
+# all'avvio del container MySQL (solo al primo avvio)
+
