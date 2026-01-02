@@ -330,9 +330,10 @@ def admin_list():
             [e for e in eventi if e.stato_pubblico == 'attivo'], 
             key=lambda e: e.data_evento
         )
-        # Eventi passati: data < oggi E stato_pubblico != 'attivo'
+        # Eventi passati: stato_pubblico == 'chiuso' OPPURE (data < oggi E stato_pubblico != 'attivo')
+        # Gli eventi chiusi vanno sempre negli eventi passati, indipendentemente dalla data
         eventi_passati = sorted(
-            [e for e in eventi if e.data_evento < oggi and e.stato_pubblico != 'attivo'], 
+            [e for e in eventi if e.stato_pubblico == 'chiuso' or (e.data_evento < oggi and e.stato_pubblico != 'attivo')], 
             key=lambda e: e.data_evento, 
             reverse=True
         )
