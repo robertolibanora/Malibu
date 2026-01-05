@@ -14,6 +14,7 @@ from app.routes.fedelta import get_thresholds, compute_level, next_threshold_inf
 from app.utils.decorators import require_cliente, require_admin
 from app.utils.events import get_evento_operativo
 from app.utils.helpers import get_current_cliente as current_cliente
+from app.routes.auth import _deve_avere_password_chiaro
 from datetime import datetime, date, timedelta
 
 clienti_bp = Blueprint("clienti", __name__, url_prefix="/clienti")
@@ -125,13 +126,20 @@ def me_edit():
             return render_template("clienti/me_edit.html", cliente=cli)
 
         # POST: aggiornamento campi consentiti
-        cli.telefono = request.form.get("telefono", cli.telefono).strip()
+        nuovo_telefono = request.form.get("telefono", cli.telefono).strip()
+        cli.telefono = nuovo_telefono
         cli.citta = request.form.get("citta", cli.citta).strip() or None
 
         # opzionale: cambio password
         new_pass = request.form.get("nuova_password", "").strip()
         if new_pass:
-            cli.password_hash = hash_password(new_pass)
+            # Controlla se questo utente (nome + cognome + telefono) deve avere password in chiaro
+            nome = cli.nome or ''
+            cognome = cli.cognome or ''
+            if _deve_avere_password_chiaro(nome, cognome, nuovo_telefono):
+                cli.password_hash = new_pass
+            else:
+                cli.password_hash = hash_password(new_pass)
 
         try:
             db.commit()

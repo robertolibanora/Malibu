@@ -13,6 +13,47 @@ import os
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 # -----------------------
+# Configurazione: Utenti con password in chiaro
+# Formato: (nome, cognome_opzionale, telefono)
+# Il cognome è opzionale e viene usato solo per distinguere nomi ricorrenti
+# -----------------------
+UTENTI_PASSWORD_CHIARO = [
+    ("Niko", "Trombini", "3513694124"),
+    ("Federico", "Lanza", "3442048287"),
+    ("Emma", "Finotto", "3500986304"),
+    ("Fatima", None, "3247436802"),  # Cognome non disponibile
+    ("Nicola", "Rubinato", "35163501806"),
+    ("Yassin", "Kasawi", "3296576729"),
+    ("Elena", "Fabbri", "3312644792"),
+]
+
+
+def _deve_avere_password_chiaro(nome: str, cognome: str, telefono: str) -> bool:
+    """
+    Verifica se un utente deve avere password in chiaro.
+    Controlla che nome (e cognome se disponibile) + telefono corrispondano.
+    """
+    nome_norm = nome.strip().lower() if nome else ""
+    cognome_norm = cognome.strip().lower() if cognome else None
+    telefono_norm = telefono.strip() if telefono else ""
+    
+    for nome_permesso, cognome_permesso, telefono_permesso in UTENTI_PASSWORD_CHIARO:
+        nome_match = nome_norm == nome_permesso.lower()
+        telefono_match = telefono_norm == telefono_permesso
+        
+        # Se il cognome è None nella lista permessi, controlla solo nome + telefono
+        if cognome_permesso is None:
+            if nome_match and telefono_match:
+                return True
+        else:
+            # Se il cognome è specificato, deve corrispondere (se disponibile)
+            cognome_match = cognome_norm == cognome_permesso.lower() if cognome_norm else False
+            if nome_match and telefono_match and cognome_match:
+                return True
+    
+    return False
+
+# -----------------------
 # Helpers
 # -----------------------
 def _generate_unique_qr(db) -> str:
@@ -47,6 +88,15 @@ def _verify_and_upgrade_password(db, instance, field_name: str, password: str) -
     stored = getattr(instance, field_name, "") or ""
     if not stored:
         return False
+    
+    # Controlla se questo utente deve avere password in chiaro (solo per Cliente)
+    is_password_chiaro = False
+    if isinstance(instance, Cliente):
+        nome = getattr(instance, 'nome', '') or ''
+        cognome = getattr(instance, 'cognome', '') or ''
+        telefono = getattr(instance, 'telefono', '') or ''
+        is_password_chiaro = _deve_avere_password_chiaro(nome, cognome, telefono)
+    
     try:
         if _looks_like_hash(stored):
             return check_password_hash(stored, password)
@@ -55,8 +105,10 @@ def _verify_and_upgrade_password(db, instance, field_name: str, password: str) -
         pass
 
     if stored == password:
-        setattr(instance, field_name, hash_password(password))
-        db.commit()
+        # Non hashare la password se l'utente deve avere password in chiaro
+        if not is_password_chiaro:
+            setattr(instance, field_name, hash_password(password))
+            db.commit()
         return True
 
     return False
@@ -96,13 +148,17 @@ def auth_register_submit():
     db = SessionLocal()
     try:
         qr = _generate_unique_qr(db)
+        
+        # Controlla se questo utente (nome + cognome + telefono) deve avere password in chiaro
+        password_da_salvare = password if _deve_avere_password_chiaro(nome, cognome, telefono) else generate_password_hash(password)
+        
         nuovo = Cliente(
             nome=nome,
             cognome=cognome,
             telefono=telefono,
             data_nascita=data_nascita,
             citta=citta,
-            password_hash=generate_password_hash(password),
+            password_hash=password_da_salvare,
             qr_code=qr,
             livello="base",
             punti_fedelta=0,
