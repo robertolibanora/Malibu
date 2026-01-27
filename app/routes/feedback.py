@@ -1,7 +1,7 @@
 # app/routes/feedback.py
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from sqlalchemy import and_, func
+from sqlalchemy import and_, func, or_
 from app.database import SessionLocal
 from app.utils.decorators import require_cliente, require_admin
 from app.utils.limiter import limiter
@@ -126,7 +126,6 @@ def admin_list():
         if cliente_id:
             q = q.filter(Feedback.cliente_id == cliente_id)
         if cerca_nome:
-            from sqlalchemy import or_, func
             cerca_pattern = f"%{cerca_nome}%"
             q = q.filter(
                 or_(
